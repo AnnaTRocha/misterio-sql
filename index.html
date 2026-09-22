@@ -1,0 +1,268 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="description" content="Desafio de investigação com SQL para iniciantes.">
+  <title>Arquivo 18 — Mistério SQL</title>
+
+  <link rel="preconnect" href="https://cdnjs.cloudflare.com">
+  <link rel="stylesheet" href="assets/style.css">
+
+  <script defer src="https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.10.3/sql-wasm.js"></script>
+  <script defer src="js/app.js"></script>
+</head>
+
+<body>
+  <div class="noise" aria-hidden="true"></div>
+
+  <header class="hero">
+    <nav class="nav shell">
+      <a class="brand" href="#">
+        <span class="brand-mark">18</span>
+        <span>ARQUIVO SQL</span>
+      </a>
+
+      <div class="status">
+        <span class="status-dot"></span>
+        Caso aberto
+      </div>
+    </nav>
+
+    <div class="hero-content shell">
+      <div class="case-tag">CASO #SQL-001 · DIFICULDADE FÁCIL</div>
+      <h1>O notebook<br><em>desaparecido</em></h1>
+      <p>
+        Um notebook novo desapareceu do Laboratório 2.
+        Você tem acesso aos registros da escola. Encontre as pistas,
+        cruze os dados e identifique o responsável.
+      </p>
+
+      <a class="primary-link" href="#investigacao">Iniciar investigação ↓</a>
+    </div>
+  </header>
+
+  <main>
+    <section class="shell intro-grid">
+      <article class="paper case-summary">
+        <span class="paper-label">RESUMO DA OCORRÊNCIA</span>
+        <h2>18 de agosto de 2026</h2>
+        <p>
+          O desaparecimento foi percebido pouco depois das 20h.
+          A última localização conhecida do equipamento era o
+          <strong>Laboratório 2</strong>.
+        </p>
+
+        <div class="stamp">CONFIDENCIAL</div>
+      </article>
+
+      <aside class="mission">
+        <span class="eyebrow">SUA MISSÃO</span>
+        <h2>Você consegue resolver o caso apenas com SQL?</h2>
+        <p>
+          Não existe uma lista pronta de suspeitos. Cada consulta deve
+          revelar uma parte da investigação.
+        </p>
+
+        <div class="objective">
+          <span>Objetivo final</span>
+          <strong>Identificar o responsável pelo furto.</strong>
+        </div>
+      </aside>
+    </section>
+
+    <section class="database-section">
+      <div class="shell">
+        <div class="section-heading">
+          <div>
+            <span class="eyebrow">BANCO DE DADOS</span>
+            <h2>5 tabelas. Uma verdade.</h2>
+          </div>
+          <p>
+            Você pode consultar qualquer tabela. As relações usam
+            <code>pessoa_id → pessoas.id</code>.
+          </p>
+        </div>
+
+        <div class="schema-grid">
+          <article class="schema-card">
+            <div class="schema-icon">01</div>
+            <h3>ocorrencias</h3>
+            <p>Registros dos acontecimentos reportados na escola.</p>
+            <code>id · data · tipo · local · descricao</code>
+          </article>
+
+          <article class="schema-card">
+            <div class="schema-icon">02</div>
+            <h3>pessoas</h3>
+            <p>Cadastro das pessoas presentes no ambiente escolar.</p>
+            <code>id · nome · cargo</code>
+          </article>
+
+          <article class="schema-card">
+            <div class="schema-icon">03</div>
+            <h3>depoimentos</h3>
+            <p>Relatos coletados depois do desaparecimento.</p>
+            <code>id · pessoa_id · depoimento</code>
+          </article>
+
+          <article class="schema-card">
+            <div class="schema-icon">04</div>
+            <h3>acessos</h3>
+            <p>Registros de entrada e saída em diferentes locais.</p>
+            <code>id · pessoa_id · data_hora · local · tipo</code>
+          </article>
+
+          <article class="schema-card">
+            <div class="schema-icon">05</div>
+            <h3>veiculos</h3>
+            <p>Veículos associados às pessoas cadastradas.</p>
+            <code>id · pessoa_id · modelo · cor · placa</code>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <section id="investigacao" class="investigation shell">
+      <div class="workspace-header">
+        <div>
+          <span class="eyebrow">TERMINAL DE INVESTIGAÇÃO</span>
+          <h2>Consulte as evidências</h2>
+        </div>
+
+        <div id="dbStatus" class="db-status loading">
+          <span></span>
+          Carregando banco...
+        </div>
+      </div>
+
+      <div class="workspace">
+        <aside class="clues-panel">
+          <div class="panel-title">
+            <span>ROTEIRO</span>
+            <span class="counter">01—05</span>
+          </div>
+
+          <ol class="clue-list">
+            <li>
+              <span>01</span>
+              <p>Encontre a ocorrência do dia <strong>18/08/2026</strong>.</p>
+            </li>
+            <li>
+              <span>02</span>
+              <p>Leia a descrição e descubra <strong>onde e quando</strong> procurar.</p>
+            </li>
+            <li>
+              <span>03</span>
+              <p>Descubra quais pessoas aparecem nos registros de acesso.</p>
+            </li>
+            <li>
+              <span>04</span>
+              <p>Procure depoimentos que tragam características úteis.</p>
+            </li>
+            <li>
+              <span>05</span>
+              <p>Cruze as informações até restar apenas uma possibilidade.</p>
+            </li>
+          </ol>
+
+          <details class="hint">
+            <summary>Preciso de uma dica</summary>
+            <p>
+              Comece usando <code>SELECT</code> e <code>WHERE</code> na tabela
+              <code>ocorrencias</code>.
+            </p>
+          </details>
+        </aside>
+
+        <section class="terminal" aria-label="Terminal SQL">
+          <div class="terminal-bar">
+            <div class="window-dots"><i></i><i></i><i></i></div>
+            <span>investigacao.sql</span>
+            <button id="clearBtn" class="text-btn" type="button">Limpar</button>
+          </div>
+
+          <label class="sr-only" for="sqlEditor">Consulta SQL</label>
+          <textarea
+            id="sqlEditor"
+            spellcheck="false"
+            autocomplete="off"
+            aria-label="Editor SQL"
+          >SELECT * FROM ocorrencias;</textarea>
+
+          <div class="terminal-actions">
+            <div>
+              <span class="shortcut">Ctrl + Enter</span>
+              <span>para executar</span>
+            </div>
+            <button id="runBtn" class="run-btn" type="button" disabled>
+              Executar SQL
+            </button>
+          </div>
+
+          <div id="resultArea" class="result-area">
+            <div class="empty-result">
+              <span>&gt;_</span>
+              <p>Os resultados da sua consulta aparecerão aqui.</p>
+            </div>
+          </div>
+        </section>
+      </div>
+    </section>
+
+    <section class="accusation-section">
+      <div class="shell accusation-card">
+        <div>
+          <span class="eyebrow light">CONCLUSÃO DO CASO</span>
+          <h2>Tem um suspeito?</h2>
+          <p>
+            Digite o nome completo da pessoa que, segundo as evidências,
+            levou o notebook.
+          </p>
+        </div>
+
+        <form id="accusationForm" class="accusation-form">
+          <label for="suspectInput">Nome completo do suspeito</label>
+          <div class="input-row">
+            <input
+              id="suspectInput"
+              type="text"
+              autocomplete="off"
+              placeholder="Ex.: Nome Sobrenome"
+              required
+            >
+            <button type="submit">Enviar acusação</button>
+          </div>
+          <div id="verdict" class="verdict" aria-live="polite"></div>
+        </form>
+      </div>
+    </section>
+
+    <section class="shell learning">
+      <div class="section-heading">
+        <div>
+          <span class="eyebrow">CONTEÚDOS PRATICADOS</span>
+          <h2>SQL usado na investigação</h2>
+        </div>
+      </div>
+
+      <div class="skill-list">
+        <span>SELECT</span>
+        <span>WHERE</span>
+        <span>AND</span>
+        <span>LIKE</span>
+        <span>BETWEEN</span>
+        <span>ORDER BY</span>
+        <span>JOIN</span>
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    <div class="shell">
+      <span>ARQUIVO SQL</span>
+      <p>Exercício educacional de investigação com banco de dados.</p>
+    </div>
+  </footer>
+</body>
+</html>
