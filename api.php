@@ -12,8 +12,18 @@ if($u['role']==='student' && $action==='query'){
 }
 if($u['role']==='student' && $action==='complete'){
   $phase=(int)($_POST['phase_id']??0); if($phase<1||$phase>3) out(['error'=>'Fase inválida'],422);
+  $s=$pdo->prepare('SELECT released,developed,reward FROM phases WHERE id=?'); $s->execute([$phase]); $phaseRow=$s->fetch();
+  if(!$phaseRow || !$phaseRow['released'] || !$phaseRow['developed']) out(['error'=>'Fase indisponível'],403);
+  if($phase===1){
+    $answer=trim(mb_strtolower((string)($_POST['answer']??''),'UTF-8'));
+    if(hash('sha256',$answer)!=='508df44321d2b2e2a04dbb185429c3343ec4bb0ca22b40dfd81c75fc5cea1695') out(['error'=>'Acusação incorreta'],422);
+  } else {
+    $q=$pdo->prepare('SELECT 1 FROM student_queries WHERE user_id=? AND phase_id=? AND success=1 LIMIT 1'); $q->execute([$u['id'],$phase]);
+    if(!$q->fetchColumn()) out(['error'=>'Execute uma consulta que cumpra o objetivo antes de concluir.'],422);
+  }
+  ensure_progress((int)$u['id'],$phase);
   $pdo->prepare("UPDATE progress SET status='completed',completed_at=COALESCE(completed_at,CURRENT_TIMESTAMP) WHERE user_id=? AND phase_id=?")->execute([$u['id'],$phase]);
-  $s=$pdo->prepare('SELECT reward FROM phases WHERE id=?');$s->execute([$phase]); out(['ok'=>true,'reward'=>$s->fetchColumn()]);
+  out(['ok'=>true,'reward'=>$phaseRow['reward']]);
 }
 if($u['role']==='teacher' && $action==='release'){
   $phase=(int)($_POST['phase_id']??0); $released=(int)($_POST['released']??0);

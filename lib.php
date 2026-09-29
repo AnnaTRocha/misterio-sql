@@ -63,7 +63,6 @@ function migrate(PDO $pdo): void {
         status TEXT NOT NULL DEFAULT 'pending',
         requested_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
         resolved_at TEXT,
-        UNIQUE(user_id, status),
         FOREIGN KEY(user_id) REFERENCES users(id) ON DELETE CASCADE
     )");
 
