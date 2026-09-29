@@ -1,2 +1,5 @@
-data/app.sqlite
-data/app.sqlite-*
+.env
+.env.local
+.env.*.local
+.vercel
+node_modules

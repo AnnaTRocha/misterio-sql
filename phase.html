@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Investigação — Mistério SQL</title>
+  <link rel="stylesheet" href="assets/style.css">
+  <script defer src="https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.10.3/sql-wasm.js"></script>
+  <script type="module" src="js/phase.js"></script>
+</head>
+<body>
+  <div class="noise" aria-hidden="true"></div>
+  <header class="app-nav">
+    <a class="brand" href="dashboard.html"><span class="brand-mark">18</span><span>ARQUIVO SQL</span></a>
+    <div class="nav-user"><span id="username">...</span><a href="dashboard.html">← Fases</a></div>
+  </header>
+
+  <main class="shell phase-page">
+    <div class="phase-heading">
+      <div>
+        <span class="eyebrow" id="phaseLabel">FASE</span>
+        <h1 id="phaseTitle">Carregando...</h1>
+        <p id="phaseMission"></p>
+      </div>
+      <div id="dbStatus" class="db-status loading"><span></span>Carregando banco...</div>
+    </div>
+
+    <div class="workspace">
+      <aside class="clues-panel">
+        <div class="panel-title"><span>ROTEIRO</span><span id="clueCounter"></span></div>
+        <ol class="clue-list" id="clueList"></ol>
+        <div class="schema-mini">
+          <strong>Tabelas disponíveis</strong>
+          <code>ocorrencias</code><code>pessoas</code><code>depoimentos</code><code>acessos</code><code>veiculos</code>
+        </div>
+      </aside>
+
+      <section class="terminal" aria-label="Terminal SQL">
+        <div class="terminal-bar">
+          <div class="window-dots"><i></i><i></i><i></i></div>
+          <span id="terminalName">investigacao.sql</span>
+          <button id="clearBtn" class="text-btn" type="button">Limpar</button>
+        </div>
+        <textarea id="sqlEditor" spellcheck="false" autocomplete="off">SELECT * FROM ocorrencias;</textarea>
+        <div class="terminal-actions">
+          <span>Ctrl + Enter para executar</span>
+          <button id="runBtn" class="run-btn" type="button" disabled>Executar SQL</button>
+        </div>
+        <div id="resultArea" class="result-area">
+          <div class="empty-result"><span>&gt;_</span><p>Os resultados aparecerão aqui.</p></div>
+        </div>
+      </section>
+    </div>
+
+    <section class="phase-finish" id="finishArea"></section>
+  </main>
+</body>
+</html>

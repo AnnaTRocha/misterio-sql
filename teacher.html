@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Painel do professor — Mistério SQL</title>
+  <link rel="stylesheet" href="assets/style.css">
+  <script type="module" src="js/teacher.js"></script>
+</head>
+<body>
+  <div class="noise" aria-hidden="true"></div>
+  <header class="app-nav">
+    <a class="brand" href="teacher.html"><span class="brand-mark">18</span><span>PAINEL DO PROFESSOR</span></a>
+    <div class="nav-user"><span id="username">...</span><a href="#" id="logout">Sair</a></div>
+  </header>
+  <main class="shell dashboard">
+    <span class="eyebrow">ADMINISTRAÇÃO</span>
+    <h1>Acompanhamento da turma</h1>
+
+    <section class="admin-section">
+      <h2>Liberação das fases</h2>
+      <div class="admin-grid" id="phaseAdmin"><p>Carregando...</p></div>
+    </section>
+
+    <section class="admin-section">
+      <h2>Solicitações de senha</h2>
+      <div class="admin-grid" id="resetAdmin"><p>Carregando...</p></div>
+    </section>
+
+    <section class="admin-section">
+      <h2>Resultados dos estudantes</h2>
+      <div class="table-wrap">
+        <table class="admin-table">
+          <thead><tr><th>Aluno</th><th>Fases</th><th>Consultas</th><th>Tentativas</th><th>Último acesso</th></tr></thead>
+          <tbody id="studentRows"><tr><td colspan="5">Carregando...</td></tr></tbody>
+        </table>
+      </div>
+    </section>
+  </main>
+</body>
+</html>

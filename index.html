@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="description" content="Jogo educacional de investigação com SQL.">
+  <title>Arquivo SQL — Acesso</title>
+  <link rel="stylesheet" href="assets/style.css">
+  <script type="module" src="js/auth-page.js"></script>
+</head>
+<body class="auth-page">
+  <div class="noise" aria-hidden="true"></div>
+  <main class="auth-shell">
+    <section class="auth-brand">
+      <span class="brand-mark">18</span>
+      <div>
+        <span class="eyebrow light">MISTÉRIO SQL</span>
+        <h1>Investigue.<br><em>Consulte.</em><br>Descubra.</h1>
+        <p>Entre para continuar sua investigação ou crie uma conta de estudante.</p>
+      </div>
+    </section>
+
+    <section class="auth-card">
+      <h2>Acessar o arquivo</h2>
+      <div id="message" aria-live="polite"></div>
+
+      <form id="loginForm">
+        <label>Login<input name="username" required autocomplete="username"></label>
+        <label>Senha<input name="password" type="password" required autocomplete="current-password"></label>
+        <button class="primary-btn" type="submit">Entrar</button>
+      </form>
+
+      <details>
+        <summary>Criar conta de estudante</summary>
+        <form id="registerForm">
+          <label>Login<input name="username" required minlength="3" maxlength="30"></label>
+          <label>Senha<input name="password" type="password" required minlength="6"></label>
+          <label>Confirmar senha<input name="confirm" type="password" required minlength="6"></label>
+          <button class="secondary-btn" type="submit">Cadastrar</button>
+        </form>
+      </details>
+
+      <details>
+        <summary>Esqueci minha senha</summary>
+        <form id="resetForm">
+          <label>Seu login<input name="username" required></label>
+          <button class="secondary-btn" type="submit">Solicitar nova senha</button>
+        </form>
+      </details>
+    </section>
+  </main>
+</body>
+</html>
