@@ -1,53 +1,43 @@
-# Arquivo SQL — O Notebook Desaparecido
+# Arquivo SQL — Mistério SQL
 
-Projeto de investigação SQL para iniciantes.
+Jogo educacional de SQL com autenticação de estudantes, painel do professor, liberação progressiva de fases e métricas.
 
-## Estrutura
+## Requisitos
 
-```text
-misterio-sql/
-├── index.html
-├── assets/
-│   └── style.css
-├── js/
-│   └── app.js
-└── data/
-    └── caso.sqlite
-```
+- PHP 8.1+ com extensões PDO e pdo_sqlite.
+- Servidor com permissão de escrita na pasta `data/`.
 
-## Como executar
-
-O banco é carregado via `fetch()`, então a página deve ser aberta por um servidor HTTP local.
-
-### Opção 1 — VS Code
-
-Instale a extensão **Live Server** e abra `index.html` com **Open with Live Server**.
-
-### Opção 2 — Python
-
-Abra um terminal na pasta do projeto e execute:
+## Executar localmente
 
 ```bash
-python -m http.server 8000
+php -S localhost:8000
 ```
 
-Depois acesse:
+Acesse `http://localhost:8000`.
 
-```text
-http://localhost:8000
-```
+## Professor
 
-## Segurança da resposta
+- Login: `professor`
+- Senha inicial: `ihatefurry`
 
-A resposta correta não é armazenada como texto no HTML ou JavaScript.
+A senha é armazenada somente como hash no banco administrativo.
 
-A tela de acusação compara o SHA-256 do nome digitado com um hash previamente armazenado.
+## Fases
 
-O banco também fica em um arquivo SQLite binário separado, em vez de aparecer como comandos `INSERT` dentro do HTML.
+1. O notebook desaparecido — investigação existente.
+2. Filtrando evidências — exige `WHERE` e filtros adicionais.
+3. Conectando as evidências — exige `JOIN ... ON`.
+4–8. Reservadas como "Ainda não desenvolvido".
 
-### Limitação importante
+O professor libera as fases desenvolvidas pelo painel administrativo.
 
-Como este é um projeto 100% client-side, não existe segredo absolutamente inacessível ao usuário.
-Uma pessoa com conhecimento técnico ainda pode baixar o arquivo SQLite e analisar seus dados — o que, neste exercício, equivale a consultar o próprio banco.
+## Dados
 
-Se a resposta precisar ser realmente protegida, a validação deve ser movida para um backend/API.
+- `data/caso.sqlite`: banco somente leitura usado nas investigações.
+- `data/app.sqlite`: criado automaticamente no primeiro acesso e armazena usuários, progresso, consultas, métricas e solicitações de redefinição de senha.
+
+O arquivo `data/app.sqlite` não deve ser versionado.
+
+## Segurança
+
+As consultas do estudante são executadas no navegador contra uma cópia do banco do desafio e aceitam apenas leitura. Usuários e métricas ficam separados no banco administrativo. As rotas administrativas validam sessão, perfil e CSRF.

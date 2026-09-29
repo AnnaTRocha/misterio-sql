@@ -1,0 +1,21 @@
+<?php
+require __DIR__.'/lib.php'; $u=require_user('student'); $pdo=db();
+$id=(int)($_GET['id']??0);
+$s=$pdo->prepare('SELECT * FROM phases WHERE id=?'); $s->execute([$id]); $phase=$s->fetch();
+if(!$phase || !$phase['developed'] || !$phase['released']) { header('Location: dashboard.php'); exit; }
+ensure_progress((int)$u['id'],$id);
+$pdo->prepare("UPDATE progress SET status=CASE WHEN status='not_started' THEN 'in_progress' ELSE status END, started_at=COALESCE(started_at,CURRENT_TIMESTAMP) WHERE user_id=? AND phase_id=?")->execute([$u['id'],$id]);
+$phaseConfig=[
+1=>['title'=>'O notebook desaparecido','mission'=>'Identifique quem levou o notebook do Laboratório 2.','clues'=>['Encontre a ocorrência de 18/08/2026.','Descubra onde e quando procurar.','Consulte pessoas, acessos, depoimentos e veículos.','Cruze as evidências e faça sua acusação.']],
+2=>['title'=>'Filtrando evidências','mission'=>'Encontre registros relevantes usando filtros. Para concluir, execute uma consulta com WHERE e pelo menos um filtro adicional.','clues'=>['Comece por uma tabela com vários registros.','Use WHERE para restringir o resultado.','Combine AND, OR, LIKE, IN ou BETWEEN.','ORDER BY também pode ajudar a organizar as evidências.']],
+3=>['title'=>'Conectando as evidências','mission'=>'Relacione informações que estão em tabelas diferentes. Para concluir, execute uma consulta usando JOIN e ON.','clues'=>['pessoa_id aponta para pessoas.id.','Escolha duas tabelas relacionadas.','Use JOIN ... ON para cruzá-las.','Você pode encadear mais de um JOIN.']]
+][$id];
+?>
+<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title><?=h($phaseConfig['title'])?> — Mistério SQL</title><link rel="stylesheet" href="assets/style.css"><script defer src="https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.10.3/sql-wasm.js"></script><script>window.GAME={phaseId:<?=$id?>,csrf:"<?=h(csrf())?>",answerDigest:"508df44321d2b2e2a04dbb185429c3343ec4bb0ca22b40dfd81c75fc5cea1695"};</script><script defer src="js/app.js"></script></head>
+<body><div class="noise"></div><header class="app-nav"><a class="brand" href="dashboard.php"><span class="brand-mark">18</span><span>ARQUIVO SQL</span></a><div class="nav-user"><span><?=h($u['username'])?></span><a href="dashboard.php">← Fases</a></div></header>
+<main class="shell phase-page"><div class="phase-heading"><div><span class="eyebrow">FASE <?=$id?></span><h1><?=h($phaseConfig['title'])?></h1><p><?=h($phaseConfig['mission'])?></p></div><div id="dbStatus" class="db-status loading"><span></span>Carregando banco...</div></div>
+<div class="workspace"><aside class="clues-panel"><div class="panel-title"><span>ROTEIRO</span><span>01—<?=count($phaseConfig['clues'])?></span></div><ol class="clue-list"><?php foreach($phaseConfig['clues'] as $i=>$c): ?><li><span><?=str_pad((string)($i+1),2,'0',STR_PAD_LEFT)?></span><p><?=h($c)?></p></li><?php endforeach ?></ol><div class="schema-mini"><strong>Tabelas</strong><code>ocorrencias</code><code>pessoas</code><code>depoimentos</code><code>acessos</code><code>veiculos</code></div></aside>
+<section class="terminal"><div class="terminal-bar"><div class="window-dots"><i></i><i></i><i></i></div><span>fase_<?=$id?>.sql</span><button id="clearBtn" class="text-btn">Limpar</button></div><textarea id="sqlEditor" spellcheck="false">SELECT * FROM ocorrencias;</textarea><div class="terminal-actions"><span>Ctrl + Enter para executar</span><button id="runBtn" class="run-btn" disabled>Executar SQL</button></div><div id="resultArea" class="result-area"><div class="empty-result"><span>&gt;_</span><p>Os resultados aparecerão aqui.</p></div></div></section></div>
+<?php if($id===1): ?><section class="phase-finish"><h2>Tem um suspeito?</h2><form id="accusationForm"><div class="input-row"><input id="suspectInput" placeholder="Nome completo" required><button>Enviar acusação</button></div><div id="verdict" class="verdict"></div></form></section>
+<?php else: ?><section class="phase-finish"><h2>Encontrou a evidência?</h2><p id="completionHint">Execute uma consulta que atenda ao objetivo da fase.</p><button id="completeBtn" class="primary-btn" disabled>Concluir fase</button><div id="verdict" class="verdict"></div></section><?php endif ?>
+</main></body></html>
