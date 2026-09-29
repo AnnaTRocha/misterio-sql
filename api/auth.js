@@ -25,12 +25,12 @@ export default async function handler(req, res) {
 
     if (op === 'login') {
       const username = normalizeUsername(data.username);
-      const rows = await sql()('SELECT * FROM users WHERE LOWER(username) = LOWER($1) LIMIT 1', [username]);
+      const rows = await sql().query('SELECT * FROM users WHERE LOWER(username) = LOWER($1) LIMIT 1', [username]);
       const user = rows[0];
       if (!user || !(await bcrypt.compare(String(data.password || ''), user.password_hash))) {
         return fail(res, 401, 'Login ou senha inválidos.');
       }
-      await sql()('UPDATE users SET last_login_at = NOW() WHERE id = $1', [user.id]);
+      await sql().query('UPDATE users SET last_login_at = NOW() WHERE id = $1', [user.id]);
       setSession(res, user);
       return res.status(200).json({ user: sanitize(user) });
     }
@@ -47,7 +47,7 @@ export default async function handler(req, res) {
 
       const passwordHash = await bcrypt.hash(password, 12);
       try {
-        const rows = await sql()(
+        const rows = await sql().query(
           `INSERT INTO users (username, password_hash, role)
            VALUES ($1,$2,'student') RETURNING id, username, role, must_change_password`,
           [username, passwordHash]
@@ -67,17 +67,17 @@ export default async function handler(req, res) {
 
     if (op === 'request-reset') {
       const username = normalizeUsername(data.username);
-      const rows = await sql()(
+      const rows = await sql().query(
         `SELECT id FROM users WHERE LOWER(username)=LOWER($1) AND role='student' LIMIT 1`,
         [username]
       );
       if (rows[0]) {
-        await sql()(
+        await sql().query(
           `UPDATE password_reset_requests SET status='resolved', resolved_at=NOW()
            WHERE user_id=$1 AND status='pending'`,
           [rows[0].id]
         );
-        await sql()(
+        await sql().query(
           `INSERT INTO password_reset_requests (user_id, status) VALUES ($1,'pending')`,
           [rows[0].id]
         );
@@ -93,7 +93,7 @@ export default async function handler(req, res) {
       if (password.length < 6) return fail(res, 422, 'A senha deve ter pelo menos 6 caracteres.');
       if (password !== confirm) return fail(res, 422, 'As senhas não conferem.');
       const passwordHash = await bcrypt.hash(password, 12);
-      await sql()('UPDATE users SET password_hash=$1, must_change_password=FALSE WHERE id=$2', [passwordHash, user.id]);
+      await sql().query('UPDATE users SET password_hash=$1, must_change_password=FALSE WHERE id=$2', [passwordHash, user.id]);
       return res.status(200).json({ ok: true });
     }
 

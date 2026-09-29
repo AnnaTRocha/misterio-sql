@@ -20,7 +20,7 @@ export async function ensureSchema() {
   initPromise = (async () => {
     const db = sql();
 
-    await db(`CREATE TABLE IF NOT EXISTS users (
+    await db.query(`CREATE TABLE IF NOT EXISTS users (
       id BIGSERIAL PRIMARY KEY,
       username VARCHAR(30) NOT NULL UNIQUE,
       password_hash TEXT NOT NULL,
@@ -30,9 +30,9 @@ export async function ensureSchema() {
       last_login_at TIMESTAMPTZ
     )`);
 
-    await db(`CREATE UNIQUE INDEX IF NOT EXISTS users_username_lower_unique ON users (LOWER(username))`);
+    await db.query(`CREATE UNIQUE INDEX IF NOT EXISTS users_username_lower_unique ON users (LOWER(username))`);
 
-    await db(`CREATE TABLE IF NOT EXISTS phases (
+    await db.query(`CREATE TABLE IF NOT EXISTS phases (
       id INTEGER PRIMARY KEY,
       title TEXT NOT NULL,
       description TEXT NOT NULL,
@@ -41,7 +41,7 @@ export async function ensureSchema() {
       reward TEXT
     )`);
 
-    await db(`CREATE TABLE IF NOT EXISTS progress (
+    await db.query(`CREATE TABLE IF NOT EXISTS progress (
       id BIGSERIAL PRIMARY KEY,
       user_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
       phase_id INTEGER NOT NULL REFERENCES phases(id) ON DELETE CASCADE,
@@ -53,7 +53,7 @@ export async function ensureSchema() {
       UNIQUE(user_id, phase_id)
     )`);
 
-    await db(`CREATE TABLE IF NOT EXISTS student_queries (
+    await db.query(`CREATE TABLE IF NOT EXISTS student_queries (
       id BIGSERIAL PRIMARY KEY,
       user_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
       phase_id INTEGER NOT NULL REFERENCES phases(id) ON DELETE CASCADE,
@@ -62,7 +62,7 @@ export async function ensureSchema() {
       created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
     )`);
 
-    await db(`CREATE TABLE IF NOT EXISTS password_reset_requests (
+    await db.query(`CREATE TABLE IF NOT EXISTS password_reset_requests (
       id BIGSERIAL PRIMARY KEY,
       user_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
       status VARCHAR(20) NOT NULL DEFAULT 'pending',
@@ -70,13 +70,13 @@ export async function ensureSchema() {
       resolved_at TIMESTAMPTZ
     )`);
 
-    await db(`CREATE UNIQUE INDEX IF NOT EXISTS one_pending_reset_per_user
+    await db.query(`CREATE UNIQUE INDEX IF NOT EXISTS one_pending_reset_per_user
       ON password_reset_requests(user_id) WHERE status = 'pending'`);
 
-    const professor = await db(`SELECT id FROM users WHERE LOWER(username)='professor' LIMIT 1`);
+    const professor = await db.query(`SELECT id FROM users WHERE LOWER(username)='professor' LIMIT 1`);
     if (!professor[0]) {
       const professorPassword = await bcrypt.hash('ihatefurry', 12);
-      await db(
+      await db.query(
         `INSERT INTO users (username, password_hash, role) VALUES ($1, $2, 'teacher')`,
         ['professor', professorPassword]
       );
@@ -94,7 +94,7 @@ export async function ensureSchema() {
     ];
 
     for (const phase of phases) {
-      await db(
+      await db.query(
         `INSERT INTO phases (id, title, description, developed, released, reward)
          VALUES ($1,$2,$3,$4,$5,$6)
          ON CONFLICT (id) DO NOTHING`,
@@ -114,7 +114,7 @@ export async function ensureSchema() {
 
 export async function ensureProgress(userId, phaseId) {
   const db = sql();
-  await db(
+  await db.query(
     `INSERT INTO progress (user_id, phase_id, status)
      VALUES ($1, $2, 'not_started')
      ON CONFLICT (user_id, phase_id) DO NOTHING`,

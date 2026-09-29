@@ -11,7 +11,7 @@ export default async function handler(req, res) {
     const op = action(req);
 
     if (op === 'overview' && req.method === 'GET') {
-      const phases = await sql()(`
+      const phases = await sql().query(`
         SELECT p.*,
           COUNT(pr.id) FILTER (WHERE pr.status IN ('in_progress','completed'))::int AS started,
           COUNT(pr.id) FILTER (WHERE pr.status='completed')::int AS completed
@@ -20,7 +20,7 @@ export default async function handler(req, res) {
         GROUP BY p.id
         ORDER BY p.id
       `);
-      const students = await sql()(`
+      const students = await sql().query(`
         SELECT u.id,u.username,u.created_at,u.last_login_at,
           COUNT(pr.id) FILTER (WHERE pr.status='completed')::int AS completed,
           COALESCE(SUM(pr.queries_count),0)::int AS queries,
@@ -31,7 +31,7 @@ export default async function handler(req, res) {
         GROUP BY u.id
         ORDER BY u.username
       `);
-      const resets = await sql()(`
+      const resets = await sql().query(`
         SELECT r.id,r.user_id,r.requested_at,u.username
         FROM password_reset_requests r
         JOIN users u ON u.id=r.user_id
@@ -47,7 +47,7 @@ export default async function handler(req, res) {
     if (op === 'release') {
       const phaseId = Number(data.phase_id);
       const released = Boolean(data.released);
-      await sql()('UPDATE phases SET released=$1 WHERE id=$2 AND developed=TRUE', [released, phaseId]);
+      await sql().query('UPDATE phases SET released=$1 WHERE id=$2 AND developed=TRUE', [released, phaseId]);
       return res.status(200).json({ ok: true });
     }
 
@@ -56,13 +56,13 @@ export default async function handler(req, res) {
       const password = String(data.password || '');
       if (password.length < 6) return fail(res, 422, 'A senha temporária precisa ter pelo menos 6 caracteres.');
       const hash = await bcrypt.hash(password, 12);
-      const rows = await sql()(
+      const rows = await sql().query(
         `UPDATE users SET password_hash=$1, must_change_password=TRUE
          WHERE id=$2 AND role='student' RETURNING id`,
         [hash, userId]
       );
       if (!rows[0]) return fail(res, 404, 'Aluno não encontrado.');
-      await sql()(
+      await sql().query(
         `UPDATE password_reset_requests SET status='resolved', resolved_at=NOW()
          WHERE user_id=$1 AND status='pending'`,
         [userId]

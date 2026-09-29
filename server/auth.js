@@ -76,7 +76,7 @@ export async function currentUser(req) {
   const token = parseCookies(req)[COOKIE_NAME];
   const session = verifyToken(token);
   if (!session) return null;
-  const rows = await sql()(
+  const rows = await sql().query(
     `SELECT id, username, role, must_change_password
      FROM users WHERE id = $1`,
     [session.uid]

@@ -13,8 +13,8 @@ export default async function handler(req, res) {
     const op = action(req);
 
     if (op === 'dashboard' && req.method === 'GET') {
-      const phases = await sql()('SELECT * FROM phases ORDER BY id');
-      const progress = await sql()('SELECT * FROM progress WHERE user_id=$1 ORDER BY phase_id', [user.id]);
+      const phases = await sql().query('SELECT * FROM phases ORDER BY id');
+      const progress = await sql().query('SELECT * FROM progress WHERE user_id=$1 ORDER BY phase_id', [user.id]);
       return res.status(200).json({ phases, progress });
     }
 
@@ -26,7 +26,7 @@ export default async function handler(req, res) {
       const phase = await availablePhase(phaseId);
       if (!phase) return fail(res, 403, 'Fase indisponível.');
       await ensureProgress(user.id, phaseId);
-      await sql()(
+      await sql().query(
         `UPDATE progress SET
            status = CASE WHEN status='not_started' THEN 'in_progress' ELSE status END,
            started_at = COALESCE(started_at, NOW())
@@ -43,12 +43,12 @@ export default async function handler(req, res) {
       if (!queryText || queryText.length > 5000) return fail(res, 422, 'Consulta inválida.');
       const success = data.executed === true && qualifies(phaseId, queryText);
       await ensureProgress(user.id, phaseId);
-      await sql()(
+      await sql().query(
         `INSERT INTO student_queries (user_id, phase_id, query_text, success)
          VALUES ($1,$2,$3,$4)`,
         [user.id, phaseId, queryText, success]
       );
-      await sql()(
+      await sql().query(
         `UPDATE progress
          SET queries_count=queries_count+1,
              attempts=attempts+CASE WHEN $1::boolean=FALSE THEN 1 ELSE 0 END
@@ -68,7 +68,7 @@ export default async function handler(req, res) {
         const digest = crypto.createHash('sha256').update(normalized).digest('hex');
         if (digest !== ANSWER_DIGEST) return fail(res, 422, 'Acusação incorreta.');
       } else {
-        const rows = await sql()(
+        const rows = await sql().query(
           `SELECT 1 FROM student_queries
            WHERE user_id=$1 AND phase_id=$2 AND success=TRUE LIMIT 1`,
           [user.id, phaseId]
@@ -77,7 +77,7 @@ export default async function handler(req, res) {
       }
 
       await ensureProgress(user.id, phaseId);
-      await sql()(
+      await sql().query(
         `UPDATE progress SET status='completed', completed_at=COALESCE(completed_at,NOW())
          WHERE user_id=$1 AND phase_id=$2`,
         [user.id, phaseId]
@@ -94,7 +94,7 @@ export default async function handler(req, res) {
 
 async function availablePhase(phaseId) {
   if (!Number.isInteger(phaseId) || phaseId < 1 || phaseId > 8) return null;
-  const rows = await sql()('SELECT * FROM phases WHERE id=$1 AND developed=TRUE AND released=TRUE', [phaseId]);
+  const rows = await sql().query('SELECT * FROM phases WHERE id=$1 AND developed=TRUE AND released=TRUE', [phaseId]);
   return rows[0] || null;
 }
 
