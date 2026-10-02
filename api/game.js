@@ -152,13 +152,13 @@ async function collectedMilestones(userId, phaseId) {
 }
 
 function queryMilestones(phaseId, query) {
-  const cleaned = cleanQuery(query);
+  const cleaned = normalizeMilestoneQuery(cleanQuery(query));
   if (!isSafeReadQuery(cleaned)) return [];
 
   if (phaseId === 1) {
     const found = [];
     if (/\bFROM\s+usuarios\b/i.test(cleaned)) found.push('users');
-    if (/^SELECT\s+(?!\*)[^;]+\s+FROM\s+(usuarios|mensagens|arquivos|acessos|pessoas)\b/i.test(cleaned)) {
+    if (/^SELECT\s+(?!\*)[\s\S]+?\s+FROM\s+(usuarios|mensagens|arquivos|acessos|pessoas)\b/i.test(cleaned)) {
       found.push('projection');
     }
     if (/\bFROM\s+mensagens\b/i.test(cleaned)) found.push('messages');
@@ -168,12 +168,22 @@ function queryMilestones(phaseId, query) {
   if (phaseId === 2) {
     const found = [];
 
-    const witnessForward = /\bidade\s+BETWEEN\s+20\s+AND\s+30\b[\s\S]*\bAND\b[\s\S]*\bnome\s+LIKE\s+['"]A%['"]/i;
-    const witnessReverse = /\bnome\s+LIKE\s+['"]A%['"][\s\S]*\bAND\b[\s\S]*\bidade\s+BETWEEN\s+20\s+AND\s+30\b/i;
+    const hasAgeRange =
+      /\bidade\s+BETWEEN\s+20\s+AND\s+30\b/i.test(cleaned) ||
+      (
+        /\bidade\s*>=\s*20\b/i.test(cleaned) &&
+        /\bidade\s*<=\s*30\b/i.test(cleaned)
+      ) ||
+      (
+        /\b20\s*<=\s*idade\b/i.test(cleaned) &&
+        /\b30\s*>=\s*idade\b/i.test(cleaned)
+      );
+
     if (
       /\bFROM\s+pessoas\b/i.test(cleaned) &&
       /\bWHERE\b/i.test(cleaned) &&
-      (witnessForward.test(cleaned) || witnessReverse.test(cleaned))
+      hasAgeRange &&
+      /\bnome\s+LIKE\s+['"]A%['"]/i.test(cleaned)
     ) found.push('witness');
 
     if (
@@ -182,39 +192,63 @@ function queryMilestones(phaseId, query) {
     ) found.push('missing');
 
     if (
-      /\bSELECT\s+DISTINCT\s+cidade\b/i.test(cleaned) &&
-      /\bFROM\s+pessoas\b/i.test(cleaned)
+      /\bFROM\s+pessoas\b/i.test(cleaned) &&
+      /\bSELECT\s+DISTINCT\s*(?:\(\s*)?cidade(?:\s*\))?(?:\s+AS\s+\w+)?\b/i.test(cleaned)
     ) found.push('cities');
 
     if (
       /\bFROM\s+acessos\b/i.test(cleaned) &&
-      /\bORDER\s+BY\s+data_hora\s+DESC\b/i.test(cleaned)
+      /\bORDER\s+BY\s+(?:\w+\.)?data_hora\s+DESC\b/i.test(cleaned)
     ) found.push('last_access');
+
+    const hasCount = /\bCOUNT\s*\(\s*(?:\*|1)\s*\)/i.test(cleaned);
 
     if (
       /\bFROM\s+acessos\b/i.test(cleaned) &&
-      /\bCOUNT\s*\(\s*\*\s*\)/i.test(cleaned) &&
-      /\bGROUP\s+BY\s+pessoa_id\b/i.test(cleaned) &&
+      hasCount &&
+      /\bGROUP\s+BY\s+(?:\w+\.)?pessoa_id\b/i.test(cleaned) &&
       /\bORDER\s+BY\b/i.test(cleaned)
     ) found.push('frequency');
 
+    const hasDateRange =
+      /\bdata\s+BETWEEN\s+['"]1987-09-17['"]\s+AND\s+['"]1987-09-21['"]/i.test(cleaned) ||
+      (
+        /\bdata\s*>=\s*['"]1987-09-17['"]/i.test(cleaned) &&
+        /\bdata\s*<=\s*['"]1987-09-21['"]/i.test(cleaned)
+      ) ||
+      (
+        /['"]1987-09-17['"]\s*<=\s*data\b/i.test(cleaned) &&
+        /['"]1987-09-21['"]\s*>=\s*data\b/i.test(cleaned)
+      );
+
     if (
       /\bFROM\s+acessos\b/i.test(cleaned) &&
-      /\bdata\s+BETWEEN\s+['"]1987-09-17['"]\s+AND\s+['"]1987-09-21['"]/i.test(cleaned) &&
-      /\bCOUNT\s*\(\s*\*\s*\)/i.test(cleaned) &&
-      /\bGROUP\s+BY\s+usuario_id\b/i.test(cleaned) &&
+      hasDateRange &&
+      hasCount &&
+      /\bGROUP\s+BY\s+(?:\w+\.)?usuario_id\b/i.test(cleaned) &&
       /\bORDER\s+BY\b/i.test(cleaned)
     ) found.push('window');
 
     if (
       /\bFROM\s+usuarios\b/i.test(cleaned) &&
-      /\bWHERE\s+id\s*=\s*37\b/i.test(cleaned)
+      /\bWHERE\b/i.test(cleaned) &&
+      (
+        /\b(?:\w+\.)?id\s*=\s*37\b/i.test(cleaned) ||
+        /\b37\s*=\s*(?:\w+\.)?id\b/i.test(cleaned)
+      )
     ) found.push('identify');
 
     return [...new Set(found)];
   }
 
   return [];
+}
+
+function normalizeMilestoneQuery(query) {
+  return String(query || '')
+    .replace(/["`\[\]]/g, '')
+    .replace(/\s+/g, ' ')
+    .trim();
 }
 
 function cleanQuery(query) {
