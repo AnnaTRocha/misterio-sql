@@ -5,6 +5,8 @@ let sqlClient;
 let initialized = false;
 let initPromise;
 
+const STORY_VERSION = 'arquivo-3301-v1';
+
 export function sql() {
   if (!process.env.DATABASE_URL) {
     throw new Error('DATABASE_URL não configurada.');
@@ -73,6 +75,11 @@ export async function ensureSchema() {
     await db.query(`CREATE UNIQUE INDEX IF NOT EXISTS one_pending_reset_per_user
       ON password_reset_requests(user_id) WHERE status = 'pending'`);
 
+    await db.query(`CREATE TABLE IF NOT EXISTS app_meta (
+      key TEXT PRIMARY KEY,
+      value TEXT NOT NULL
+    )`);
+
     const professor = await db.query(`SELECT id FROM users WHERE LOWER(username)='professor' LIMIT 1`);
     if (!professor[0]) {
       const professorPassword = await bcrypt.hash('ihatefurry', 12);
@@ -83,14 +90,22 @@ export async function ensureSchema() {
     }
 
     const phases = [
-      [1, 'O primeiro acesso', 'Explore o Arquivo 18 usando SELECT e FROM. Consulte as evidências e identifique o responsável.', true, true, 'ARQUIVO-18'],
-      [2, 'Filtrando o ruído', 'Pratique DQL com WHERE, condições lógicas, filtros especiais, ORDER BY, DISTINCT, aliases, GROUP BY e agregações.', true, false, 'DQL-3301'],
-      [3, 'Conectando as evidências', 'Relacione tabelas usando JOIN e ON para cruzar pessoas, acessos e veículos.', true, false, 'CHAVE-JOIN'],
-      [4, 'Fase 4', 'Ainda não desenvolvido.', false, false, null],
-      [5, 'Fase 5', 'Ainda não desenvolvido.', false, false, null],
-      [6, 'Fase 6', 'Ainda não desenvolvido.', false, false, null],
-      [7, 'Fase 7', 'Ainda não desenvolvido.', false, false, null],
-      [8, 'Fase 8', 'Ainda não desenvolvido.', false, false, null]
+      [
+        1,
+        'O Primeiro Acesso',
+        'Reative o Arquivo 3301, explore usuários e mensagens com SELECT/FROM e descubra o primeiro código de acesso.',
+        true,
+        true,
+        '1987'
+      ],
+      [
+        2,
+        '1987',
+        'Investigue o incidente de 17/09/1987 em seis etapas usando filtros, NULL, DISTINCT, ORDER BY, GROUP BY e agregações.',
+        true,
+        false,
+        'ORION'
+      ]
     ];
 
     for (const phase of phases) {
@@ -103,6 +118,19 @@ export async function ensureSchema() {
            developed=EXCLUDED.developed,
            reward=EXCLUDED.reward`,
         phase
+      );
+    }
+
+    await db.query(`DELETE FROM phases WHERE id NOT IN (1,2)`);
+
+    const storyVersion = await db.query(`SELECT value FROM app_meta WHERE key='story_version' LIMIT 1`);
+    if (storyVersion[0]?.value !== STORY_VERSION) {
+      await db.query(`DELETE FROM student_queries`);
+      await db.query(`DELETE FROM progress`);
+      await db.query(
+        `INSERT INTO app_meta (key, value) VALUES ('story_version', $1)
+         ON CONFLICT (key) DO UPDATE SET value=EXCLUDED.value`,
+        [STORY_VERSION]
       );
     }
 

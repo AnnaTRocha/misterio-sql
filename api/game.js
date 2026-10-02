@@ -3,11 +3,14 @@ import { ensureProgress, ensureSchema, sql } from '../server/db.js';
 import { requireUser } from '../server/auth.js';
 import { action, body, fail, method } from '../server/http.js';
 
-const ANSWER_DIGEST = '508df44321d2b2e2a04dbb185429c3343ec4bb0ca22b40dfd81c75fc5cea1695';
+const ACCESS_DIGESTS = {
+  1: '744b93f9950fc38dad705556931ea48193b99dcb191cc9bd77097f65fbe2f0b8',
+  2: 'a925617886e8799cc5be05aee17f9b70fa3e91370a471e06c21277c10804d0dc'
+};
 
 const PHASE_REQUIREMENTS = {
-  2: ['filter', 'logic', 'special', 'order', 'distinct', 'alias', 'aggregate'],
-  3: ['join']
+  1: ['users', 'projection', 'messages'],
+  2: ['witness', 'missing', 'cities', 'last_access', 'frequency', 'code']
 };
 
 export default async function handler(req, res) {
@@ -55,26 +58,25 @@ export default async function handler(req, res) {
       if (!(await availablePhase(phaseId))) return fail(res, 403, 'Fase indisponível.');
       if (!queryText || queryText.length > 5000) return fail(res, 422, 'Consulta inválida.');
 
-      const success = data.executed === true && qualifies(phaseId, queryText);
+      const executed = data.executed === true && isSafeReadQuery(cleanQuery(queryText));
 
       await ensureProgress(user.id, phaseId);
       await sql().query(
         `INSERT INTO student_queries (user_id, phase_id, query_text, success)
          VALUES ($1,$2,$3,$4)`,
-        [user.id, phaseId, queryText, success]
+        [user.id, phaseId, queryText, executed]
       );
       await sql().query(
         `UPDATE progress
          SET queries_count=queries_count+1,
              attempts=attempts+CASE WHEN $1::boolean=FALSE THEN 1 ELSE 0 END
          WHERE user_id=$2 AND phase_id=$3`,
-        [success, user.id, phaseId]
+        [executed, user.id, phaseId]
       );
 
       const milestones = await collectedMilestones(user.id, phaseId);
       return res.status(200).json({
         ok: true,
-        qualifies: success,
         query_milestones: queryMilestones(phaseId, queryText),
         milestones
       });
@@ -85,18 +87,17 @@ export default async function handler(req, res) {
       const phase = await availablePhase(phaseId);
       if (!phase) return fail(res, 403, 'Fase indisponível.');
 
-      if (phaseId === 1) {
-        const normalized = normalizeName(data.answer);
-        const digest = crypto.createHash('sha256').update(normalized).digest('hex');
-        if (digest !== ANSWER_DIGEST) return fail(res, 422, 'Acusação incorreta.');
-      } else {
-        const required = PHASE_REQUIREMENTS[phaseId] || [];
-        const milestones = await collectedMilestones(user.id, phaseId);
-        const missing = required.filter(item => !milestones.includes(item));
+      const required = PHASE_REQUIREMENTS[phaseId] || [];
+      const milestones = await collectedMilestones(user.id, phaseId);
+      const missing = required.filter(item => !milestones.includes(item));
+      if (missing.length) {
+        return fail(res, 422, `Ainda existem ${missing.length} etapa(s) da investigação incompleta(s).`);
+      }
 
-        if (missing.length) {
-          return fail(res, 422, `Ainda existem ${missing.length} objetivo(s) SQL incompleto(s).`);
-        }
+      const normalized = normalizeAccessCode(data.answer);
+      const digest = crypto.createHash('sha256').update(normalized).digest('hex');
+      if (digest !== ACCESS_DIGESTS[phaseId]) {
+        return fail(res, 422, 'Código de acesso incorreto.');
       }
 
       await ensureProgress(user.id, phaseId);
@@ -121,7 +122,7 @@ export default async function handler(req, res) {
 }
 
 async function availablePhase(phaseId) {
-  if (!Number.isInteger(phaseId) || phaseId < 1 || phaseId > 8) return null;
+  if (!Number.isInteger(phaseId) || phaseId < 1 || phaseId > 2) return null;
   const rows = await sql().query(
     'SELECT * FROM phases WHERE id=$1 AND developed=TRUE AND released=TRUE',
     [phaseId]
@@ -130,8 +131,6 @@ async function availablePhase(phaseId) {
 }
 
 async function collectedMilestones(userId, phaseId) {
-  if (phaseId === 1) return [];
-
   const rows = await sql().query(
     `SELECT query_text
      FROM student_queries
@@ -144,38 +143,75 @@ async function collectedMilestones(userId, phaseId) {
   for (const row of rows) {
     queryMilestones(phaseId, row.query_text).forEach(item => collected.add(item));
   }
-  return [...collected];
-}
 
-function qualifies(phaseId, query) {
-  const cleaned = cleanQuery(query);
-  if (!isSafeReadQuery(cleaned)) return false;
-  if (phaseId === 1) return true;
-  return queryMilestones(phaseId, cleaned).length > 0;
+  if (phaseId === 2 && collected.has('window') && collected.has('identify')) {
+    collected.add('code');
+  }
+
+  return [...collected];
 }
 
 function queryMilestones(phaseId, query) {
   const cleaned = cleanQuery(query);
   if (!isSafeReadQuery(cleaned)) return [];
 
-  if (phaseId === 2) {
+  if (phaseId === 1) {
     const found = [];
-    if (/\bWHERE\b/i.test(cleaned)) found.push('filter');
-    if (/\b(AND|OR)\b/i.test(cleaned)) found.push('logic');
-    if (/\b(LIKE|BETWEEN|NOT)\b/i.test(cleaned) || /\bIN\s*\(/i.test(cleaned) || /\bIS\s+(?:NOT\s+)?NULL\b/i.test(cleaned)) {
-      found.push('special');
+    if (/\bFROM\s+usuarios\b/i.test(cleaned)) found.push('users');
+    if (/^SELECT\s+(?!\*)[^;]+\s+FROM\s+(usuarios|mensagens|arquivos|acessos|pessoas)\b/i.test(cleaned)) {
+      found.push('projection');
     }
-    if (/\bORDER\s+BY\b/i.test(cleaned)) found.push('order');
-    if (/\bDISTINCT\b/i.test(cleaned)) found.push('distinct');
-    if (/\bAS\s+[a-z_][a-z0-9_]*\b/i.test(cleaned)) found.push('alias');
-    if (/\bGROUP\s+BY\b/i.test(cleaned) && /\b(COUNT|SUM|AVG|MAX|MIN)\s*\(/i.test(cleaned)) {
-      found.push('aggregate');
-    }
+    if (/\bFROM\s+mensagens\b/i.test(cleaned)) found.push('messages');
     return [...new Set(found)];
   }
 
-  if (phaseId === 3 && /\bJOIN\b/i.test(cleaned) && /\bON\b/i.test(cleaned)) {
-    return ['join'];
+  if (phaseId === 2) {
+    const found = [];
+
+    const witnessForward = /\bidade\s+BETWEEN\s+20\s+AND\s+30\b[\s\S]*\bAND\b[\s\S]*\bnome\s+LIKE\s+['"]A%['"]/i;
+    const witnessReverse = /\bnome\s+LIKE\s+['"]A%['"][\s\S]*\bAND\b[\s\S]*\bidade\s+BETWEEN\s+20\s+AND\s+30\b/i;
+    if (
+      /\bFROM\s+pessoas\b/i.test(cleaned) &&
+      /\bWHERE\b/i.test(cleaned) &&
+      (witnessForward.test(cleaned) || witnessReverse.test(cleaned))
+    ) found.push('witness');
+
+    if (
+      /\bFROM\s+acessos\b/i.test(cleaned) &&
+      /\bhora_saida\s+IS\s+NULL\b/i.test(cleaned)
+    ) found.push('missing');
+
+    if (
+      /\bSELECT\s+DISTINCT\s+cidade\b/i.test(cleaned) &&
+      /\bFROM\s+pessoas\b/i.test(cleaned)
+    ) found.push('cities');
+
+    if (
+      /\bFROM\s+acessos\b/i.test(cleaned) &&
+      /\bORDER\s+BY\s+data_hora\s+DESC\b/i.test(cleaned)
+    ) found.push('last_access');
+
+    if (
+      /\bFROM\s+acessos\b/i.test(cleaned) &&
+      /\bCOUNT\s*\(\s*\*\s*\)/i.test(cleaned) &&
+      /\bGROUP\s+BY\s+pessoa_id\b/i.test(cleaned) &&
+      /\bORDER\s+BY\b/i.test(cleaned)
+    ) found.push('frequency');
+
+    if (
+      /\bFROM\s+acessos\b/i.test(cleaned) &&
+      /\bdata\s+BETWEEN\s+['"]1987-09-17['"]\s+AND\s+['"]1987-09-21['"]/i.test(cleaned) &&
+      /\bCOUNT\s*\(\s*\*\s*\)/i.test(cleaned) &&
+      /\bGROUP\s+BY\s+usuario_id\b/i.test(cleaned) &&
+      /\bORDER\s+BY\b/i.test(cleaned)
+    ) found.push('window');
+
+    if (
+      /\bFROM\s+usuarios\b/i.test(cleaned) &&
+      /\bWHERE\s+id\s*=\s*37\b/i.test(cleaned)
+    ) found.push('identify');
+
+    return [...new Set(found)];
   }
 
   return [];
@@ -193,7 +229,7 @@ function isSafeReadQuery(query) {
     !/\b(INSERT|UPDATE|DELETE|DROP|ALTER|CREATE|REPLACE|ATTACH|DETACH|VACUUM)\b/i.test(query);
 }
 
-function normalizeName(value) {
+function normalizeAccessCode(value) {
   return String(value || '')
     .trim()
     .toLocaleLowerCase('pt-BR')

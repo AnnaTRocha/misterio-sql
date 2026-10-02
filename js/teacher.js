@@ -1,11 +1,14 @@
 import { api, escapeHtml, logout, requireSession } from './api-client.js';
 
+let developedCount = 0;
+
 async function load() {
   try {
     const user = await requireSession('teacher');
     if (!user) return;
     document.getElementById('username').textContent = user.username;
     const data = await api('/api/teacher?action=overview');
+    developedCount = data.phases.filter(phase => phase.developed).length;
     renderPhases(data.phases);
     renderResets(data.resets);
     renderStudents(data.students);
@@ -79,7 +82,7 @@ function renderStudents(students) {
   root.innerHTML = students.map(student => `
     <tr>
       <td>${escapeHtml(student.username)}</td>
-      <td>${student.completed} / 8</td>
+      <td>${student.completed} / ${developedCount}</td>
       <td>${student.queries}</td>
       <td>${student.attempts}</td>
       <td>${student.last_login_at ? formatDate(student.last_login_at) : '—'}</td>
