@@ -41,7 +41,7 @@ const PHASES = {
       ['cities', '2.3 // Cidades: remover repetições com DISTINCT'],
       ['last_access', '2.4 // Último acesso: ordenar por data_hora DESC'],
       ['frequency', '2.5 // Maior frequência: contar acessos por pessoa'],
-      ['code', '2.6 // Código: isolar 17–21/09 e identificar o usuário 37']
+      ['code', '2.6 // Código: isolar dia 17/09 à 21/09, identificar o usuário e coletar o código']
     ],
     hints: [
       "2.1 // SELECT * FROM pessoas WHERE idade BETWEEN 20 AND 30 AND nome LIKE 'A%';",
