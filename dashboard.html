@@ -3,21 +3,39 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>Minhas fases — Mistério SQL</title>
+  <meta name="description" content="Painel de fases do Mistério SQL.">
+  <title>Arquivos disponíveis — Mistério SQL</title>
   <link rel="stylesheet" href="assets/style.css">
+  <link rel="stylesheet" href="assets/terminal.css">
   <script type="module" src="js/dashboard.js"></script>
 </head>
-<body>
+<body class="crt-page dashboard-screen">
   <div class="noise" aria-hidden="true"></div>
-  <header class="app-nav">
-    <a class="brand" href="dashboard.html"><span class="brand-mark">18</span><span>ARQUIVO SQL</span></a>
-    <div class="nav-user"><span id="username">...</span><a href="#" id="logout">Sair</a></div>
+
+  <header class="crt-nav">
+    <a class="brand" href="dashboard.html">
+      <span class="brand-mark">SQL</span>
+      <span>ARQUIVO // 3301</span>
+    </a>
+    <div class="nav-user">
+      <span class="system-state">terminal online</span>
+      <span id="username">...</span>
+      <a href="#" id="logout">[ encerrar ]</a>
+    </div>
   </header>
-  <main class="shell dashboard">
-    <span class="eyebrow">SEU PROGRESSO</span>
-    <h1>Casos disponíveis</h1>
-    <div id="summary" class="progress-summary"></div>
-    <div id="phases" class="phase-grid"><p>Carregando fases...</p></div>
+
+  <main class="crt-shell dashboard">
+    <span class="dashboard-kicker">DIRETÓRIO CLASSIFICADO // UNIBAVE 2026</span>
+    <h1 class="dashboard-title glitch" data-text="Arquivos disponíveis">Arquivos disponíveis</h1>
+    <p class="dashboard-lead">Cada arquivo contém um fragmento da investigação. Novas técnicas de SQL desbloqueiam formas diferentes de enxergar os mesmos dados.</p>
+
+    <section class="dashboard-panel">
+      <div id="summary" class="progress-summary"></div>
+    </section>
+
+    <section id="phases" class="case-grid" aria-live="polite">
+      <p>Indexando arquivos...</p>
+    </section>
   </main>
 </body>
 </html>

@@ -4,47 +4,56 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <meta name="description" content="Jogo educacional de investigação com SQL.">
-  <title>Arquivo SQL — Acesso</title>
+  <title>Terminal de acesso — Mistério SQL</title>
   <link rel="stylesheet" href="assets/style.css">
+  <link rel="stylesheet" href="assets/terminal.css">
   <script type="module" src="js/auth-page.js"></script>
 </head>
-<body class="auth-page">
+<body class="auth-page crt-page">
   <div class="noise" aria-hidden="true"></div>
+
   <main class="auth-shell">
     <section class="auth-brand">
-      <span class="brand-mark">18</span>
+      <span class="brand-mark">SQL</span>
       <div>
-        <span class="eyebrow light">MISTÉRIO SQL</span>
-        <h1>Investigue.<br><em>Consulte.</em><br>Descubra.</h1>
-        <p>Entre para continuar sua investigação ou crie uma conta de estudante.</p>
+        <span class="eyebrow light">UNIBAVE // TERMINAL 03 // 2026</span>
+        <h1 class="glitch" data-text="Investigue. Consulte. Descubra.">Investigue.<br><em>Consulte.</em><br>Descubra.</h1>
+        <p>Um arquivo antigo voltou a responder. Não há respostas prontas — apenas tabelas, rastros e consultas. Use SQL para reconstruir o que aconteceu.</p>
+        <div class="boot-lines" aria-hidden="true">
+          <span>mount /archive/misterio-sql ........ OK</span>
+          <span>database integrity ................. 87%</span>
+          <span>unknown fragments .................. DETECTED</span>
+          <span class="cursor-blink">awaiting credentials</span>
+        </div>
       </div>
     </section>
 
-    <section class="auth-card">
-      <h2>Acessar o arquivo</h2>
+    <section class="auth-card crt-auth-card">
+      <span class="dashboard-kicker">ACESSO RESTRITO</span>
+      <h2>Identificação</h2>
       <div id="message" aria-live="polite"></div>
 
       <form id="loginForm">
-        <label>Login<input name="username" required autocomplete="username"></label>
-        <label>Senha<input name="password" type="password" required autocomplete="current-password"></label>
-        <button class="primary-btn" type="submit">Entrar</button>
+        <label>Identificador<input name="username" required autocomplete="username"></label>
+        <label>Chave de acesso<input name="password" type="password" required autocomplete="current-password"></label>
+        <button class="primary-btn" type="submit">Abrir sessão</button>
       </form>
 
       <details>
-        <summary>Criar conta de estudante</summary>
+        <summary>+ registrar estudante</summary>
         <form id="registerForm">
-          <label>Login<input name="username" required minlength="3" maxlength="30"></label>
-          <label>Senha<input name="password" type="password" required minlength="6"></label>
-          <label>Confirmar senha<input name="confirm" type="password" required minlength="6"></label>
-          <button class="secondary-btn" type="submit">Cadastrar</button>
+          <label>Identificador<input name="username" required minlength="3" maxlength="30"></label>
+          <label>Chave de acesso<input name="password" type="password" required minlength="6"></label>
+          <label>Repetir chave<input name="confirm" type="password" required minlength="6"></label>
+          <button class="secondary-btn" type="submit">Criar credencial</button>
         </form>
       </details>
 
       <details>
-        <summary>Esqueci minha senha</summary>
+        <summary>+ recuperar acesso</summary>
         <form id="resetForm">
-          <label>Seu login<input name="username" required></label>
-          <button class="secondary-btn" type="submit">Solicitar nova senha</button>
+          <label>Identificador<input name="username" required></label>
+          <button class="secondary-btn" type="submit">Solicitar redefinição</button>
         </form>
       </details>
     </section>

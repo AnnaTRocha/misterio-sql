@@ -83,8 +83,8 @@ export async function ensureSchema() {
     }
 
     const phases = [
-      [1, 'O notebook desaparecido', 'Investigue o caso atual usando consultas SQL.', true, true, 'ARQUIVO-18'],
-      [2, 'Filtrando evidências', 'Use WHERE e filtros para reduzir os registros até encontrar evidências úteis.', true, false, 'FILTRO-26'],
+      [1, 'O primeiro acesso', 'Explore o Arquivo 18 usando SELECT e FROM. Consulte as evidências e identifique o responsável.', true, true, 'ARQUIVO-18'],
+      [2, 'Filtrando o ruído', 'Pratique DQL com WHERE, condições lógicas, filtros especiais, ORDER BY, DISTINCT, aliases, GROUP BY e agregações.', true, false, 'DQL-3301'],
       [3, 'Conectando as evidências', 'Relacione tabelas usando JOIN e ON para cruzar pessoas, acessos e veículos.', true, false, 'CHAVE-JOIN'],
       [4, 'Fase 4', 'Ainda não desenvolvido.', false, false, null],
       [5, 'Fase 5', 'Ainda não desenvolvido.', false, false, null],
@@ -97,7 +97,11 @@ export async function ensureSchema() {
       await db.query(
         `INSERT INTO phases (id, title, description, developed, released, reward)
          VALUES ($1,$2,$3,$4,$5,$6)
-         ON CONFLICT (id) DO NOTHING`,
+         ON CONFLICT (id) DO UPDATE SET
+           title=EXCLUDED.title,
+           description=EXCLUDED.description,
+           developed=EXCLUDED.developed,
+           reward=EXCLUDED.reward`,
         phase
       );
     }

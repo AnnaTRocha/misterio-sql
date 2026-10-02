@@ -3,56 +3,101 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>Investigação — Mistério SQL</title>
+  <meta name="description" content="Terminal investigativo do Mistério SQL.">
+  <title>Terminal — Mistério SQL</title>
   <link rel="stylesheet" href="assets/style.css">
+  <link rel="stylesheet" href="assets/terminal.css">
   <script defer src="https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.10.3/sql-wasm.js"></script>
   <script type="module" src="js/phase.js"></script>
 </head>
-<body>
+<body class="crt-page phase-screen">
   <div class="noise" aria-hidden="true"></div>
-  <header class="app-nav">
-    <a class="brand" href="dashboard.html"><span class="brand-mark">18</span><span>ARQUIVO SQL</span></a>
-    <div class="nav-user"><span id="username">...</span><a href="dashboard.html">← Fases</a></div>
+
+  <header class="crt-nav">
+    <a class="brand" href="dashboard.html">
+      <span class="brand-mark">SQL</span>
+      <span>ARQUIVO // 3301</span>
+    </a>
+    <div class="nav-user">
+      <span class="system-state">sessão ativa</span>
+      <span id="username">...</span>
+      <a href="dashboard.html">[ voltar ]</a>
+    </div>
   </header>
 
-  <main class="shell phase-page">
-    <div class="phase-heading">
+  <main class="crt-shell">
+    <section class="case-head">
       <div>
-        <span class="eyebrow" id="phaseLabel">FASE</span>
-        <h1 id="phaseTitle">Carregando...</h1>
-        <p id="phaseMission"></p>
+        <span class="eyebrow" id="phaseLabel">PROTOCOLO // FASE</span>
+        <h1 id="phaseTitle" class="glitch" data-text="CARREGANDO">CARREGANDO</h1>
+        <p id="phaseMission">Estabelecendo conexão com o arquivo...</p>
       </div>
-      <div id="dbStatus" class="db-status loading"><span></span>Carregando banco...</div>
-    </div>
+      <div class="signal-box">
+        <span>integridade da investigação</span>
+        <strong id="progressText">0% DECODIFICADO</strong>
+        <div class="signal-meter"><i id="progressBar"></i></div>
+      </div>
+    </section>
 
-    <div class="workspace">
-      <aside class="clues-panel">
-        <div class="panel-title"><span>ROTEIRO</span><span id="clueCounter"></span></div>
-        <ol class="clue-list" id="clueList"></ol>
-        <div class="schema-mini">
-          <strong>Tabelas disponíveis</strong>
-          <code>ocorrencias</code><code>pessoas</code><code>depoimentos</code><code>acessos</code><code>veiculos</code>
+    <section class="terminal-layout">
+      <aside class="mission-panel">
+        <span class="classified">ACESSO RESTRITO</span>
+
+        <div class="story-log" id="storyLog"></div>
+
+        <div class="panel-caption">
+          <span>OBJETIVOS</span>
+          <span id="objectiveCounter">00/00</span>
+        </div>
+        <div class="objective-list" id="objectiveList"></div>
+
+        <div class="db-index">
+          <div class="panel-caption">
+            <span>ARQUIVOS DISPONÍVEIS</span>
+            <span>DB://CASO</span>
+          </div>
+          <div class="db-buttons" id="tableButtons"></div>
+        </div>
+
+        <div class="hint-zone">
+          <div class="panel-caption">
+            <span>CANAL DE AJUDA</span>
+            <span id="hintCounter">0/0</span>
+          </div>
+          <div class="hint-text" id="hintText">Nenhuma pista solicitada.</div>
+          <button id="hintBtn" class="hint-btn" type="button">Solicitar pista</button>
         </div>
       </aside>
 
-      <section class="terminal" aria-label="Terminal SQL">
-        <div class="terminal-bar">
-          <div class="window-dots"><i></i><i></i><i></i></div>
-          <span id="terminalName">investigacao.sql</span>
-          <button id="clearBtn" class="text-btn" type="button">Limpar</button>
+      <section class="crt-monitor" aria-label="Terminal SQL">
+        <div class="monitor-bar">
+          <div class="monitor-lights" aria-hidden="true"><i></i><i></i><i></i></div>
+          <span class="monitor-path" id="terminalName">/var/archive/fase.sql</span>
+          <div class="monitor-actions">
+            <button id="schemaBtn" type="button">estrutura</button>
+            <button id="clearBtn" type="button">limpar</button>
+          </div>
         </div>
-        <textarea id="sqlEditor" spellcheck="false" autocomplete="off">SELECT * FROM ocorrencias;</textarea>
-        <div class="terminal-actions">
-          <span>Ctrl + Enter para executar</span>
-          <button id="runBtn" class="run-btn" type="button" disabled>Executar SQL</button>
-        </div>
-        <div id="resultArea" class="result-area">
-          <div class="empty-result"><span>&gt;_</span><p>Os resultados aparecerão aqui.</p></div>
-        </div>
-      </section>
-    </div>
 
-    <section class="phase-finish" id="finishArea"></section>
+        <textarea id="sqlEditor" spellcheck="false" autocomplete="off" aria-label="Editor SQL"></textarea>
+
+        <div class="query-toolbar">
+          <span id="queryFeedback" class="query-feedback">CTRL + ENTER // aguardando comando</span>
+          <button id="runBtn" class="crt-run" type="button" disabled>Executar consulta</button>
+        </div>
+
+        <div id="resultArea" class="result-area">
+          <div class="empty-result">
+            <span>&gt;_</span>
+            <p>O terminal aguarda sua primeira consulta.</p>
+          </div>
+        </div>
+
+        <div class="query-history" id="queryHistory" aria-label="Histórico de consultas"></div>
+      </section>
+    </section>
+
+    <section class="case-finish" id="finishArea"></section>
   </main>
 </body>
 </html>
