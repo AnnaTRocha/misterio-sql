@@ -201,12 +201,12 @@ function queryMilestones(phaseId, query) {
       /\bORDER\s+BY\s+(?:\w+\.)?data_hora\s+DESC\b/i.test(cleaned)
     ) found.push('last_access');
 
-    const hasCount = /\bCOUNT\s*\(\s*(?:\*|1)\s*\)/i.test(cleaned);
+    const hasCount = /\bCOUNT\s*\(\s*(?:DISTINCT\s+)?(?:\*|1|(?:\w+\.)?[a-z_][a-z0-9_]*)\s*\)/i.test(cleaned);
 
     if (
       /\bFROM\s+acessos\b/i.test(cleaned) &&
       hasCount &&
-      /\bGROUP\s+BY\s+(?:\w+\.)?pessoa_id\b/i.test(cleaned)
+      /\bGROUP\s+BY\s+(?:\w+\.)?(?:pessoa_id|usuario_id)\b/i.test(cleaned)
     ) found.push('frequency');
 
     const hasDateRange =
