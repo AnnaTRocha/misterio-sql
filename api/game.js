@@ -206,8 +206,7 @@ function queryMilestones(phaseId, query) {
     if (
       /\bFROM\s+acessos\b/i.test(cleaned) &&
       hasCount &&
-      /\bGROUP\s+BY\s+(?:\w+\.)?pessoa_id\b/i.test(cleaned) &&
-      /\bORDER\s+BY\b/i.test(cleaned)
+      /\bGROUP\s+BY\s+(?:\w+\.)?pessoa_id\b/i.test(cleaned)
     ) found.push('frequency');
 
     const hasDateRange =
@@ -225,8 +224,7 @@ function queryMilestones(phaseId, query) {
       /\bFROM\s+acessos\b/i.test(cleaned) &&
       hasDateRange &&
       hasCount &&
-      /\bGROUP\s+BY\s+(?:\w+\.)?usuario_id\b/i.test(cleaned) &&
-      /\bORDER\s+BY\b/i.test(cleaned)
+      /\bGROUP\s+BY\s+(?:\w+\.)?usuario_id\b/i.test(cleaned)
     ) found.push('window');
 
     if (
