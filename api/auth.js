@@ -49,7 +49,7 @@ export default async function handler(req, res) {
       try {
         const rows = await sql().query(
           `INSERT INTO users (username, password_hash, role)
-           VALUES ($1,$2,'student') RETURNING id, username, role, must_change_password`,
+           VALUES ($1,$2,'student') RETURNING id, username, role, must_change_password, is_test`,
           [username, passwordHash]
         );
         setSession(res, rows[0]);
@@ -109,6 +109,7 @@ function sanitize(user) {
     id: user.id,
     username: user.username,
     role: user.role,
-    must_change_password: user.must_change_password
+    must_change_password: user.must_change_password,
+    is_test: Boolean(user.is_test)
   };
 }

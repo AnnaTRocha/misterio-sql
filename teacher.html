@@ -28,11 +28,17 @@
     </section>
 
     <section class="admin-section">
-      <h2>Resultados dos estudantes</h2>
+      <div class="admin-section-heading">
+        <div>
+          <h2>Resultados dos estudantes</h2>
+          <p class="muted">Usuários teste ficam fora dos grupos. Reorganize para dividir os demais estudantes o mais próximo possível de 50/50.</p>
+        </div>
+        <button id="reorganizeGroups" class="secondary-btn" type="button">Reorganizar grupos</button>
+      </div>
       <div class="table-wrap">
         <table class="admin-table">
-          <thead><tr><th>Aluno</th><th>ID ARG</th><th>Grupo</th><th>Fases</th><th>Pontuação</th><th>Consultas</th><th>Tentativas</th><th>Último acesso</th></tr></thead>
-          <tbody id="studentRows"><tr><td colspan="8">Carregando...</td></tr></tbody>
+          <thead><tr><th>Aluno</th><th>ID ARG</th><th>Grupo</th><th>Fases</th><th>Pontuação</th><th>Consultas</th><th>Tentativas</th><th>Último acesso</th><th>Usuário teste</th></tr></thead>
+          <tbody id="studentRows"><tr><td colspan="9">Carregando...</td></tr></tbody>
         </table>
       </div>
     </section>

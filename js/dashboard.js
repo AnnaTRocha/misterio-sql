@@ -26,7 +26,7 @@ async function load() {
     const percent = developed ? Math.round((completed / developed) * 100) : 0;
 
     const identityText = identity
-      ? `${escapeHtml(identity.alias)} // ${escapeHtml(identity.group_code || 'SEM GRUPO')}`
+      ? `${escapeHtml(identity.alias)} // ${escapeHtml(user.is_test ? 'USUÁRIO TESTE' : (identity.group_code || 'SEM GRUPO'))}`
       : 'IDENTIDADE PENDENTE';
     const score = Number(assessment?.score || 0);
 

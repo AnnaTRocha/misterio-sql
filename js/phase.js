@@ -137,6 +137,7 @@ async function init() {
   }
 
   await loadDatabase();
+  if (user.is_test) await loadTestTools();
 }
 
 function setTitle(text) {
@@ -396,6 +397,59 @@ function showStructure() {
 
   editor.value = `PRAGMA table_info(${table});`;
   editor.focus();
+}
+
+async function loadTestTools() {
+  const root = document.getElementById('testTools');
+  if (!root) return;
+
+  try {
+    const data = await api(`/api/game?action=test-tools&phase_id=${phaseId}`);
+    const expected = Array.isArray(data.expected_sql) ? data.expected_sql : [];
+
+    root.hidden = false;
+    root.innerHTML = `
+      <div class="test-tools-heading">
+        <div>
+          <span class="classified">USUÁRIO TESTE</span>
+          <h2>Ferramentas de validação</h2>
+          <p>Consultas mínimas esperadas para validar os checklists desta atividade.</p>
+        </div>
+        <button id="resetTestActivity" class="test-reset-btn" type="button">Refazer atividade</button>
+      </div>
+      <div class="test-sql-list">
+        ${expected.length
+          ? expected.map(item => `
+            <article class="test-sql-item">
+              <strong>${escapeHtml(item.step)} // ${escapeHtml(item.objective)}</strong>
+              <pre><code>${escapeHtml(item.sql)}</code></pre>
+            </article>`).join('')
+          : '<p class="test-empty">Ainda não há SQL mínimo cadastrado para esta fase.</p>'}
+      </div>`;
+
+    document.getElementById('resetTestActivity').addEventListener('click', async event => {
+      if (!confirm('Refazer esta atividade? Todos os checklists e consultas registradas desta fase serão zerados para este usuário teste.')) return;
+
+      const button = event.currentTarget;
+      button.disabled = true;
+      button.textContent = 'Zerando atividade...';
+
+      try {
+        await api('/api/game?action=reset-test-activity', {
+          method: 'POST',
+          body: { phase_id: phaseId }
+        });
+        location.reload();
+      } catch (error) {
+        button.disabled = false;
+        button.textContent = 'Refazer atividade';
+        alert(error.message);
+      }
+    });
+  } catch (error) {
+    root.hidden = false;
+    root.innerHTML = `<div class="sql-error">FALHA // ${escapeHtml(error.message)}</div>`;
+  }
 }
 
 document.getElementById('hintBtn').addEventListener('click', revealHint);

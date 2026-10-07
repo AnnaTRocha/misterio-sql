@@ -743,3 +743,21 @@ body.crt-page[data-theme="observatory"] .classified {
 body.crt-page[data-theme="observatory"] .case-head .eyebrow {
   color: #8ec8ff;
 }
+
+
+/* Ferramentas exclusivas do usuário teste */
+.test-tools{margin-top:28px;border:1px solid rgba(210,176,76,.48);background:rgba(25,22,12,.92);box-shadow:0 0 34px rgba(210,176,76,.08);padding:26px;color:#eee6c9}
+.test-tools[hidden]{display:none}
+.test-tools-heading{display:flex;align-items:flex-start;justify-content:space-between;gap:24px;border-bottom:1px solid rgba(210,176,76,.24);padding-bottom:20px;margin-bottom:20px}
+.test-tools-heading h2{margin:8px 0 6px;font:700 28px var(--mono);color:#f0df9c}
+.test-tools-heading p{margin:0;color:#bdb38d;max-width:680px;font-size:13px}
+.test-reset-btn{border:1px solid #a85048;background:rgba(111,32,26,.35);color:#f1c0ba;padding:11px 15px;font:700 11px var(--mono);text-transform:uppercase;letter-spacing:.05em;cursor:pointer}
+.test-reset-btn:hover:not(:disabled){background:rgba(142,43,35,.52)}
+.test-reset-btn:disabled{opacity:.55;cursor:wait}
+.test-sql-list{display:grid;gap:12px}
+.test-sql-item{border:1px solid rgba(210,176,76,.18);background:rgba(0,0,0,.25);padding:16px}
+.test-sql-item strong{display:block;color:#d8c678;font:700 11px var(--mono);margin-bottom:10px}
+.test-sql-item pre{margin:0;overflow:auto;background:#10130f;border:1px solid #2d3328;padding:13px}
+.test-sql-item code{color:#cfe3c6;font:12px/1.55 var(--mono);white-space:pre-wrap}
+.test-empty{color:#9d967d;margin:0}
+@media(max-width:720px){.test-tools-heading{flex-direction:column}.test-reset-btn{width:100%}}

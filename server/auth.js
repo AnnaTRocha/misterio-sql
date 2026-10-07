@@ -77,7 +77,7 @@ export async function currentUser(req) {
   const session = verifyToken(token);
   if (!session) return null;
   const rows = await sql().query(
-    `SELECT id, username, role, must_change_password
+    `SELECT id, username, role, must_change_password, is_test
      FROM users WHERE id = $1`,
     [session.uid]
   );

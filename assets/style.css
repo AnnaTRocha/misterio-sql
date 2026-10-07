@@ -811,3 +811,16 @@ footer span {
 .phase-heading{display:flex;align-items:end;justify-content:space-between;gap:30px;margin-bottom:28px}.phase-heading p{max-width:700px;color:var(--muted)}.phase-page .workspace{margin-bottom:28px}.schema-mini{display:grid;gap:7px;border-top:1px solid rgba(255,255,255,.1);padding-top:20px}.schema-mini strong{font-size:11px;text-transform:uppercase;color:#999}.schema-mini code{color:#cfd2cb}.phase-finish{background:var(--white);border:1px solid var(--line);padding:30px}.phase-finish h2{font:700 32px var(--serif);margin:0 0 12px}.phase-finish .primary-btn:disabled{opacity:.45;cursor:not-allowed}
 .admin-section{margin-top:48px}.admin-section h2{font:700 34px var(--serif)}.admin-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px}.admin-card{display:grid;gap:8px;background:var(--white);border:1px solid var(--line);padding:20px}.admin-card span,.muted{color:var(--muted);font-size:13px}.switch-row{font-size:13px}.reset-row{display:grid;grid-template-columns:1fr auto;gap:8px}.table-wrap{overflow:auto;background:var(--white);border:1px solid var(--line)}.admin-table{width:100%;border-collapse:collapse}.admin-table th,.admin-table td{text-align:left;padding:13px 16px;border-bottom:1px solid var(--line);font-size:13px}.admin-table th{font:700 11px var(--mono);text-transform:uppercase}
 @media(max-width:800px){.auth-shell{grid-template-columns:1fr;gap:30px}.auth-brand{padding-top:20px}.phase-grid,.admin-grid{grid-template-columns:1fr}.phase-heading{align-items:flex-start;flex-direction:column}.app-nav{padding:0 16px}.dashboard,.phase-page{padding-block:42px 70px}}
+
+
+/* Usuários teste e organização dos grupos */
+.admin-section-heading{display:flex;align-items:flex-end;justify-content:space-between;gap:24px;margin-bottom:16px}
+.admin-section-heading h2{margin:0 0 6px}
+.admin-section-heading .muted{margin:0;max-width:720px}
+.admin-section-heading .secondary-btn{white-space:nowrap;cursor:pointer}
+.admin-section-heading .secondary-btn:disabled{opacity:.55;cursor:wait}
+.test-student td{background:#fff8e8}
+.test-badge{display:inline-block;padding:4px 7px;border:1px solid #d5b56b;background:#fff4d6;color:#735813;font:700 10px var(--mono);letter-spacing:.06em}
+.test-user-toggle{display:inline-flex;align-items:center;gap:7px;white-space:nowrap;cursor:pointer}
+.test-user-toggle input{accent-color:var(--red)}
+@media(max-width:800px){.admin-section-heading{align-items:flex-start;flex-direction:column}}

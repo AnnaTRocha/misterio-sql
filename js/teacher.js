@@ -76,26 +76,65 @@ function renderResets(resets) {
 function renderStudents(students) {
   const root = document.getElementById('studentRows');
   if (!students.length) {
-    root.innerHTML = '<tr><td colspan="8">Nenhum estudante cadastrado.</td></tr>';
+    root.innerHTML = '<tr><td colspan="9">Nenhum estudante cadastrado.</td></tr>';
     return;
   }
   root.innerHTML = students.map(student => `
-    <tr>
+    <tr class="${student.is_test ? 'test-student' : ''}">
       <td>${escapeHtml(student.username)}</td>
       <td>${escapeHtml(student.investigator_alias || '—')}</td>
-      <td>${escapeHtml(student.group_code || '—')}</td>
+      <td>${student.is_test ? '<span class="test-badge">SEM GRUPO</span>' : escapeHtml(student.group_code || '—')}</td>
       <td>${student.completed} / ${developedCount}</td>
       <td>${student.score || 0}%</td>
       <td>${student.queries}</td>
       <td>${student.attempts}</td>
       <td>${student.last_login_at ? formatDate(student.last_login_at) : '—'}</td>
+      <td>
+        <label class="switch-row test-user-toggle">
+          <input type="checkbox" data-test-user="${student.id}" ${student.is_test ? 'checked' : ''}>
+          <span>${student.is_test ? 'Teste' : 'Aluno'}</span>
+        </label>
+      </td>
     </tr>`).join('');
+
+  root.querySelectorAll('[data-test-user]').forEach(input => input.addEventListener('change', async () => {
+    input.disabled = true;
+    try {
+      await api('/api/teacher?action=set-test-user', {
+        method: 'POST',
+        body: { user_id: Number(input.dataset.testUser), is_test: input.checked }
+      });
+      await load();
+    } catch (error) {
+      input.checked = !input.checked;
+      input.disabled = false;
+      alert(error.message);
+    }
+  }));
 }
 
 function formatDate(value) {
   if (!value) return '—';
   return new Intl.DateTimeFormat('pt-BR', { dateStyle: 'short', timeStyle: 'short' }).format(new Date(value));
 }
+
+document.getElementById('reorganizeGroups').addEventListener('click', async event => {
+  const button = event.currentTarget;
+  const original = button.textContent;
+  button.disabled = true;
+  button.textContent = 'Reorganizando...';
+  try {
+    const result = await api('/api/teacher?action=reorganize-groups', { method: 'POST', body: {} });
+    const distribution = result.distribution || {};
+    await load();
+    alert(`Grupos reorganizados: Grupo 01 = ${distribution.group_1 ?? 0}, Grupo 02 = ${distribution.group_2 ?? 0}. Usuários teste fora dos grupos: ${distribution.test_users ?? 0}.`);
+  } catch (error) {
+    alert(error.message);
+  } finally {
+    button.disabled = false;
+    button.textContent = original;
+  }
+});
 
 document.getElementById('logout').addEventListener('click', event => {
   event.preventDefault();

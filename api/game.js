@@ -3,6 +3,7 @@ import { ensureProgress, ensureSchema, sql } from '../server/db.js';
 import { requireUser } from '../server/auth.js';
 import { action, body, fail, method } from '../server/http.js';
 import { argIdentityForUser, assessmentSummary, ensureArgFoundation, unlockFinalProtocol } from '../server/arg.js';
+import { expectedSqlForPhase, resetTestActivity } from '../server/test-tools.js';
 import {
   completePhaseThree,
   ensurePhaseThree,
@@ -51,12 +52,32 @@ export default async function handler(req, res) {
       return res.status(200).json({ phases, progress, identity, assessment });
     }
 
+    if (op === 'test-tools' && req.method === 'GET') {
+      if (!user.is_test) return fail(res, 403, 'Ferramentas disponíveis apenas para usuário teste.');
+      const phaseId = Number(req.query?.phase_id);
+      if (!Number.isInteger(phaseId) || phaseId < 1 || phaseId > 9) {
+        return fail(res, 422, 'Fase inválida.');
+      }
+      return res.status(200).json({
+        phase_id: phaseId,
+        expected_sql: expectedSqlForPhase(phaseId)
+      });
+    }
+
     if (!method(req, res, ['POST'])) return;
     const data = body(req);
 
     if (op === 'unlock-final') {
       const unlocked = await unlockFinalProtocol(user.id, data.protocol);
       if (!unlocked) return fail(res, 422, 'Protocolo inválido ou pontuação insuficiente.');
+      return res.status(200).json({ ok: true });
+    }
+
+    if (op === 'reset-test-activity') {
+      if (!user.is_test) return fail(res, 403, 'Ação disponível apenas para usuário teste.');
+      const phaseId = Number(data.phase_id);
+      const reset = await resetTestActivity(user.id, phaseId);
+      if (!reset) return fail(res, 422, 'Fase inválida.');
       return res.status(200).json({ ok: true });
     }
 

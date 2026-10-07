@@ -2,7 +2,12 @@ import bcrypt from 'bcryptjs';
 import { ensureSchema, sql } from '../server/db.js';
 import { requireUser } from '../server/auth.js';
 import { action, body, fail, method } from '../server/http.js';
-import { assessmentScores, ensureArgFoundation } from '../server/arg.js';
+import {
+  assessmentScores,
+  ensureArgFoundation,
+  reorganizeGroups,
+  setStudentTestStatus
+} from '../server/arg.js';
 import {
   ensurePhaseThree,
   phaseThreeOverview,
@@ -30,7 +35,7 @@ export default async function handler(req, res) {
         ORDER BY p.id
       `);
       const students = await sql().query(`
-        SELECT u.id,u.username,u.created_at,u.last_login_at,
+        SELECT u.id,u.username,u.created_at,u.last_login_at,u.is_test,
           ai.alias AS investigator_alias,
           ag.code AS group_code,
           COUNT(pr.id) FILTER (WHERE pr.status='completed')::int AS completed,
@@ -89,6 +94,19 @@ export default async function handler(req, res) {
         await sql().query('UPDATE phases SET released=$1 WHERE id=$2 AND developed=TRUE', [released, phaseId]);
       }
       return res.status(200).json({ ok: true });
+    }
+
+    if (op === 'set-test-user') {
+      const userId = Number(data.user_id);
+      if (!Number.isInteger(userId)) return fail(res, 422, 'Aluno inválido.');
+      const updated = await setStudentTestStatus(userId, data.is_test === true);
+      if (!updated) return fail(res, 404, 'Aluno não encontrado.');
+      return res.status(200).json({ ok: true });
+    }
+
+    if (op === 'reorganize-groups') {
+      const distribution = await reorganizeGroups();
+      return res.status(200).json({ ok: true, distribution });
     }
 
     if (op === 'reset-password') {

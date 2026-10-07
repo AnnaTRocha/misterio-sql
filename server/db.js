@@ -32,6 +32,8 @@ export async function ensureSchema() {
       last_login_at TIMESTAMPTZ
     )`);
 
+    await db.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS is_test BOOLEAN NOT NULL DEFAULT FALSE`);
+
     await db.query(`CREATE UNIQUE INDEX IF NOT EXISTS users_username_lower_unique ON users (LOWER(username))`);
 
     await db.query(`CREATE TABLE IF NOT EXISTS phases (

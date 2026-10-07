@@ -133,6 +133,14 @@ async function initializeFoundation() {
 
 async function assignStudentIdentities() {
   const db = sql();
+
+  await db.query(`
+    UPDATE arg_identities ai
+    SET group_id=NULL
+    FROM users u
+    WHERE ai.user_id=u.id AND u.role='student' AND u.is_test=TRUE
+  `);
+
   const aliases = await db.query(`SELECT alias FROM arg_identities WHERE alias ~ '^us[0-9]+$'`);
   let next = aliases.reduce((max, row) => {
     const value = Number(String(row.alias).slice(2));
@@ -151,13 +159,12 @@ async function assignStudentIdentities() {
     let assigned = false;
     while (!assigned) {
       const alias = `us${next}`;
-      const groupId = Math.floor((next - 1) / 3) % 2 + 1;
       try {
         await db.query(
           `INSERT INTO arg_identities (user_id, alias, group_id)
-           VALUES ($1,$2,$3)
+           VALUES ($1,$2,NULL)
            ON CONFLICT (user_id) DO NOTHING`,
-          [student.id, alias, groupId]
+          [student.id, alias]
         );
         assigned = true;
       } catch (error) {
@@ -168,6 +175,84 @@ async function assignStudentIdentities() {
       next += 1;
     }
   }
+
+  await assignUngroupedStudents();
+}
+
+async function assignUngroupedStudents() {
+  const db = sql();
+  const counts = await db.query(`
+    SELECT ai.group_id, COUNT(*)::int AS total
+    FROM arg_identities ai
+    JOIN users u ON u.id=ai.user_id
+    WHERE u.role='student' AND u.is_test=FALSE AND ai.group_id IN (1,2)
+    GROUP BY ai.group_id
+  `);
+  const totals = { 1: 0, 2: 0 };
+  for (const row of counts) totals[Number(row.group_id)] = Number(row.total);
+
+  const students = await db.query(`
+    SELECT ai.id
+    FROM arg_identities ai
+    JOIN users u ON u.id=ai.user_id
+    WHERE u.role='student' AND u.is_test=FALSE AND ai.group_id IS NULL
+    ORDER BY u.username, u.id
+  `);
+
+  for (const student of students) {
+    const groupId = totals[1] <= totals[2] ? 1 : 2;
+    await db.query('UPDATE arg_identities SET group_id=$1 WHERE id=$2', [groupId, student.id]);
+    totals[groupId] += 1;
+  }
+}
+
+export async function setStudentTestStatus(userId, isTest) {
+  const db = sql();
+  const rows = await db.query(
+    `UPDATE users SET is_test=$1
+     WHERE id=$2 AND role='student'
+     RETURNING id`,
+    [Boolean(isTest), userId]
+  );
+  if (!rows[0]) return false;
+
+  if (isTest) {
+    await db.query('UPDATE arg_identities SET group_id=NULL WHERE user_id=$1', [userId]);
+  } else {
+    await assignUngroupedStudents();
+  }
+  return true;
+}
+
+export async function reorganizeGroups() {
+  const db = sql();
+
+  await db.query(`
+    UPDATE arg_identities ai
+    SET group_id=NULL
+    FROM users u
+    WHERE ai.user_id=u.id AND u.role='student' AND u.is_test=TRUE
+  `);
+
+  const students = await db.query(`
+    SELECT ai.id
+    FROM arg_identities ai
+    JOIN users u ON u.id=ai.user_id
+    WHERE u.role='student' AND u.is_test=FALSE
+    ORDER BY u.username, u.id
+  `);
+
+  for (let index = 0; index < students.length; index += 1) {
+    const groupId = index % 2 === 0 ? 1 : 2;
+    await db.query('UPDATE arg_identities SET group_id=$1 WHERE id=$2', [groupId, students[index].id]);
+  }
+
+  const testRows = await db.query(`SELECT COUNT(*)::int AS total FROM users WHERE role='student' AND is_test=TRUE`);
+  return {
+    group_1: Math.ceil(students.length / 2),
+    group_2: Math.floor(students.length / 2),
+    test_users: Number(testRows[0]?.total || 0)
+  };
 }
 
 export async function argIdentityForUser(userId) {
