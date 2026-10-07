@@ -2,20 +2,31 @@ import crypto from 'node:crypto';
 import { ensureProgress, ensureSchema, sql } from '../server/db.js';
 import { requireUser } from '../server/auth.js';
 import { action, body, fail, method } from '../server/http.js';
+import {
+  completePhaseThree,
+  ensurePhaseThree,
+  logPhaseThreeQuery,
+  phaseThreeProgress,
+  phaseThreeQueries,
+  startPhaseThree
+} from '../server/phase3.js';
 
 const ACCESS_DIGESTS = {
   1: '744b93f9950fc38dad705556931ea48193b99dcb191cc9bd77097f65fbe2f0b8',
-  2: 'a925617886e8799cc5be05aee17f9b70fa3e91370a471e06c21277c10804d0dc'
+  2: 'a925617886e8799cc5be05aee17f9b70fa3e91370a471e06c21277c10804d0dc',
+  3: '29734a8bb613e02b44f2a76f5a9e905644979a552ccd7130c752593b0b0ee8bc'
 };
 
 const PHASE_REQUIREMENTS = {
   1: ['users', 'projection', 'messages'],
-  2: ['witness', 'missing', 'cities', 'last_access', 'frequency', 'code']
+  2: ['witness', 'missing', 'cities', 'last_access', 'frequency', 'code'],
+  3: ['evidence', 'evidence_join', 'resource_join', 'resource_found', 'orphans']
 };
 
 export default async function handler(req, res) {
   try {
     await ensureSchema();
+    await ensurePhaseThree();
     const user = await requireUser(req, res, 'student');
     if (!user) return;
 
@@ -27,6 +38,8 @@ export default async function handler(req, res) {
         'SELECT * FROM progress WHERE user_id=$1 ORDER BY phase_id',
         [user.id]
       );
+      const phase3 = await phaseThreeProgress(user.id);
+      if (phase3) progress.push(phase3);
       return res.status(200).json({ phases, progress });
     }
 
@@ -38,14 +51,18 @@ export default async function handler(req, res) {
       const phase = await availablePhase(phaseId);
       if (!phase) return fail(res, 403, 'Fase indisponível.');
 
-      await ensureProgress(user.id, phaseId);
-      await sql().query(
-        `UPDATE progress SET
-           status = CASE WHEN status='not_started' THEN 'in_progress' ELSE status END,
-           started_at = COALESCE(started_at, NOW())
-         WHERE user_id=$1 AND phase_id=$2`,
-        [user.id, phaseId]
-      );
+      if (phaseId === 3) {
+        await startPhaseThree(user.id);
+      } else {
+        await ensureProgress(user.id, phaseId);
+        await sql().query(
+          `UPDATE progress SET
+             status = CASE WHEN status='not_started' THEN 'in_progress' ELSE status END,
+             started_at = COALESCE(started_at, NOW())
+           WHERE user_id=$1 AND phase_id=$2`,
+          [user.id, phaseId]
+        );
+      }
 
       const milestones = await collectedMilestones(user.id, phaseId);
       return res.status(200).json({ phase, milestones });
@@ -60,19 +77,23 @@ export default async function handler(req, res) {
 
       const executed = data.executed === true && isSafeReadQuery(cleanQuery(queryText));
 
-      await ensureProgress(user.id, phaseId);
-      await sql().query(
-        `INSERT INTO student_queries (user_id, phase_id, query_text, success)
-         VALUES ($1,$2,$3,$4)`,
-        [user.id, phaseId, queryText, executed]
-      );
-      await sql().query(
-        `UPDATE progress
-         SET queries_count=queries_count+1,
-             attempts=attempts+CASE WHEN $1::boolean=FALSE THEN 1 ELSE 0 END
-         WHERE user_id=$2 AND phase_id=$3`,
-        [executed, user.id, phaseId]
-      );
+      if (phaseId === 3) {
+        await logPhaseThreeQuery(user.id, queryText, executed);
+      } else {
+        await ensureProgress(user.id, phaseId);
+        await sql().query(
+          `INSERT INTO student_queries (user_id, phase_id, query_text, success)
+           VALUES ($1,$2,$3,$4)`,
+          [user.id, phaseId, queryText, executed]
+        );
+        await sql().query(
+          `UPDATE progress
+           SET queries_count=queries_count+1,
+               attempts=attempts+CASE WHEN $1::boolean=FALSE THEN 1 ELSE 0 END
+           WHERE user_id=$2 AND phase_id=$3`,
+          [executed, user.id, phaseId]
+        );
+      }
 
       const milestones = await collectedMilestones(user.id, phaseId);
       return res.status(200).json({
@@ -95,17 +116,25 @@ export default async function handler(req, res) {
       }
 
       const normalized = normalizeAccessCode(data.answer);
-      const digest = crypto.createHash('sha256').update(normalized).digest('hex');
-      if (digest !== ACCESS_DIGESTS[phaseId]) {
-        return fail(res, 422, 'Código de acesso incorreto.');
+      if (phaseId === 3 && ['subaru', 'subaro', 'subaru logo', 'logo subaru'].includes(normalized)) {
+        return fail(res, 422, 'Resposta errada. O que a logo representa?');
       }
 
-      await ensureProgress(user.id, phaseId);
-      await sql().query(
-        `UPDATE progress SET status='completed', completed_at=COALESCE(completed_at,NOW())
-         WHERE user_id=$1 AND phase_id=$2`,
-        [user.id, phaseId]
-      );
+      const digest = crypto.createHash('sha256').update(normalized).digest('hex');
+      if (digest !== ACCESS_DIGESTS[phaseId]) {
+        return fail(res, 422, phaseId === 3 ? 'Resposta incorreta.' : 'Código de acesso incorreto.');
+      }
+
+      if (phaseId === 3) {
+        await completePhaseThree(user.id);
+      } else {
+        await ensureProgress(user.id, phaseId);
+        await sql().query(
+          `UPDATE progress SET status='completed', completed_at=COALESCE(completed_at,NOW())
+           WHERE user_id=$1 AND phase_id=$2`,
+          [user.id, phaseId]
+        );
+      }
 
       return res.status(200).json({ ok: true, reward: phase.reward });
     }
@@ -122,7 +151,7 @@ export default async function handler(req, res) {
 }
 
 async function availablePhase(phaseId) {
-  if (!Number.isInteger(phaseId) || phaseId < 1 || phaseId > 2) return null;
+  if (!Number.isInteger(phaseId) || phaseId < 1 || phaseId > 3) return null;
   const rows = await sql().query(
     'SELECT * FROM phases WHERE id=$1 AND developed=TRUE AND released=TRUE',
     [phaseId]
@@ -131,13 +160,15 @@ async function availablePhase(phaseId) {
 }
 
 async function collectedMilestones(userId, phaseId) {
-  const rows = await sql().query(
-    `SELECT query_text
-     FROM student_queries
-     WHERE user_id=$1 AND phase_id=$2 AND success=TRUE
-     ORDER BY id`,
-    [userId, phaseId]
-  );
+  const rows = phaseId === 3
+    ? await phaseThreeQueries(userId)
+    : await sql().query(
+      `SELECT query_text
+       FROM student_queries
+       WHERE user_id=$1 AND phase_id=$2 AND success=TRUE
+       ORDER BY id`,
+      [userId, phaseId]
+    );
 
   const collected = new Set();
   for (const row of rows) {
@@ -235,6 +266,43 @@ function queryMilestones(phaseId, query) {
         /\b37\s*=\s*(?:\w+\.)?id\b/i.test(cleaned)
       )
     ) found.push('identify');
+
+    return [...new Set(found)];
+  }
+
+  if (phaseId === 3) {
+    const found = [];
+    const fromEvidence = /\bFROM\s+evidencias\b/i.test(cleaned);
+    const joinsReferences = /\b(?:INNER\s+)?JOIN\s+referencias\b/i.test(cleaned);
+    const joinsResources = /\b(?:INNER\s+)?JOIN\s+recursos\b/i.test(cleaned);
+
+    if (fromEvidence) found.push('evidence');
+
+    if (
+      fromEvidence &&
+      joinsReferences &&
+      /\bON\b/i.test(cleaned)
+    ) found.push('evidence_join');
+
+    if (
+      fromEvidence &&
+      joinsReferences &&
+      joinsResources &&
+      /\bON\b/i.test(cleaned)
+    ) found.push('resource_join');
+
+    if (
+      fromEvidence &&
+      joinsReferences &&
+      joinsResources &&
+      /\bWHERE\b/i.test(cleaned) &&
+      /\bstatus\s*=\s*['"]recuperado['"]/i.test(cleaned)
+    ) found.push('resource_found');
+
+    if (
+      fromEvidence &&
+      /\bLEFT\s+JOIN\s+referencias\b/i.test(cleaned)
+    ) found.push('orphans');
 
     return [...new Set(found)];
   }
