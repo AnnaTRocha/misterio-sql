@@ -1,7 +1,15 @@
 import { api, escapeHtml, requireSession } from './api-client.js';
 
 const phaseId = Number(new URLSearchParams(location.search).get('id'));
-const TABLES = ['usuarios', 'mensagens', 'arquivos', 'pessoas', 'acessos'];
+const PHASE_TABLES = {
+  1: ['usuarios', 'mensagens', 'arquivos', 'pessoas', 'acessos'],
+  2: ['usuarios', 'mensagens', 'arquivos', 'pessoas', 'acessos'],
+  3: ['evidencias', 'referencias', 'recursos']
+};
+
+function currentTables() {
+  return PHASE_TABLES[phaseId] || [];
+}
 
 const PHASES = {
   1: {
@@ -52,6 +60,32 @@ const PHASES = {
       "2.6 // Conte acessos por usuario_id entre '1987-09-17' e '1987-09-21'. Depois consulte o usuário que liderar o resultado."
     ],
     initial: 'SELECT * FROM pessoas;'
+  },
+  3: {
+    code: 'ARQUIVO 03-3301',
+    title: 'O Aglomerado',
+    mission: 'As pistas agora estão separadas em tabelas diferentes. Relacione evidências, referências e recursos para recuperar um símbolo externo e descobrir o que ele representa.',
+    story: [
+      'ARQUIVO 03 // Um conjunto de referências externas foi recuperado após a identificação de Augusto Vieira.',
+      'Nenhum registro isolado contém a resposta. As relações entre as tabelas são a única forma de reconstruir o caminho.',
+      'Encontre o recurso íntegro. A imagem não é a resposta: ela é uma assinatura.'
+    ],
+    objectives: [
+      ['evidence', '3.1 // Examinar as evidências recuperadas'],
+      ['evidence_join', '3.2 // Relacionar evidências e referências'],
+      ['resource_join', '3.3 // Relacionar referências e recursos'],
+      ['resource_found', '3.4 // Localizar o recurso externo recuperado'],
+      ['orphans', '3.5 // Identificar evidências sem referência usando LEFT JOIN']
+    ],
+    hints: [
+      '3.1 // Comece explorando a tabela evidencias.',
+      '3.2 // evidencias.id se relaciona com referencias.evidencia_id.',
+      '3.3 // referencias.recurso_id se relaciona com recursos.id. Você pode usar mais de um JOIN na mesma consulta.',
+      "3.4 // Depois dos JOINs, filtre o recurso cujo status seja 'recuperado'.",
+      '3.5 // Use LEFT JOIN para manter todas as evidências, inclusive a que não possui correspondência.',
+      'PROTOCOLO FINAL // Abra o recurso recuperado. O símbolo possui seis estrelas. O que ele representa?'
+    ],
+    initial: 'SELECT * FROM evidencias;'
   }
 };
 
@@ -110,7 +144,7 @@ function setTitle(text) {
 }
 
 function renderTables() {
-  document.getElementById('tableButtons').innerHTML = TABLES
+  document.getElementById('tableButtons').innerHTML = currentTables()
     .map(table => `<button class="db-button" type="button" data-table="${table}">${table}</button>`)
     .join('');
 
@@ -158,19 +192,22 @@ function renderObjectives() {
 
 function renderFinish() {
   const area = document.getElementById('finishArea');
-  const title = phaseId === 1 ? 'ACCESS CODE' : 'CÓDIGO FINAL';
-  const description = phaseId === 1
-    ? 'Digite o código encontrado nas mensagens do usuário desconhecido.'
-    : 'Quando a etapa 2.6 revelar a identidade, use o código armazenado no cadastro do usuário.';
+  const title = phaseId === 1 ? 'ACCESS CODE' : phaseId === 3 ? 'IDENTIFICAÇÃO' : 'CÓDIGO FINAL';
+
+  const descriptions = {
+    1: 'Digite o código encontrado nas mensagens do usuário desconhecido.',
+    2: 'Quando a etapa 2.6 revelar a identidade, use o código armazenado no cadastro do usuário.',
+    3: 'Conclua as relações entre as tabelas, abra o recurso externo recuperado e informe o que o símbolo representa.'
+  };
 
   area.innerHTML = `
     <span class="dashboard-kicker">PROTOCOLO FINAL</span>
     <h2>${title}</h2>
-    <p id="completionHint">${description}</p>
+    <p id="completionHint">${descriptions[phaseId] || ''}</p>
     <form id="codeForm">
       <div class="crt-input-row">
-        <input id="accessCodeInput" placeholder="código de acesso" autocomplete="off" required>
-        <button id="completeBtn" class="primary-btn" type="submit" disabled>Validar código</button>
+        <input id="accessCodeInput" placeholder="${phaseId === 3 ? 'identificação do símbolo' : 'código de acesso'}" autocomplete="off" required>
+        <button id="completeBtn" class="primary-btn" type="submit" disabled>Validar ${phaseId === 3 ? 'resposta' : 'código'}</button>
       </div>
       <div id="verdict" class="verdict" aria-live="polite"></div>
     </form>`;
@@ -191,9 +228,12 @@ function updateCompletion() {
   if (!hint) return;
 
   if (ready) {
-    hint.textContent = phaseId === 1
-      ? 'A trilha do usuário desconhecido está completa. Informe o código encontrado nas mensagens.'
-      : 'As seis etapas foram reconstruídas. Informe o código associado ao usuário 37.';
+    const messages = {
+      1: 'A trilha do usuário desconhecido está completa. Informe o código encontrado nas mensagens.',
+      2: 'As seis etapas foram reconstruídas. Informe o código associado ao usuário 37.',
+      3: 'As relações foram reconstruídas. Abra o recurso externo recuperado e informe o que o símbolo representa.'
+    };
+    hint.textContent = messages[phaseId] || '';
   }
 }
 
@@ -287,9 +327,20 @@ function renderResults(resultSets) {
     <table class="result-table">
       <thead><tr>${set.columns.map(column => `<th>${escapeHtml(column)}</th>`).join('')}</tr></thead>
       <tbody>${set.values.slice(0, 200).map(row =>
-        `<tr>${row.map(value => `<td>${escapeHtml(value ?? 'NULL')}</td>`).join('')}</tr>`
+        `<tr>${row.map(value => `<td>${renderCell(value)}</td>`).join('')}</tr>`
       ).join('')}</tbody>
     </table>`).join('');
+}
+
+function renderCell(value) {
+  if (value == null) return 'NULL';
+
+  const text = String(value);
+  if (phaseId === 3 && /^https:\/\//i.test(text)) {
+    return `<a class="external-resource-link" href="${escapeHtml(text)}" target="_blank" rel="noopener noreferrer">[ abrir recurso externo ]</a>`;
+  }
+
+  return escapeHtml(text);
 }
 
 function addHistory(query, ok) {
@@ -324,7 +375,9 @@ async function complete(event) {
     verdict.className = 'verdict success';
     verdict.textContent = phaseId === 1
       ? `✓ ACCESS GRANTED // código ${data.reward} confirmado // Fase 02 pronta para liberação`
-      : `✓ ARQUIVO 3301 DECODIFICADO // código ${data.reward} confirmado`;
+      : phaseId === 3
+        ? `✓ SÍMBOLO IDENTIFICADO // ${data.reward} // ARQUIVO 03 DECODIFICADO`
+        : `✓ ARQUIVO 3301 DECODIFICADO // código ${data.reward} confirmado`;
   } catch (error) {
     verdict.className = 'verdict failure';
     verdict.textContent = `✕ ${error.message}`;
@@ -334,9 +387,10 @@ async function complete(event) {
 
 function showStructure() {
   const match = editor.value.match(/\b(?:FROM|JOIN)\s+([a-z_][a-z0-9_]*)/i);
-  const table = match?.[1] && TABLES.includes(match[1].toLowerCase())
+  const tables = currentTables();
+  const table = match?.[1] && tables.includes(match[1].toLowerCase())
     ? match[1].toLowerCase()
-    : TABLES[0];
+    : tables[0];
 
   editor.value = `PRAGMA table_info(${table});`;
   editor.focus();
