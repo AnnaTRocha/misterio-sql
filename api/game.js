@@ -272,35 +272,39 @@ function queryMilestones(phaseId, query) {
 
   if (phaseId === 3) {
     const found = [];
-    const fromEvidence = /\bFROM\s+evidencias\b/i.test(cleaned);
-    const joinsReferences = /\b(?:INNER\s+)?JOIN\s+referencias\b/i.test(cleaned);
-    const joinsResources = /\b(?:INNER\s+)?JOIN\s+recursos\b/i.test(cleaned);
+    const usesEvidence = /\b(?:FROM|JOIN)\s+evidencias\b/i.test(cleaned);
+    const usesReferences = /\b(?:FROM|JOIN)\s+referencias\b/i.test(cleaned);
+    const usesResources = /\b(?:FROM|JOIN)\s+recursos\b/i.test(cleaned);
+    const hasJoin = /\b(?:INNER\s+)?JOIN\b/i.test(cleaned);
+    const hasOn = /\bON\b/i.test(cleaned);
 
-    if (fromEvidence) found.push('evidence');
+    if (usesEvidence) found.push('evidence');
 
     if (
-      fromEvidence &&
-      joinsReferences &&
-      /\bON\b/i.test(cleaned)
+      usesEvidence &&
+      usesReferences &&
+      hasJoin &&
+      hasOn
     ) found.push('evidence_join');
 
     if (
-      fromEvidence &&
-      joinsReferences &&
-      joinsResources &&
-      /\bON\b/i.test(cleaned)
+      usesEvidence &&
+      usesReferences &&
+      usesResources &&
+      hasJoin &&
+      hasOn
     ) found.push('resource_join');
 
     if (
-      fromEvidence &&
-      joinsReferences &&
-      joinsResources &&
+      usesEvidence &&
+      usesReferences &&
+      usesResources &&
       /\bWHERE\b/i.test(cleaned) &&
-      /\bstatus\s*=\s*['"]recuperado['"]/i.test(cleaned)
+      /\bstatus\s*=\s*['"]?recuperado['"]?/i.test(cleaned)
     ) found.push('resource_found');
 
     if (
-      fromEvidence &&
+      /\bFROM\s+evidencias\b/i.test(cleaned) &&
       /\bLEFT\s+JOIN\s+referencias\b/i.test(cleaned)
     ) found.push('orphans');
 
