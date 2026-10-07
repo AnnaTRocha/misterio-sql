@@ -189,3 +189,42 @@ INSERT INTO arquivos (id,nome,caminho,status,observacao) VALUES
 (3,'acessos.log','/logs/acessos.log','legivel','Registros de entrada e saída do período.'),
 (4,'fragmento_03.bin','/arquivo/fragmento_03.bin','corrompido','Conteúdo indisponível.'),
 (5,'protocolo_final.enc','/segredo/protocolo_final.enc','bloqueado','Exige código de acesso.');
+
+
+-- Fase 3 — O Aglomerado
+CREATE TABLE evidencias (
+  id INTEGER PRIMARY KEY,
+  codigo TEXT NOT NULL,
+  descricao TEXT NOT NULL
+);
+
+CREATE TABLE recursos (
+  id INTEGER PRIMARY KEY,
+  tipo TEXT NOT NULL,
+  endereco TEXT,
+  status TEXT NOT NULL
+);
+
+CREATE TABLE referencias (
+  id INTEGER PRIMARY KEY,
+  evidencia_id INTEGER NOT NULL,
+  recurso_id INTEGER,
+  FOREIGN KEY (evidencia_id) REFERENCES evidencias(id),
+  FOREIGN KEY (recurso_id) REFERENCES recursos(id)
+);
+
+INSERT INTO evidencias (id,codigo,descricao) VALUES
+(1,'FRAGMENTO-A','Registro corrompido'),
+(2,'FRAGMENTO-B','Símbolo externo identificado'),
+(3,'FRAGMENTO-C','Arquivo sem relevância'),
+(4,'FRAGMENTO-D','Registro sem recurso associado');
+
+INSERT INTO recursos (id,tipo,endereco,status) VALUES
+(2,'texto','/arquivo/desconhecido.txt','corrompido'),
+(3,'imagem','/arquivo/fragmento.png','invalido'),
+(7,'imagem','https://1000logos.net/wp-content/uploads/2018/03/Subaru-Logo-1999.jpg','recuperado');
+
+INSERT INTO referencias (id,evidencia_id,recurso_id) VALUES
+(1,1,3),
+(2,2,7),
+(3,3,2);
