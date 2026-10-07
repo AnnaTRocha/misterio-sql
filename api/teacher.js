@@ -2,10 +2,17 @@ import bcrypt from 'bcryptjs';
 import { ensureSchema, sql } from '../server/db.js';
 import { requireUser } from '../server/auth.js';
 import { action, body, fail, method } from '../server/http.js';
+import {
+  ensurePhaseThree,
+  phaseThreeOverview,
+  phaseThreeStudentStats,
+  setPhaseThreeReleased
+} from '../server/phase3.js';
 
 export default async function handler(req, res) {
   try {
     await ensureSchema();
+    await ensurePhaseThree();
     const user = await requireUser(req, res, 'teacher');
     if (!user) return;
     const op = action(req);
@@ -31,6 +38,23 @@ export default async function handler(req, res) {
         GROUP BY u.id
         ORDER BY u.username
       `);
+
+      const phase3 = await phaseThreeOverview();
+      const phase3Card = phases.find(item => Number(item.id) === 3);
+      if (phase3Card) {
+        phase3Card.started = phase3.started;
+        phase3Card.completed = phase3.completed;
+      }
+
+      const phase3Stats = await phaseThreeStudentStats();
+      const phase3ByUser = new Map(phase3Stats.map(item => [Number(item.user_id), item]));
+      for (const student of students) {
+        const extra = phase3ByUser.get(Number(student.id));
+        if (!extra) continue;
+        student.completed += extra.completed;
+        student.queries += extra.queries;
+        student.attempts += extra.attempts;
+      }
       const resets = await sql().query(`
         SELECT r.id,r.user_id,r.requested_at,u.username
         FROM password_reset_requests r
@@ -47,7 +71,12 @@ export default async function handler(req, res) {
     if (op === 'release') {
       const phaseId = Number(data.phase_id);
       const released = Boolean(data.released);
-      await sql().query('UPDATE phases SET released=$1 WHERE id=$2 AND developed=TRUE', [released, phaseId]);
+
+      if (phaseId === 3) {
+        await setPhaseThreeReleased(released);
+      } else {
+        await sql().query('UPDATE phases SET released=$1 WHERE id=$2 AND developed=TRUE', [released, phaseId]);
+      }
       return res.status(200).json({ ok: true });
     }
 
