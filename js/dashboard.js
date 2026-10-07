@@ -9,7 +9,7 @@ const PHASE_META = {
   6: { arc: 'INTERCEPTAÇÃO // NÓ', theme: 'interception', evaluation: 'EXERCÍCIO 03 // 15%' },
   7: { arc: 'INTERCEPTAÇÃO // NÓ', theme: 'interception', evaluation: 'EXERCÍCIO 04 // 15%' },
   8: { arc: 'INTERCEPTAÇÃO // NÓ', theme: 'interception', evaluation: 'EXERCÍCIO 04 // 15%' },
-  9: { arc: 'OPERAÇÃO // 3301', theme: 'operation', evaluation: 'EXERCÍCIO 05 // 40%' }
+  9: { arc: 'OPERAÇÃO // FINAL', theme: 'operation', evaluation: 'EXERCÍCIO 05 // 40%' }
 };
 
 async function load() {
@@ -62,16 +62,12 @@ async function load() {
         action = `<a class="phase-link" href="phase.html?id=${phase.id}">${label}</a>`;
       }
 
-      const reward = done && phase.reward
-        ? `<div class="reward">FRAGMENTO RECUPERADO // <strong>${escapeHtml(phase.reward)}</strong></div>`
-        : '';
-
       return `<article class="case-file theme-${meta.theme} ${locked ? 'locked' : ''}" data-index="${String(phase.id).padStart(2, '0')}">
         <span class="phase-arc">${escapeHtml(meta.arc)} // ${escapeHtml(meta.evaluation)}</span>
         <span class="phase-number">ARQUIVO_${String(phase.id).padStart(2, '0')} // ${done ? 'DECODIFICADO' : started ? 'ABERTO' : 'NÃO LIDO'}</span>
         <h2>${escapeHtml(phase.title)}</h2>
         <p>${escapeHtml(phase.description)}</p>
-        <div class="case-state">${action}${reward}</div>
+        <div class="case-state">${action}</div>
       </article>`;
     }).join('');
 

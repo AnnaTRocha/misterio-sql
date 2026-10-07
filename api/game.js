@@ -35,7 +35,9 @@ export default async function handler(req, res) {
     const op = action(req);
 
     if (op === 'dashboard' && req.method === 'GET') {
-      const phases = await sql().query('SELECT * FROM phases ORDER BY id');
+      const phases = await sql().query(
+        'SELECT id, title, description, developed, released FROM phases ORDER BY id'
+      );
       const progress = await sql().query(
         'SELECT * FROM progress WHERE user_id=$1 ORDER BY phase_id',
         [user.id]
@@ -77,7 +79,7 @@ export default async function handler(req, res) {
       }
 
       const milestones = await collectedMilestones(user.id, phaseId);
-      return res.status(200).json({ phase, milestones });
+      return res.status(200).json({ phase_id: phase.id, milestones });
     }
 
     if (op === 'query') {
