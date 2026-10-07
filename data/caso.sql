@@ -214,8 +214,8 @@ CREATE TABLE referencias (
 );
 
 INSERT INTO evidencias (id,codigo,descricao) VALUES
-(1,'FRAGMENTO-A','Registro corrompido'),
-(2,'FRAGMENTO-B','Símbolo externo identificado'),
+(1,'ORION-1987','A resposta anterior não era um destino. Classificação associada: constelação.'),
+(2,'SEIS-ESTRELAS','Símbolo externo identificado em um registro relacionado a seis estrelas.'),
 (3,'FRAGMENTO-C','Arquivo sem relevância'),
 (4,'FRAGMENTO-D','Registro sem recurso associado');
 

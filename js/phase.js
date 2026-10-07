@@ -62,13 +62,14 @@ const PHASES = {
     initial: 'SELECT * FROM pessoas;'
   },
   3: {
-    code: 'ARQUIVO 03-3301',
+    code: 'OBSERVATÓRIO // 1987',
+    theme: 'observatory',
     title: 'O Aglomerado',
     mission: 'As pistas agora estão separadas em tabelas diferentes. Relacione evidências, referências e recursos para recuperar um símbolo externo e descobrir o que ele representa.',
     story: [
-      'ARQUIVO 03 // Um conjunto de referências externas foi recuperado após a identificação de Augusto Vieira.',
-      'Nenhum registro isolado contém a resposta. As relações entre as tabelas são a única forma de reconstruir o caminho.',
-      'Encontre o recurso íntegro. A imagem não é a resposta: ela é uma assinatura.'
+      'OBSERVATÓRIO 1987 // ORION não era somente uma resposta. Era uma pista.',
+      'Constelação. Estrelas. Um símbolo de seis estrelas aparece entre registros fragmentados.',
+      'Nenhum registro isolado contém a resposta. Relacione as tabelas, recupere o recurso íntegro e descubra o que o símbolo representa.'
     ],
     objectives: [
       ['evidence', '3.1 // Examinar as evidências recuperadas'],
@@ -108,6 +109,7 @@ async function init() {
   if (!phase) return location.replace('/dashboard.html');
 
   document.getElementById('username').textContent = user.username;
+  document.body.dataset.theme = phase.theme || 'archive';
   document.title = `${phase.title} — Mistério SQL`;
   document.getElementById('phaseLabel').textContent = `${phase.code} // FASE ${String(phaseId).padStart(2, '0')}`;
   setTitle(phase.title);

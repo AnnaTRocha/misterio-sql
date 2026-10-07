@@ -90,22 +90,15 @@ export async function ensureSchema() {
     }
 
     const phases = [
-      [
-        1,
-        'O Primeiro Acesso',
-        'Reative o Arquivo 3301, explore usuários e mensagens com SELECT/FROM e descubra o primeiro código de acesso.',
-        true,
-        true,
-        '1987'
-      ],
-      [
-        2,
-        '1987',
-        'Investigue o incidente de 17/09/1987 em seis etapas usando filtros, NULL, DISTINCT, ORDER BY, GROUP BY e agregações.',
-        true,
-        false,
-        'ORION'
-      ]
+      [1, 'O Primeiro Acesso', 'Reative o Arquivo 3301, explore usuários e mensagens com SELECT/FROM e descubra o primeiro código de acesso.', true, true, '1987'],
+      [2, '1987', 'Investigue o incidente de 17/09/1987 em seis etapas usando filtros, NULL, DISTINCT, ORDER BY, GROUP BY e agregações.', true, false, 'ORION'],
+      [3, 'O Aglomerado', 'ORION ganha um novo significado: relacione evidências, referências e recursos com JOINs para recuperar um símbolo externo e descobrir o que ele representa.', false, false, 'PLÊIADES'],
+      [4, 'Catálogo // Seis', 'Capítulo futuro do Observatório // 1987. O conteúdo didático será definido a partir da aula correspondente.', false, false, null],
+      [5, 'Arquivo // Plêiades', 'Encerramento futuro do arco Observatório // 1987 e transição para os registros fragmentados.', false, false, null],
+      [6, 'Intercepção // Nó', 'Início futuro do arco de comunicação, sessões, dispositivos e registros fragmentados.', false, false, null],
+      [7, 'Registros Fragmentados', 'Capítulo futuro de cruzamento de registros e identidades dentro da Interceptação // Nó.', false, false, null],
+      [8, 'Identidade // US0', 'Capítulo futuro de investigação cooperativa que conduz à identidade oculta US0.', false, false, 'US0'],
+      [9, 'Operação // 3301', 'Avaliação final cooperativa. Exige os quatro marcos anteriores, totalizando 60% acumulados.', false, false, null]
     ];
 
     for (const phase of phases) {
@@ -121,7 +114,6 @@ export async function ensureSchema() {
       );
     }
 
-    await db.query(`DELETE FROM phases WHERE id NOT IN (1,2)`);
 
     const storyVersion = await db.query(`SELECT value FROM app_meta WHERE key='story_version' LIMIT 1`);
     if (storyVersion[0]?.value !== STORY_VERSION) {

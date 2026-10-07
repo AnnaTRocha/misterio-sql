@@ -4,7 +4,7 @@ const PHASE_ID = 3;
 const PHASE = {
   id: PHASE_ID,
   title: 'O Aglomerado',
-  description: 'Relacione evidências, referências e recursos com JOINs para recuperar um símbolo externo e descobrir o que ele representa.',
+  description: 'ORION não era apenas uma resposta. Relacione evidências, referências e recursos com JOINs para recuperar um símbolo externo e descobrir o que ele representa.',
   reward: 'PLÊIADES'
 };
 

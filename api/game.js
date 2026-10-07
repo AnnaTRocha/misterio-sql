@@ -2,6 +2,7 @@ import crypto from 'node:crypto';
 import { ensureProgress, ensureSchema, sql } from '../server/db.js';
 import { requireUser } from '../server/auth.js';
 import { action, body, fail, method } from '../server/http.js';
+import { argIdentityForUser, assessmentSummary, ensureArgFoundation, unlockFinalProtocol } from '../server/arg.js';
 import {
   completePhaseThree,
   ensurePhaseThree,
@@ -27,6 +28,7 @@ export default async function handler(req, res) {
   try {
     await ensureSchema();
     await ensurePhaseThree();
+    await ensureArgFoundation();
     const user = await requireUser(req, res, 'student');
     if (!user) return;
 
@@ -40,15 +42,25 @@ export default async function handler(req, res) {
       );
       const phase3 = await phaseThreeProgress(user.id);
       if (phase3) progress.push(phase3);
-      return res.status(200).json({ phases, progress });
+      const [identity, assessment] = await Promise.all([
+        argIdentityForUser(user.id),
+        assessmentSummary(user.id)
+      ]);
+      return res.status(200).json({ phases, progress, identity, assessment });
     }
 
     if (!method(req, res, ['POST'])) return;
     const data = body(req);
 
+    if (op === 'unlock-final') {
+      const unlocked = await unlockFinalProtocol(user.id, data.protocol);
+      if (!unlocked) return fail(res, 422, 'Protocolo inválido ou pontuação insuficiente.');
+      return res.status(200).json({ ok: true });
+    }
+
     if (op === 'start') {
       const phaseId = Number(data.phase_id);
-      const phase = await availablePhase(phaseId);
+      const phase = await availablePhase(phaseId, user.id);
       if (!phase) return fail(res, 403, 'Fase indisponível.');
 
       if (phaseId === 3) {
@@ -72,7 +84,7 @@ export default async function handler(req, res) {
       const phaseId = Number(data.phase_id);
       const queryText = String(data.query || '').trim();
 
-      if (!(await availablePhase(phaseId))) return fail(res, 403, 'Fase indisponível.');
+      if (!(await availablePhase(phaseId, user.id))) return fail(res, 403, 'Fase indisponível.');
       if (!queryText || queryText.length > 5000) return fail(res, 422, 'Consulta inválida.');
 
       const executed = data.executed === true && isSafeReadQuery(cleanQuery(queryText));
@@ -105,7 +117,7 @@ export default async function handler(req, res) {
 
     if (op === 'complete') {
       const phaseId = Number(data.phase_id);
-      const phase = await availablePhase(phaseId);
+      const phase = await availablePhase(phaseId, user.id);
       if (!phase) return fail(res, 403, 'Fase indisponível.');
 
       const required = PHASE_REQUIREMENTS[phaseId] || [];
@@ -150,8 +162,12 @@ export default async function handler(req, res) {
   }
 }
 
-async function availablePhase(phaseId) {
-  if (!Number.isInteger(phaseId) || phaseId < 1 || phaseId > 3) return null;
+async function availablePhase(phaseId, userId) {
+  if (!Number.isInteger(phaseId) || phaseId < 1 || phaseId > 9) return null;
+  if (phaseId === 9) {
+    const assessment = await assessmentSummary(userId);
+    if (!assessment.final_eligible || !assessment.final_protocol_unlocked) return null;
+  }
   const rows = await sql().query(
     'SELECT * FROM phases WHERE id=$1 AND developed=TRUE AND released=TRUE',
     [phaseId]

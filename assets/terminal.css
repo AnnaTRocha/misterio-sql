@@ -648,3 +648,98 @@ body.crt-page {
 .crt-page .verdict.failure { color: var(--crt-red); }
 
 /* Dashboard */
+
+
+/* Arcos narrativos — mantém as Fases 01–02 no tema original. */
+.arg-identity {
+  display: block;
+  margin: 7px 0 10px;
+  color: var(--crt-amber);
+  font-size: 10px;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+}
+
+.phase-arc {
+  display: block;
+  margin-bottom: 7px;
+  color: var(--crt-muted);
+  font-size: 9px;
+  letter-spacing: .11em;
+  text-transform: uppercase;
+}
+
+.case-file.theme-observatory {
+  border-color: rgba(119, 176, 255, .22);
+  background:
+    radial-gradient(circle at 84% 16%, rgba(170, 205, 255, .14) 0 1px, transparent 2px),
+    radial-gradient(circle at 70% 28%, rgba(170, 205, 255, .09) 0 1px, transparent 2px),
+    linear-gradient(180deg, rgba(61, 112, 188, .08), transparent 34%),
+    rgba(5, 9, 18, .94);
+}
+
+.case-file.theme-interception {
+  border-color: rgba(92, 222, 209, .18);
+  background:
+    linear-gradient(90deg, rgba(92, 222, 209, .025) 1px, transparent 1px),
+    rgba(4, 10, 11, .94);
+  background-size: 28px 100%;
+}
+
+.case-file.theme-operation {
+  border-color: rgba(255, 196, 107, .24);
+  background:
+    linear-gradient(135deg, rgba(255, 196, 107, .055), transparent 40%),
+    rgba(10, 8, 5, .95);
+}
+
+.final-protocol {
+  display: flex;
+  gap: 7px;
+  margin-top: 9px;
+}
+
+.final-protocol input {
+  min-width: 0;
+  width: 120px;
+  border: 1px solid rgba(255, 196, 107, .28);
+  background: #080603;
+  color: var(--crt-amber);
+  padding: 7px 8px;
+  font: 10px var(--crt-mono);
+}
+
+.final-protocol button {
+  border: 1px solid rgba(255, 196, 107, .4);
+  background: rgba(255, 196, 107, .07);
+  color: var(--crt-amber);
+  padding: 7px 9px;
+  font: 700 9px var(--crt-mono);
+}
+
+body.crt-page[data-theme="observatory"] {
+  --crt-bg: #030711;
+  --crt-panel: #07101d;
+  --crt-panel-2: #0b1626;
+  --crt-green: #8ec8ff;
+  --crt-green-strong: #d4eaff;
+  --crt-green-dim: #4f8fca;
+  --crt-line: rgba(142, 200, 255, .2);
+  --crt-muted: #708da9;
+  background:
+    radial-gradient(circle at 18% 14%, rgba(185, 220, 255, .55) 0 1px, transparent 1.6px),
+    radial-gradient(circle at 72% 24%, rgba(185, 220, 255, .34) 0 1px, transparent 1.6px),
+    radial-gradient(circle at 86% 65%, rgba(185, 220, 255, .28) 0 1px, transparent 1.6px),
+    radial-gradient(circle at 38% 78%, rgba(185, 220, 255, .22) 0 1px, transparent 1.6px),
+    radial-gradient(circle at 50% 10%, rgba(32, 78, 145, .2), transparent 34rem),
+    var(--crt-bg);
+}
+
+body.crt-page[data-theme="observatory"] .classified {
+  border-color: rgba(255, 196, 107, .4);
+  color: var(--crt-amber);
+}
+
+body.crt-page[data-theme="observatory"] .case-head .eyebrow {
+  color: #8ec8ff;
+}

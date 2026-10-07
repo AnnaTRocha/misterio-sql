@@ -76,13 +76,16 @@ function renderResets(resets) {
 function renderStudents(students) {
   const root = document.getElementById('studentRows');
   if (!students.length) {
-    root.innerHTML = '<tr><td colspan="5">Nenhum estudante cadastrado.</td></tr>';
+    root.innerHTML = '<tr><td colspan="8">Nenhum estudante cadastrado.</td></tr>';
     return;
   }
   root.innerHTML = students.map(student => `
     <tr>
       <td>${escapeHtml(student.username)}</td>
+      <td>${escapeHtml(student.investigator_alias || '—')}</td>
+      <td>${escapeHtml(student.group_code || '—')}</td>
       <td>${student.completed} / ${developedCount}</td>
+      <td>${student.score || 0}%</td>
       <td>${student.queries}</td>
       <td>${student.attempts}</td>
       <td>${student.last_login_at ? formatDate(student.last_login_at) : '—'}</td>

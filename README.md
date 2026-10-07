@@ -76,3 +76,37 @@ A terceira missão trabalha relacionamentos entre tabelas com JOINs. O estudante
 O protocolo final pede a interpretação do símbolo recuperado. A resposta aceita é **Plêiades/Pleiades**, sem diferenciar maiúsculas, minúsculas ou acentuação. Respostas como **Subaru/Subaro** recebem a dica: “Resposta errada. O que a logo representa?”.
 
 A Fase 3 é criada como desenvolvida, mas permanece bloqueada até a liberação pelo professor.
+
+
+## Arquitetura narrativa do curso
+
+O curso passa a ser preparado para 9 fases distribuídas em quatro arcos:
+
+- Fases 1–2: **ARQUIVO // 3301**.
+- Fases 3–5: **OBSERVATÓRIO // 1987**.
+- Fases 6–8: **INTERCEPTAÇÃO // NÓ**.
+- Fase 9: **OPERAÇÃO // 3301**.
+
+As Fases 1 e 2 permanecem com a lógica didática e as respostas já utilizadas pelos estudantes. A Fase 3 mantém o exercício de JOINs e a resposta **PLÊIADES**, mas agora explicita que **ORION** era também uma pista narrativa.
+
+As fases 4–9 aparecem no sistema como capítulos planejados, porém continuam marcadas como **não desenvolvidas** até que o conteúdo didático de cada aula seja definido.
+
+### Avaliações
+
+A fundação do ARG registra cinco marcos avaliativos:
+
+| Avaliação | Fases | Peso |
+| --- | --- | ---: |
+| Exercício 01 | 1–2 | 15% |
+| Exercício 02 | 3–4 | 15% |
+| Exercício 03 | 5–6 | 15% |
+| Exercício 04 | 7–8 | 15% |
+| Exercício 05 | 9 | 40% |
+
+O painel calcula a pontuação a partir da conclusão integral de cada marco. Os quatro primeiros totalizam 60%. A API também exige esses 60% antes de permitir a Fase 9 e mantém um estado separado para a validação do protocolo final **3301**.
+
+### Identidades do ARG
+
+O backend mantém dois grupos investigativos e atribui a cada estudante uma identidade adicional no formato `usN`, sem substituir o login real. As três primeiras identidades pertencem ao Grupo 01, as três seguintes ao Grupo 02, e o padrão se repete em blocos de três. A identidade `us0` fica reservada e invisível na listagem normal dos estudantes.
+
+A estrutura também deixa prontas as tabelas de logs, dicas secretas, recursos externos e submissões para os capítulos 6–9, sem inventar o conteúdo didático que ainda depende das aulas correspondentes.

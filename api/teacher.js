@@ -2,6 +2,7 @@ import bcrypt from 'bcryptjs';
 import { ensureSchema, sql } from '../server/db.js';
 import { requireUser } from '../server/auth.js';
 import { action, body, fail, method } from '../server/http.js';
+import { assessmentScores, ensureArgFoundation } from '../server/arg.js';
 import {
   ensurePhaseThree,
   phaseThreeOverview,
@@ -13,6 +14,7 @@ export default async function handler(req, res) {
   try {
     await ensureSchema();
     await ensurePhaseThree();
+    await ensureArgFoundation();
     const user = await requireUser(req, res, 'teacher');
     if (!user) return;
     const op = action(req);
@@ -29,13 +31,17 @@ export default async function handler(req, res) {
       `);
       const students = await sql().query(`
         SELECT u.id,u.username,u.created_at,u.last_login_at,
+          ai.alias AS investigator_alias,
+          ag.code AS group_code,
           COUNT(pr.id) FILTER (WHERE pr.status='completed')::int AS completed,
           COALESCE(SUM(pr.queries_count),0)::int AS queries,
           COALESCE(SUM(pr.attempts),0)::int AS attempts
         FROM users u
         LEFT JOIN progress pr ON pr.user_id=u.id
+        LEFT JOIN arg_identities ai ON ai.user_id=u.id
+        LEFT JOIN arg_groups ag ON ag.id=ai.group_id
         WHERE u.role='student'
-        GROUP BY u.id
+        GROUP BY u.id,ai.alias,ag.code
         ORDER BY u.username
       `);
 
@@ -55,6 +61,11 @@ export default async function handler(req, res) {
         student.queries += extra.queries;
         student.attempts += extra.attempts;
       }
+      const scores = await assessmentScores(students.map(student => Number(student.id)));
+      for (const student of students) {
+        student.score = scores.get(Number(student.id)) || 0;
+      }
+
       const resets = await sql().query(`
         SELECT r.id,r.user_id,r.requested_at,u.username
         FROM password_reset_requests r
