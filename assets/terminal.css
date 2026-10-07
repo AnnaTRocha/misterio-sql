@@ -539,6 +539,18 @@ body.crt-page {
   background: rgba(141,255,173,.025);
 }
 
+.crt-page .external-resource-link {
+  color: var(--crt-amber);
+  font-weight: 700;
+  text-decoration: none;
+  border-bottom: 1px dashed rgba(255,196,107,.45);
+}
+
+.crt-page .external-resource-link:hover {
+  color: #ffe1ad;
+  text-shadow: 0 0 10px rgba(255,196,107,.28);
+}
+
 .crt-page .sql-error {
   border-color: rgba(255,93,87,.32);
   background: rgba(255,93,87,.05);
