@@ -67,3 +67,12 @@ Use um `.env.local` com:
 DATABASE_URL=postgresql://...
 SESSION_SECRET=uma-chave-com-pelo-menos-32-caracteres
 ```
+
+
+## Fase 3 — O Aglomerado
+
+A terceira missão trabalha relacionamentos entre tabelas com JOINs. O estudante investiga `evidencias`, `referencias` e `recursos`, relaciona os registros com `INNER JOIN`, usa `LEFT JOIN` para encontrar uma evidência sem correspondência e recupera um recurso externo.
+
+O protocolo final pede a interpretação do símbolo recuperado. A resposta aceita é **Plêiades/Pleiades**, sem diferenciar maiúsculas, minúsculas ou acentuação. Respostas como **Subaru/Subaro** recebem a dica: “Resposta errada. O que a logo representa?”.
+
+A Fase 3 é criada como desenvolvida, mas permanece bloqueada até a liberação pelo professor.
