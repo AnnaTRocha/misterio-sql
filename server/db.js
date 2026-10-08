@@ -85,21 +85,23 @@ export async function ensureSchema() {
     const professor = await db.query(`SELECT id, password_hash FROM users WHERE LOWER(username)='professor' LIMIT 1`);
     if (!professor[0]) {
       const initialPassword = process.env.TEACHER_INITIAL_PASSWORD;
-      if (!initialPassword || initialPassword.length < 12) {
-        throw new Error('TEACHER_INITIAL_PASSWORD deve ter pelo menos 12 caracteres para criar a conta do professor.');
+      if (initialPassword && initialPassword.length >= 12) {
+        const professorPassword = await bcrypt.hash(initialPassword, 12);
+        await db.query(
+          `INSERT INTO users (username, password_hash, role, must_change_password) VALUES ($1, $2, 'teacher', TRUE)`,
+          ['professor', professorPassword]
+        );
+      } else {
+        console.warn('Conta do professor pendente: configure TEACHER_INITIAL_PASSWORD.');
       }
-      const professorPassword = await bcrypt.hash(initialPassword, 12);
-      await db.query(
-        `INSERT INTO users (username, password_hash, role, must_change_password) VALUES ($1, $2, 'teacher', TRUE)`,
-        ['professor', professorPassword]
-      );
     } else if (await bcrypt.compare('ihatefurry', professor[0].password_hash)) {
       const replacement = process.env.TEACHER_INITIAL_PASSWORD;
-      if (!replacement || replacement.length < 12 || replacement === 'ihatefurry') {
-        throw new Error('Defina TEACHER_INITIAL_PASSWORD para substituir a senha inicial antiga do professor.');
+      if (replacement && replacement.length >= 12 && replacement !== 'ihatefurry') {
+        await db.query(`UPDATE users SET password_hash=$1, must_change_password=TRUE WHERE id=$2`,
+          [await bcrypt.hash(replacement, 12), professor[0].id]);
+      } else {
+        console.warn('Senha antiga do professor bloqueada: configure TEACHER_INITIAL_PASSWORD.');
       }
-      await db.query(`UPDATE users SET password_hash=$1, must_change_password=TRUE WHERE id=$2`,
-        [await bcrypt.hash(replacement, 12), professor[0].id]);
     }
 
     const phases = [

@@ -27,6 +27,9 @@ export default async function handler(req, res) {
       const username = normalizeUsername(data.username);
       const rows = await sql().query('SELECT * FROM users WHERE LOWER(username) = LOWER($1) LIMIT 1', [username]);
       const user = rows[0];
+      if (user?.role === 'teacher' && await bcrypt.compare('ihatefurry', user.password_hash)) {
+        return fail(res, 503, 'Acesso do professor pendente de configuração da nova senha.');
+      }
       if (!user || !(await bcrypt.compare(String(data.password || ''), user.password_hash))) {
         return fail(res, 401, 'Login ou senha inválidos.');
       }

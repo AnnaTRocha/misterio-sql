@@ -15,6 +15,7 @@ for (const name of (await readdir('assets')).filter(name => name.endsWith('.css'
   const minified = await transform(source, { loader: 'css', minify: true });
   await writeFile(join(output, 'assets', name), minified.code);
 }
+await writeFile(join(output, 'assets', 'favicon.svg'), await readFile(join('assets', 'favicon.svg')));
 
 await build({
   entryPoints: ['js/auth-page.js', 'js/dashboard.js', 'js/phase-router.js', 'js/teacher.js', 'js/change-password.js'],
