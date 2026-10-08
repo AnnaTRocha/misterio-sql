@@ -3,32 +3,23 @@ import { ensureProgress, ensureSchema, sql } from '../server/db.js';
 import { requireUser } from '../server/auth.js';
 import { action, body, fail, method } from '../server/http.js';
 import { argIdentityForUser, assessmentSummary, ensureArgFoundation, unlockFinalProtocol } from '../server/arg.js';
+import { allowedStatement, evaluateChallenge, executeArchiveQuery, LESSONS } from '../server/challenges.js';
+import { consumeRateLimit } from '../server/rate-limit.js';
 import { expectedSqlForPhase, resetTestActivity } from '../server/test-tools.js';
-import {
-  completePhaseThree,
-  ensurePhaseThree,
-  logPhaseThreeQuery,
-  phaseThreeProgress,
-  phaseThreeQueries,
-  startPhaseThree
-} from '../server/phase3.js';
 
 const ACCESS_DIGESTS = {
   1: '744b93f9950fc38dad705556931ea48193b99dcb191cc9bd77097f65fbe2f0b8',
-  2: 'a925617886e8799cc5be05aee17f9b70fa3e91370a471e06c21277c10804d0dc',
-  3: '29734a8bb613e02b44f2a76f5a9e905644979a552ccd7130c752593b0b0ee8bc'
+  2: 'a925617886e8799cc5be05aee17f9b70fa3e91370a471e06c21277c10804d0dc'
 };
 
 const PHASE_REQUIREMENTS = {
   1: ['users', 'projection', 'messages'],
-  2: ['witness', 'missing', 'cities', 'last_access', 'frequency', 'code'],
-  3: ['evidence', 'evidence_join', 'resource_join', 'resource_found', 'orphans']
+  2: ['witness', 'missing', 'cities', 'last_access', 'frequency', 'code']
 };
 
 export default async function handler(req, res) {
   try {
     await ensureSchema();
-    await ensurePhaseThree();
     await ensureArgFoundation();
     const user = await requireUser(req, res, 'student');
     if (!user) return;
@@ -43,8 +34,6 @@ export default async function handler(req, res) {
         'SELECT * FROM progress WHERE user_id=$1 ORDER BY phase_id',
         [user.id]
       );
-      const phase3 = await phaseThreeProgress(user.id);
-      if (phase3) progress.push(phase3);
       const [identity, assessment] = await Promise.all([
         argIdentityForUser(user.id),
         assessmentSummary(user.id)
@@ -67,9 +56,35 @@ export default async function handler(req, res) {
     if (!method(req, res, ['POST'])) return;
     const data = body(req);
 
+    const limits = { query: 12, complete: 8, 'concept-answer': 8, 'nosql-answer': 8, 'unlock-final': 5 };
+    if (limits[op] && !(await consumeRateLimit(user.id, op, limits[op]))) {
+      res.setHeader('Retry-After', '60');
+      return fail(res, 429, 'Muitas tentativas em pouco tempo. Aguarde um minuto.');
+    }
+
     if (op === 'unlock-final') {
       const unlocked = await unlockFinalProtocol(user.id, data.protocol);
       if (!unlocked) return fail(res, 422, 'Protocolo inválido ou pontuação insuficiente.');
+      return res.status(200).json({ ok: true });
+    }
+
+    if (op === 'nosql-answer') {
+      if (!(await availablePhase(9, user.id))) return fail(res, 403, 'Fase indisponível.');
+      const answer = normalizeAccessCode(data.answer);
+      const correct = answer === 'find';
+      await sql().query(`INSERT INTO arg_submissions(user_id,assessment_id,answer,correct) VALUES($1,9,$2,$3)`, [user.id, answer, correct]);
+      if (!correct) return fail(res, 422, 'No MongoDB, qual método consulta documentos de uma coleção?');
+      return res.status(200).json({ ok: true, ...(await challengeState(user.id, 9)) });
+    }
+
+    if (op === 'concept-answer') {
+      const phaseId = Number(data.phase_id);
+      if (![1, 2].includes(phaseId) || !(await availablePhase(phaseId, user.id))) return fail(res, 403, 'Fase indisponível.');
+      const expected = phaseId === 1 ? 'chave_estrangeira' : 'sem_dependencia_transitiva';
+      const correct = String(data.answer || '') === expected;
+      await sql().query(`INSERT INTO arg_submissions(user_id,assessment_id,answer,correct) VALUES($1,$2,$3,$4)`,
+        [user.id, phaseId, String(data.answer || ''), correct]);
+      if (!correct) return fail(res, 422, 'Revise o conceito apresentado nos slides e tente novamente.');
       return res.status(200).json({ ok: true });
     }
 
@@ -86,8 +101,13 @@ export default async function handler(req, res) {
       const phase = await availablePhase(phaseId, user.id);
       if (!phase) return fail(res, 403, 'Fase indisponível.');
 
-      if (phaseId === 3) {
-        await startPhaseThree(user.id);
+      if (phaseId >= 3) {
+        await ensureProgress(user.id, phaseId);
+        await sql().query(`UPDATE progress SET status=CASE WHEN status='not_started' THEN 'in_progress' ELSE status END,
+          started_at=COALESCE(started_at,NOW()) WHERE user_id=$1 AND phase_id=$2`, [user.id, phaseId]);
+        const state = await challengeState(user.id, phaseId);
+        const { answer, ...publicLesson } = LESSONS[phaseId];
+        return res.status(200).json({ phase_id: phaseId, lesson: publicLesson, ...state });
       } else {
         await ensureProgress(user.id, phaseId);
         await sql().query(
@@ -100,7 +120,8 @@ export default async function handler(req, res) {
       }
 
       const milestones = await collectedMilestones(user.id, phaseId);
-      return res.status(200).json({ phase_id: phase.id, milestones });
+      const quiz = await sql().query(`SELECT 1 FROM arg_submissions WHERE user_id=$1 AND assessment_id=$2 AND correct=TRUE LIMIT 1`, [user.id, phaseId]);
+      return res.status(200).json({ phase_id: phase.id, milestones, concept_done: Boolean(quiz[0]) });
     }
 
     if (op === 'query') {
@@ -110,29 +131,50 @@ export default async function handler(req, res) {
       if (!(await availablePhase(phaseId, user.id))) return fail(res, 403, 'Fase indisponível.');
       if (!queryText || queryText.length > 5000) return fail(res, 422, 'Consulta inválida.');
 
-      const executed = data.executed === true && isSafeReadQuery(cleanQuery(queryText));
-
-      if (phaseId === 3) {
-        await logPhaseThreeQuery(user.id, queryText, executed);
-      } else {
+      if (phaseId >= 3) {
+        if (!allowedStatement(phaseId, queryText)) return fail(res, 422, 'Comando fora do escopo desta aula ou mais de uma instrução por execução.');
+        const before = await challengeState(user.id, phaseId);
+        const identity = await argIdentityForUser(user.id);
+        const checked = await evaluateChallenge(phaseId, [...before.history, queryText], Number(identity?.group_id || 0), before.nosql_done);
+        const succeeded = checked.lastSucceeded;
         await ensureProgress(user.id, phaseId);
-        await sql().query(
-          `INSERT INTO student_queries (user_id, phase_id, query_text, success)
-           VALUES ($1,$2,$3,$4)`,
-          [user.id, phaseId, queryText, executed]
-        );
-        await sql().query(
-          `UPDATE progress
-           SET queries_count=queries_count+1,
-               attempts=attempts+CASE WHEN $1::boolean=FALSE THEN 1 ELSE 0 END
-           WHERE user_id=$2 AND phase_id=$3`,
-          [executed, user.id, phaseId]
-        );
+        await sql().query(`INSERT INTO student_queries(user_id,phase_id,query_text,success) VALUES($1,$2,$3,$4)`,
+          [user.id, phaseId, queryText, succeeded]);
+        await sql().query(`UPDATE progress SET queries_count=queries_count+1,
+          attempts=attempts+CASE WHEN $1::boolean THEN 0 ELSE 1 END WHERE user_id=$2 AND phase_id=$3`,
+          [succeeded, user.id, phaseId]);
+        if (!succeeded) return fail(res, 422, checked.lastError || 'Instrução inválida.');
+        return res.status(200).json({ ok: true, result: checked.result, milestones: checked.milestones });
       }
 
+      const safe = isSafeReadQuery(cleanQuery(queryText)) && cleanQuery(queryText).split(';').filter(Boolean).length <= 1;
+      let result = [];
+      let error = null;
+      if (safe) {
+        try { result = await executeArchiveQuery(queryText); }
+        catch (cause) { error = cause.message; }
+      }
+      const executed = safe && !error;
+
+      await ensureProgress(user.id, phaseId);
+      await sql().query(
+        `INSERT INTO student_queries (user_id, phase_id, query_text, success)
+         VALUES ($1,$2,$3,$4)`,
+        [user.id, phaseId, queryText, executed]
+      );
+      await sql().query(
+        `UPDATE progress
+         SET queries_count=queries_count+1,
+             attempts=attempts+CASE WHEN $1::boolean=FALSE THEN 1 ELSE 0 END
+         WHERE user_id=$2 AND phase_id=$3`,
+        [executed, user.id, phaseId]
+      );
+
+      if (!executed) return fail(res, 422, error || 'Consulta de leitura inválida.');
       const milestones = await collectedMilestones(user.id, phaseId);
       return res.status(200).json({
         ok: true,
+        result,
         query_milestones: queryMilestones(phaseId, queryText),
         milestones
       });
@@ -143,6 +185,15 @@ export default async function handler(req, res) {
       const phase = await availablePhase(phaseId, user.id);
       if (!phase) return fail(res, 403, 'Fase indisponível.');
 
+      if (phaseId >= 3) {
+        const state = await challengeState(user.id, phaseId);
+        const missing = LESSONS[phaseId].objectives.filter(([key]) => !state.milestones.includes(key));
+        if (missing.length) return fail(res, 422, `Ainda faltam ${missing.length} requisito(s).`);
+        if (normalizeAccessCode(data.answer) !== normalizeAccessCode(LESSONS[phaseId].answer)) return fail(res, 422, 'Identificação incorreta.');
+        await sql().query(`UPDATE progress SET status='completed', completed_at=COALESCE(completed_at,NOW()) WHERE user_id=$1 AND phase_id=$2`, [user.id, phaseId]);
+        return res.status(200).json({ ok: true, reward: LESSONS[phaseId].answer });
+      }
+
       const required = PHASE_REQUIREMENTS[phaseId] || [];
       const milestones = await collectedMilestones(user.id, phaseId);
       const missing = required.filter(item => !milestones.includes(item));
@@ -150,26 +201,23 @@ export default async function handler(req, res) {
         return fail(res, 422, `Ainda existem ${missing.length} etapa(s) da investigação incompleta(s).`);
       }
 
-      const normalized = normalizeAccessCode(data.answer);
-      if (phaseId === 3 && ['subaru', 'subaro', 'subaru logo', 'logo subaru'].includes(normalized)) {
-        return fail(res, 422, 'Resposta errada. O que a logo representa?');
+      const previousCompletion = await sql().query(`SELECT 1 FROM progress WHERE user_id=$1 AND phase_id=$2 AND status='completed' LIMIT 1`, [user.id, phaseId]);
+      if (!previousCompletion[0]) {
+        const quiz = await sql().query(`SELECT 1 FROM arg_submissions WHERE user_id=$1 AND assessment_id=$2 AND correct=TRUE LIMIT 1`, [user.id, phaseId]);
+        if (!quiz[0]) return fail(res, 422, 'Conclua a pergunta conceitual desta aula.');
       }
 
+      const normalized = normalizeAccessCode(data.answer);
       const digest = crypto.createHash('sha256').update(normalized).digest('hex');
       if (digest !== ACCESS_DIGESTS[phaseId]) {
-        return fail(res, 422, phaseId === 3 ? 'Resposta incorreta.' : 'Código de acesso incorreto.');
+        return fail(res, 422, 'Código de acesso incorreto.');
       }
-
-      if (phaseId === 3) {
-        await completePhaseThree(user.id);
-      } else {
-        await ensureProgress(user.id, phaseId);
-        await sql().query(
-          `UPDATE progress SET status='completed', completed_at=COALESCE(completed_at,NOW())
-           WHERE user_id=$1 AND phase_id=$2`,
-          [user.id, phaseId]
-        );
-      }
+      await ensureProgress(user.id, phaseId);
+      await sql().query(
+        `UPDATE progress SET status='completed', completed_at=COALESCE(completed_at,NOW())
+         WHERE user_id=$1 AND phase_id=$2`,
+        [user.id, phaseId]
+      );
 
       return res.status(200).json({ ok: true, reward: phase.reward });
     }
@@ -185,11 +233,27 @@ export default async function handler(req, res) {
   }
 }
 
+async function challengeState(userId, phaseId) {
+  const records = await sql().query(`SELECT query_text FROM student_queries WHERE user_id=$1 AND phase_id=$2 AND success=TRUE ORDER BY id`, [userId, phaseId]);
+  const history = records.map(row => row.query_text);
+  const quiz = phaseId === 9 ? await sql().query(`SELECT 1 FROM arg_submissions WHERE user_id=$1 AND assessment_id=9 AND answer='find' AND correct=TRUE LIMIT 1`, [userId]) : [];
+  const identity = await argIdentityForUser(userId);
+  const nosql_done = Boolean(quiz[0]);
+  const evaluated = await evaluateChallenge(phaseId, history, Number(identity?.group_id || 0), nosql_done);
+  return { history, milestones: evaluated.milestones, nosql_done };
+}
+
 async function availablePhase(phaseId, userId) {
   if (!Number.isInteger(phaseId) || phaseId < 1 || phaseId > 9) return null;
   if (phaseId === 9) {
     const assessment = await assessmentSummary(userId);
     if (!assessment.final_eligible || !assessment.final_protocol_unlocked) return null;
+  }
+  if (phaseId >= 3) {
+    const previous = phaseId === 3
+      ? await sql().query(`SELECT 1 FROM progress WHERE user_id=$1 AND phase_id=2 AND status='completed' LIMIT 1`, [userId])
+      : await sql().query(`SELECT 1 FROM progress WHERE user_id=$1 AND phase_id=$2 AND status='completed' LIMIT 1`, [userId, phaseId - 1]);
+    if (!previous[0]) return null;
   }
   const rows = await sql().query(
     'SELECT * FROM phases WHERE id=$1 AND developed=TRUE AND released=TRUE',
@@ -199,9 +263,7 @@ async function availablePhase(phaseId, userId) {
 }
 
 async function collectedMilestones(userId, phaseId) {
-  const rows = phaseId === 3
-    ? await phaseThreeQueries(userId)
-    : await sql().query(
+  const rows = await sql().query(
       `SELECT query_text
        FROM student_queries
        WHERE user_id=$1 AND phase_id=$2 AND success=TRUE
@@ -305,47 +367,6 @@ function queryMilestones(phaseId, query) {
         /\b37\s*=\s*(?:\w+\.)?id\b/i.test(cleaned)
       )
     ) found.push('identify');
-
-    return [...new Set(found)];
-  }
-
-  if (phaseId === 3) {
-    const found = [];
-    const usesEvidence = /\b(?:FROM|JOIN)\s+evidencias\b/i.test(cleaned);
-    const usesReferences = /\b(?:FROM|JOIN)\s+referencias\b/i.test(cleaned);
-    const usesResources = /\b(?:FROM|JOIN)\s+recursos\b/i.test(cleaned);
-    const hasJoin = /\b(?:INNER\s+)?JOIN\b/i.test(cleaned);
-    const hasOn = /\bON\b/i.test(cleaned);
-
-    if (usesEvidence) found.push('evidence');
-
-    if (
-      usesEvidence &&
-      usesReferences &&
-      hasJoin &&
-      hasOn
-    ) found.push('evidence_join');
-
-    if (
-      usesEvidence &&
-      usesReferences &&
-      usesResources &&
-      hasJoin &&
-      hasOn
-    ) found.push('resource_join');
-
-    if (
-      usesEvidence &&
-      usesReferences &&
-      usesResources &&
-      /\bWHERE\b/i.test(cleaned) &&
-      /\bstatus\s*=\s*['"]?recuperado['"]?/i.test(cleaned)
-    ) found.push('resource_found');
-
-    if (
-      /\bFROM\s+evidencias\b/i.test(cleaned) &&
-      /\bLEFT\s+JOIN\s+referencias\b/i.test(cleaned)
-    ) found.push('orphans');
 
     return [...new Set(found)];
   }

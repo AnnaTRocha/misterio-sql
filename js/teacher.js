@@ -1,6 +1,6 @@
 import { api, escapeHtml, logout, requireSession } from './api-client.js';
 
-let developedCount = 0;
+let phaseCount = 0;
 
 async function load() {
   try {
@@ -8,7 +8,7 @@ async function load() {
     if (!user) return;
     document.getElementById('username').textContent = user.username;
     const data = await api('/api/teacher?action=overview');
-    developedCount = data.phases.filter(phase => phase.developed).length;
+    phaseCount = data.phases.length;
     renderPhases(data.phases);
     renderResets(data.resets);
     renderStudents(data.students);
@@ -22,6 +22,7 @@ function renderPhases(phases) {
   root.innerHTML = phases.map(phase => `
     <article class="admin-card">
       <strong>Fase ${phase.id} · ${escapeHtml(phase.title)}</strong>
+      <span>Exercício ${String(phase.id).padStart(2, '0')} · ${Number(phase.id) === 9 ? '40%' : '7,5%'} da nota</span>
       <span>${phase.completed} concluíram · ${phase.started} iniciaram</span>
       ${phase.developed
         ? `<label class="switch-row"><input type="checkbox" data-release="${phase.id}" ${phase.released ? 'checked' : ''}> Liberada</label>`
@@ -84,7 +85,7 @@ function renderStudents(students) {
       <td>${escapeHtml(student.username)}</td>
       <td>${escapeHtml(student.investigator_alias || '—')}</td>
       <td>${student.is_test ? '<span class="test-badge">SEM GRUPO</span>' : escapeHtml(student.group_code || '—')}</td>
-      <td>${student.completed} / ${developedCount}</td>
+      <td>${student.completed} / ${phaseCount}</td>
       <td>${student.score || 0}%</td>
       <td>${student.queries}</td>
       <td>${student.attempts}</td>

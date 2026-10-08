@@ -6,8 +6,16 @@
   "engines": {
     "node": ">=20"
   },
+  "scripts": {
+    "build": "node scripts/build.mjs",
+    "test": "node tests/challenges.test.js"
+  },
   "dependencies": {
     "@neondatabase/serverless": "^1.0.1",
-    "bcryptjs": "^3.0.2"
+    "bcryptjs": "^3.0.2",
+    "sql.js": "^1.14.2"
+  },
+  "devDependencies": {
+    "esbuild": "^0.28.2"
   }
 }

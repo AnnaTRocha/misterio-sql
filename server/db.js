@@ -82,25 +82,36 @@ export async function ensureSchema() {
       value TEXT NOT NULL
     )`);
 
-    const professor = await db.query(`SELECT id FROM users WHERE LOWER(username)='professor' LIMIT 1`);
+    const professor = await db.query(`SELECT id, password_hash FROM users WHERE LOWER(username)='professor' LIMIT 1`);
     if (!professor[0]) {
-      const professorPassword = await bcrypt.hash('ihatefurry', 12);
+      const initialPassword = process.env.TEACHER_INITIAL_PASSWORD;
+      if (!initialPassword || initialPassword.length < 12) {
+        throw new Error('TEACHER_INITIAL_PASSWORD deve ter pelo menos 12 caracteres para criar a conta do professor.');
+      }
+      const professorPassword = await bcrypt.hash(initialPassword, 12);
       await db.query(
-        `INSERT INTO users (username, password_hash, role) VALUES ($1, $2, 'teacher')`,
+        `INSERT INTO users (username, password_hash, role, must_change_password) VALUES ($1, $2, 'teacher', TRUE)`,
         ['professor', professorPassword]
       );
+    } else if (await bcrypt.compare('ihatefurry', professor[0].password_hash)) {
+      const replacement = process.env.TEACHER_INITIAL_PASSWORD;
+      if (!replacement || replacement.length < 12 || replacement === 'ihatefurry') {
+        throw new Error('Defina TEACHER_INITIAL_PASSWORD para substituir a senha inicial antiga do professor.');
+      }
+      await db.query(`UPDATE users SET password_hash=$1, must_change_password=TRUE WHERE id=$2`,
+        [await bcrypt.hash(replacement, 12), professor[0].id]);
     }
 
     const phases = [
       [1, 'O Primeiro Acesso', 'Reative o Arquivo 3301, explore usuários e mensagens com SELECT/FROM e descubra o primeiro código de acesso.', true, true, '1987'],
-      [2, '1987', 'Investigue o incidente de 17/09/1987 em seis etapas usando filtros, NULL, DISTINCT, ORDER BY, GROUP BY e agregações.', true, false, 'ORION'],
-      [3, 'O Aglomerado', 'Relacione evidências, referências e recursos com JOINs para recuperar um símbolo externo e descobrir o que ele representa.', false, false, 'PLÊIADES'],
-      [4, 'Catálogo Celeste', 'Capítulo futuro do Observatório // 1987. O conteúdo didático será definido a partir da aula correspondente.', false, false, null],
-      [5, 'Arquivo Fragmentado', 'Encerramento futuro do arco Observatório // 1987 e transição para novos registros.', false, false, null],
-      [6, 'Intercepção // Nó', 'Início futuro do arco de comunicação, sessões, dispositivos e registros fragmentados.', false, false, null],
-      [7, 'Registros Fragmentados', 'Capítulo futuro de cruzamento de registros e identidades dentro da Interceptação // Nó.', false, false, null],
-      [8, 'Identidade Desconhecida', 'Capítulo futuro de investigação cooperativa sobre uma identidade oculta nos registros.', false, false, 'US0'],
-      [9, 'Operação Final', 'Avaliação final cooperativa. Exige os quatro marcos anteriores, totalizando 60% acumulados.', false, false, null]
+      [2, 'O Registro Interrompido', 'Reconstrua o incidente por meio de filtros, ausências, ordenação e agregações.', true, false, 'ORION'],
+      [3, 'Cartografia do Vazio', 'O antigo código aponta para um mapa incompleto. Reconstrua a primeira camada.', true, false, 'CONSTELACAO'],
+      [4, 'O Padrão Quebrado', 'Há registros repetidos no observatório. Descubra o que está fora do lugar.', true, false, 'NORMALIZACAO'],
+      [5, 'A Sexta Estrela', 'Uma marca apagada e uma estrela ausente alteram a leitura do arquivo.', true, false, 'PLEIADES'],
+      [6, 'Eco no Setor Norte', 'Os sinais de 1987 foram misturados a ruído. Separe o que importa.', true, false, 'N-04'],
+      [7, 'Linhas Cruzadas', 'As respostas estão em registros que não foram guardados juntos.', true, false, 'PLEIADES'],
+      [8, 'O Sétimo Rastro', 'As sessões deixam padrões que só aparecem quando vistas em conjunto.', true, false, 'FRAGMENTOS'],
+      [9, 'Última Transmissão', 'Três fragmentos, uma identidade ausente e um protocolo final.', true, false, 'US0']
     ];
 
     for (const phase of phases) {

@@ -744,6 +744,31 @@ body.crt-page[data-theme="observatory"] .case-head .eyebrow {
   color: #8ec8ff;
 }
 
+body.crt-page[data-theme="interception"] {
+  --crt-bg: #040b0d;
+  --crt-panel: #081418;
+  --crt-panel-2: #0a1b20;
+  --crt-green: #7de0d5;
+  --crt-green-strong: #c8fff6;
+  --crt-green-dim: #3eaaa2;
+  --crt-line: rgba(125,224,213,.22);
+  --crt-muted: #6eaaa9;
+  background: linear-gradient(90deg, rgba(125,224,213,.025) 1px, transparent 1px), var(--crt-bg);
+  background-size: 32px 100%;
+}
+
+body.crt-page[data-theme="operation"] {
+  --crt-bg: #0b0805;
+  --crt-panel: #181108;
+  --crt-panel-2: #21170b;
+  --crt-green: #f4c783;
+  --crt-green-strong: #fff0cd;
+  --crt-green-dim: #b98b4a;
+  --crt-line: rgba(244,199,131,.24);
+  --crt-muted: #b19a79;
+  background: radial-gradient(circle at 50% 8%, rgba(244,199,131,.09), transparent 32rem), var(--crt-bg);
+}
+
 
 /* Ferramentas exclusivas do usuário teste */
 .test-tools{margin-top:28px;border:1px solid rgba(210,176,76,.48);background:rgba(25,22,12,.92);box-shadow:0 0 34px rgba(210,176,76,.08);padding:26px;color:#eee6c9}

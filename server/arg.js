@@ -4,11 +4,8 @@ let initialized = false;
 let initPromise;
 
 const ASSESSMENTS = [
-  [1, 'Exercício 01', 1, 2, 15, false],
-  [2, 'Exercício 02', 3, 4, 15, false],
-  [3, 'Exercício 03', 5, 6, 15, false],
-  [4, 'Exercício 04', 7, 8, 15, false],
-  [5, 'Exercício 05', 9, 9, 40, true]
+  ...Array.from({ length: 8 }, (_, index) => [index + 1, `Exercício ${String(index + 1).padStart(2, '0')}`, index + 1, index + 1, 7.5, false]),
+  [9, 'Exercício 09', 9, 9, 40, true]
 ];
 
 export async function ensureArgFoundation() {
@@ -49,9 +46,11 @@ async function initializeFoundation() {
     title TEXT NOT NULL,
     phase_start INTEGER NOT NULL,
     phase_end INTEGER NOT NULL,
-    weight INTEGER NOT NULL CHECK (weight > 0 AND weight <= 100),
+    weight NUMERIC(5,2) NOT NULL CHECK (weight > 0 AND weight <= 100),
     is_final BOOLEAN NOT NULL DEFAULT FALSE
   )`);
+
+  await db.query('ALTER TABLE course_assessments ALTER COLUMN weight TYPE NUMERIC(5,2)');
 
   await db.query(`CREATE TABLE IF NOT EXISTS arg_secret_hints (
     group_id INTEGER PRIMARY KEY REFERENCES arg_groups(id) ON DELETE CASCADE,
@@ -362,20 +361,6 @@ async function completedPhaseMap(userIds) {
     const id = Number(row.user_id);
     if (!map.has(id)) map.set(id, new Set());
     map.get(id).add(Number(row.phase_id));
-  }
-
-  const phaseThreeExists = await db.query(`SELECT to_regclass('public.phase3_progress') AS table_name`);
-  if (phaseThreeExists[0]?.table_name) {
-    const phaseThree = await db.query(
-      `SELECT user_id FROM phase3_progress
-       WHERE status='completed' AND user_id = ANY($1::bigint[])`,
-      [userIds]
-    );
-    for (const row of phaseThree) {
-      const id = Number(row.user_id);
-      if (!map.has(id)) map.set(id, new Set());
-      map.get(id).add(3);
-    }
   }
 
   return map;

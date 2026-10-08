@@ -9,19 +9,19 @@ Jogo educacional de SQL com login de estudantes, painel do professor, liberaçã
 - Frontend estático: HTML, CSS e JavaScript.
 - API serverless: funções Node.js em `api/`.
 - Banco administrativo: PostgreSQL/Neon via `DATABASE_URL`.
-- Banco investigativo: `data/caso.sql`, carregado no navegador com sql.js e usado somente para consultas de leitura.
+- Banco investigativo: `server/caso.sql`, executado pela API em uma cópia isolada por consulta.
 
 Não há PHP no deploy.
 
 ## Configuração
 
-Na Vercel, conecte um banco PostgreSQL/Neon e configure `DATABASE_URL`. Também crie `SESSION_SECRET` com pelo menos 32 caracteres.
+Na Vercel, conecte um banco PostgreSQL/Neon e configure `DATABASE_URL`. Também crie `SESSION_SECRET` com pelo menos 32 caracteres e `TEACHER_INITIAL_PASSWORD` com pelo menos 12 caracteres antes da primeira inicialização.
 
-O usuário inicial do professor continua sendo:
+O usuário inicial do professor é:
 
 ```text
 Login: professor
-Senha: ihatefurry
+Senha: valor definido em TEACHER_INITIAL_PASSWORD
 ```
 
 ## Fase 1 — O Primeiro Acesso
@@ -66,16 +66,27 @@ Use um `.env.local` com:
 ```env
 DATABASE_URL=postgresql://...
 SESSION_SECRET=uma-chave-com-pelo-menos-32-caracteres
+TEACHER_INITIAL_PASSWORD=uma-senha-aleatoria-com-12-ou-mais-caracteres
 ```
 
 
-## Fase 3 — O Aglomerado
+## Exercícios alinhados aos slides
 
-A terceira missão trabalha relacionamentos entre tabelas com JOINs. O estudante investiga `evidencias`, `referencias` e `recursos`, relaciona os registros com `INNER JOIN`, usa `LEFT JOIN` para encontrar uma evidência sem correspondência e recupera um recurso externo.
+As Aulas 01 e 02 mantêm a investigação original e as respostas **1987** e **ORION**. Cada uma ganhou uma pergunta conceitual ligada aos slides: relações entre chaves na Aula 01 e normalização na Aula 02. Alunos que já haviam concluído essas fases não perdem o progresso.
 
-O protocolo final pede a interpretação do símbolo recuperado. A resposta aceita é **Plêiades/Pleiades**, sem diferenciar maiúsculas, minúsculas ou acentuação. Respostas como **Subaru/Subaro** recebem a dica: “Resposta errada. O que a logo representa?”.
+| Aula | Conteúdo dos slides | Investigação |
+| --- | --- | --- |
+| 03 | DDL, `CREATE TABLE`, chaves e restrições | Reconstruir a estrutura do observatório |
+| 04 | `ALTER` e normalização | Corrigir o catálogo redundante |
+| 05 | DML e transações | Corrigir os símbolos em uma transação |
+| 06 | DQL, filtros, `DISTINCT` e agregações | Separar sinais de 1987 do ruído |
+| 07 | `JOIN` | Relacionar acessos e objetos e achar ausências |
+| 08 | Subconsultas, CTE e funções de janela | Reunir padrões dos fragmentos |
+| 09 | NoSQL/MongoDB | ARG SQL em equipe mais uma pergunta breve sobre `find` |
 
-A Fase 3 é criada como desenvolvida, mas permanece bloqueada até a liberação pelo professor.
+Os exercícios 03–09 executam SQL no servidor em uma cópia isolada de `server/curso.sql`. O servidor reexecuta as instruções registradas e valida o estado das tabelas ou o resultado das consultas. Uma instrução é executada por vez. A liberação pelo professor e a conclusão da fase anterior também são exigidas para avançar. Os títulos e as dicas permanecem narrativos; o SQL de referência só aparece para usuários de teste.
+
+Na Vercel, `npm run build` publica somente HTML, CSS e JavaScript minificado em `public/`; os bancos SQL e a validação permanecem nas funções da API. Não são gerados source maps. A API limita consultas a 12 por minuto e respostas a 5–8 por minuto por usuário. Para reforçar o bloqueio de automação, habilite Bot Protection e regras de rate limit no painel da Vercel; `robots.txt` e minificação não impedem um bot determinado.
 
 
 ## Arquitetura narrativa do curso
@@ -87,26 +98,23 @@ O curso passa a ser preparado para 9 fases distribuídas em quatro arcos:
 - Fases 6–8: **INTERCEPTAÇÃO // NÓ**.
 - Fase 9: **OPERAÇÃO // 3301**.
 
-As Fases 1 e 2 permanecem com a lógica didática e as respostas já utilizadas pelos estudantes. A Fase 3 mantém o exercício de JOINs e a resposta **PLÊIADES**, mas agora explicita que **ORION** era também uma pista narrativa.
+As Fases 1 e 2 preservam a investigação e as respostas já utilizadas pelos estudantes. A sequência posterior acompanha os conteúdos reais dos slides: o exercício de `JOIN` passou para a Fase 7.
 
-As fases 4–9 aparecem no sistema como capítulos planejados, porém continuam marcadas como **não desenvolvidas** até que o conteúdo didático de cada aula seja definido.
+As fases 03–09 são desenvolvidas, mas começam bloqueadas para liberação pelo professor.
 
 ### Avaliações
 
-A fundação do ARG registra cinco marcos avaliativos:
+A nota é distribuída entre as nove atividades:
 
-| Avaliação | Fases | Peso |
+| Avaliação | Fase | Peso |
 | --- | --- | ---: |
-| Exercício 01 | 1–2 | 15% |
-| Exercício 02 | 3–4 | 15% |
-| Exercício 03 | 5–6 | 15% |
-| Exercício 04 | 7–8 | 15% |
-| Exercício 05 | 9 | 40% |
+| Exercícios 01–08 | 1–8, respectivamente | 7,5% cada (60% no total) |
+| Exercício 09 | 9 | 40% |
 
-O painel calcula a pontuação a partir da conclusão integral de cada marco. Os quatro primeiros totalizam 60%. A API também exige esses 60% antes de permitir a Fase 9 e mantém um estado separado para a validação do protocolo final **3301**.
+O painel calcula a pontuação a partir da conclusão de cada atividade. As oito primeiras totalizam 60%. A API exige esses 60% antes de permitir a Fase 9 e mantém um estado separado para a validação do protocolo final **3301**.
 
 ### Identidades do ARG
 
 O backend mantém dois grupos investigativos e atribui a cada estudante uma identidade adicional no formato `usN`, sem substituir o login real. As três primeiras identidades pertencem ao Grupo 01, as três seguintes ao Grupo 02, e o padrão se repete em blocos de três. A identidade `us0` fica reservada e invisível na listagem normal dos estudantes.
 
-A estrutura também deixa prontas as tabelas de logs, dicas secretas, recursos externos e submissões para os capítulos 6–9, sem inventar o conteúdo didático que ainda depende das aulas correspondentes.
+A estrutura administrativa mantém grupos, dicas secretas e submissões separados do progresso individual. O ARG final usa três fragmentos relacionais por equipe e uma identidade oculta.

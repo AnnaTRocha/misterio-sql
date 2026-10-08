@@ -8,17 +8,10 @@ import {
   reorganizeGroups,
   setStudentTestStatus
 } from '../server/arg.js';
-import {
-  ensurePhaseThree,
-  phaseThreeOverview,
-  phaseThreeStudentStats,
-  setPhaseThreeReleased
-} from '../server/phase3.js';
 
 export default async function handler(req, res) {
   try {
     await ensureSchema();
-    await ensurePhaseThree();
     await ensureArgFoundation();
     const user = await requireUser(req, res, 'teacher');
     if (!user) return;
@@ -50,22 +43,6 @@ export default async function handler(req, res) {
         ORDER BY u.username
       `);
 
-      const phase3 = await phaseThreeOverview();
-      const phase3Card = phases.find(item => Number(item.id) === 3);
-      if (phase3Card) {
-        phase3Card.started = phase3.started;
-        phase3Card.completed = phase3.completed;
-      }
-
-      const phase3Stats = await phaseThreeStudentStats();
-      const phase3ByUser = new Map(phase3Stats.map(item => [Number(item.user_id), item]));
-      for (const student of students) {
-        const extra = phase3ByUser.get(Number(student.id));
-        if (!extra) continue;
-        student.completed += extra.completed;
-        student.queries += extra.queries;
-        student.attempts += extra.attempts;
-      }
       const scores = await assessmentScores(students.map(student => Number(student.id)));
       for (const student of students) {
         student.score = scores.get(Number(student.id)) || 0;
@@ -88,11 +65,7 @@ export default async function handler(req, res) {
       const phaseId = Number(data.phase_id);
       const released = Boolean(data.released);
 
-      if (phaseId === 3) {
-        await setPhaseThreeReleased(released);
-      } else {
-        await sql().query('UPDATE phases SET released=$1 WHERE id=$2 AND developed=TRUE', [released, phaseId]);
-      }
+      await sql().query('UPDATE phases SET released=$1 WHERE id=$2 AND developed=TRUE', [released, phaseId]);
       return res.status(200).json({ ok: true });
     }
 

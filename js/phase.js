@@ -3,8 +3,7 @@ import { api, escapeHtml, requireSession } from './api-client.js';
 const phaseId = Number(new URLSearchParams(location.search).get('id'));
 const PHASE_TABLES = {
   1: ['usuarios', 'mensagens', 'arquivos', 'pessoas', 'acessos'],
-  2: ['usuarios', 'mensagens', 'arquivos', 'pessoas', 'acessos'],
-  3: ['evidencias', 'referencias', 'recursos']
+  2: ['usuarios', 'mensagens', 'arquivos', 'pessoas', 'acessos']
 };
 
 function currentTables() {
@@ -27,17 +26,17 @@ const PHASES = {
       ['messages', '1.3 // Encontrar as mensagens do usuário desconhecido']
     ],
     hints: [
-      'Comece com SELECT * FROM usuarios; e procure algo fora do padrão.',
-      'O usuário id 3 aparece como desconhecido. Tente selecionar apenas as colunas que interessam.',
-      'Mensagens possuem remetente_id. Procure registros enviados pelo id 3.',
-      'A segunda mensagem do remetente 3 contém o código necessário para abrir o próximo arquivo.'
+      'A listagem de usuários tem uma entrada fora do padrão.',
+      'Compare o identificador dessa entrada com os remetentes das mensagens.',
+      'Uma projeção de colunas ajuda a retirar o ruído.',
+      'As mensagens do mesmo remetente devem ser lidas em sequência.'
     ],
     initial: 'SELECT * FROM usuarios;'
   },
   2: {
-    code: 'INCIDENTE 1987',
-    title: '1987',
-    mission: 'Reconstrua o incidente de 17/09/1987. Cada etapa exige uma técnica de DQL e reduz o ruído até restar um único usuário e um código.',
+    code: 'INCIDENTE // ECO',
+    title: 'O Registro Interrompido',
+    mission: 'Reconstrua um acesso irregular. Os relatórios estão fragmentados e a sequência precisa ser confirmada por consultas.',
     story: [
       '17/09/1987 // Um acesso irregular foi registrado durante a madrugada.',
       'Os relatórios foram fragmentados. Há pessoas, entradas, saídas e terminais, mas nenhuma conclusão pronta.',
@@ -52,48 +51,22 @@ const PHASES = {
       ['code', '2.6 // Código: isolar dia 17/09 à 21/09, identificar o usuário e coletar o código']
     ],
     hints: [
-      "2.1 // SELECT * FROM pessoas WHERE idade BETWEEN 20 AND 30 AND nome LIKE 'A%';",
-      '2.2 // Em acessos, um registro não possui hora de saída. Use IS NULL.',
-      '2.3 // Liste apenas cidade e elimine valores repetidos com DISTINCT.',
-      '2.4 // Ordene acessos por data_hora do mais recente para o mais antigo.',
-      '2.5 // Agrupe por pessoa_id, use COUNT(*) AS acessos e ordene pela contagem.',
-      "2.6 // Conte acessos por usuario_id entre '1987-09-17' e '1987-09-21'. Depois consulte o usuário que liderar o resultado."
+      '2.1 // A testemunha pertence a uma faixa etária e seu nome começa com uma letra específica.',
+      '2.2 // Uma ausência no registro de saída pode ser mais importante que um valor preenchido.',
+      '2.3 // Conte cada cidade apenas uma vez.',
+      '2.4 // O acesso mais recente muda a direção da investigação.',
+      '2.5 // Frequência exige agrupar pessoas antes de comparar totais.',
+      '2.6 // Restrinja a janela do incidente; a identidade está no cadastro de quem mais aparece.'
     ],
     initial: 'SELECT * FROM pessoas;'
-  },
-  3: {
-    code: 'OBSERVATÓRIO // 1987',
-    theme: 'observatory',
-    title: 'O Aglomerado',
-    mission: 'As pistas agora estão separadas em tabelas diferentes. Relacione evidências, referências e recursos para recuperar um símbolo externo e descobrir o que ele representa.',
-    story: [
-      'OBSERVATÓRIO 1987 // ORION não era somente uma resposta. Era uma pista.',
-      'Constelação. Estrelas. Um símbolo de seis estrelas aparece entre registros fragmentados.',
-      'Nenhum registro isolado contém a resposta. Relacione as tabelas, recupere o recurso íntegro e descubra o que o símbolo representa.'
-    ],
-    objectives: [
-      ['evidence', '3.1 // Examinar as evidências recuperadas'],
-      ['evidence_join', '3.2 // Relacionar evidências e referências'],
-      ['resource_join', '3.3 // Relacionar referências e recursos'],
-      ['resource_found', '3.4 // Localizar o recurso externo recuperado'],
-      ['orphans', '3.5 // Identificar evidências sem referência usando LEFT JOIN']
-    ],
-    hints: [
-      '3.1 // Comece explorando a tabela evidencias.',
-      '3.2 // evidencias.id se relaciona com referencias.evidencia_id.',
-      '3.3 // referencias.recurso_id se relaciona com recursos.id. Você pode usar mais de um JOIN na mesma consulta.',
-      "3.4 // Depois dos JOINs, filtre o recurso cujo status seja 'recuperado'.",
-      '3.5 // Use LEFT JOIN para manter todas as evidências, inclusive a que não possui correspondência.',
-      'PROTOCOLO FINAL // Abra o recurso recuperado. O símbolo possui seis estrelas. O que ele representa?'
-    ],
-    initial: 'SELECT * FROM evidencias;'
   }
 };
 
-let db;
+let ready = false;
 let hintIndex = 0;
 let milestones = new Set();
 let querySequence = 0;
+let conceptDone = false;
 
 const editor = document.getElementById('sqlEditor');
 const runBtn = document.getElementById('runBtn');
@@ -129,7 +102,9 @@ async function init() {
       body: { phase_id: phaseId }
     });
     milestones = new Set(start.milestones || []);
+    conceptDone = Boolean(start.concept_done);
     renderObjectives();
+    renderFinish();
   } catch (error) {
     feedback.className = 'query-feedback error';
     feedback.textContent = error.message;
@@ -207,6 +182,15 @@ function renderFinish() {
     <span class="dashboard-kicker">PROTOCOLO FINAL</span>
     <h2>${title}</h2>
     <p id="completionHint">${descriptions[phaseId] || ''}</p>
+    ${conceptDone ? '' : `<form id="conceptForm">
+      <label for="conceptAnswer">${phaseId === 1 ? 'Qual chave conecta uma tabela a outra?' : 'Na 3ª forma normal, o que deve ser evitado?'}</label>
+      <div class="crt-input-row"><select id="conceptAnswer" required>
+        <option value="">Selecione uma resposta</option>
+        ${phaseId === 1
+          ? '<option value="chave_primaria">Uma segunda chave primária</option><option value="chave_estrangeira">Uma chave estrangeira que referencia a chave primária</option><option value="indice">Um índice sem referência</option>'
+          : '<option value="listas">Apenas listas em uma célula</option><option value="sem_dependencia_transitiva">Dependência transitiva entre atributos não-chave</option><option value="ordenacao">Ordenação por nome</option>'}
+      </select><button type="submit">Validar conceito</button></div>
+    </form>`}
     <form id="codeForm">
       <div class="crt-input-row">
         <input id="accessCodeInput" placeholder="${phaseId === 3 ? 'identificação do símbolo' : 'código de acesso'}" autocomplete="off" required>
@@ -216,6 +200,14 @@ function renderFinish() {
     </form>`;
 
   document.getElementById('codeForm').addEventListener('submit', complete);
+  document.getElementById('conceptForm')?.addEventListener('submit', async event => {
+    event.preventDefault();
+    try {
+      await api('/api/game?action=concept-answer', { method: 'POST', body: { phase_id: phaseId, answer: document.getElementById('conceptAnswer').value } });
+      conceptDone = true;
+      renderFinish();
+    } catch (error) { alert(error.message); }
+  });
   updateCompletion();
 }
 
@@ -225,7 +217,7 @@ function updateCompletion() {
 
   const required = PHASES[phaseId].objectives.map(([key]) => key);
   const ready = required.every(key => milestones.has(key));
-  button.disabled = !ready;
+  button.disabled = !ready || !conceptDone;
 
   const hint = document.getElementById('completionHint');
   if (!hint) return;
@@ -233,7 +225,7 @@ function updateCompletion() {
   if (ready) {
     const messages = {
       1: 'A trilha do usuário desconhecido está completa. Informe o código encontrado nas mensagens.',
-      2: 'As seis etapas foram reconstruídas. Informe o código associado ao usuário 37.',
+      2: 'As seis etapas foram reconstruídas. Informe o código associado à identidade que você identificou.',
       3: 'As relações foram reconstruídas. Abra o recurso externo recuperado e informe o que o símbolo representa.'
     };
     hint.textContent = messages[phaseId] || '';
@@ -241,25 +233,10 @@ function updateCompletion() {
 }
 
 async function loadDatabase() {
-  try {
-    if (typeof initSqlJs !== 'function') throw new Error('Biblioteca SQL não carregada.');
-
-    const SQL = await initSqlJs({
-      locateFile: file => `https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.10.3/${file}`
-    });
-    const response = await fetch('data/caso.sql', { cache: 'no-store' });
-    if (!response.ok) throw new Error('Falha ao acessar o Arquivo 3301.');
-
-    db = new SQL.Database();
-    db.run(await response.text());
-    runBtn.disabled = false;
-    feedback.className = 'query-feedback ok';
-    feedback.textContent = 'CONEXÃO ESTABELECIDA // arquivo 3301 montado';
-  } catch (error) {
-    feedback.className = 'query-feedback error';
-    feedback.textContent = `FALHA // ${error.message}`;
-    renderError(error.message);
-  }
+  ready = true;
+  runBtn.disabled = false;
+  feedback.className = 'query-feedback ok';
+  feedback.textContent = 'CONEXÃO ESTABELECIDA // arquivo 3301 montado';
 }
 
 function isReadOnly(sql) {
@@ -273,7 +250,7 @@ function isReadOnly(sql) {
 }
 
 async function executeSql() {
-  if (!db) return;
+  if (!ready) return;
 
   const query = editor.value.trim();
   if (!query) return renderError('Nenhum comando recebido.');
@@ -286,11 +263,11 @@ async function executeSql() {
   feedback.textContent = 'EXECUTANDO // lendo setores do arquivo...';
 
   try {
-    const resultSets = db.exec(query);
     const log = await api('/api/game?action=query', {
       method: 'POST',
-      body: { phase_id: phaseId, query, executed: true }
+      body: { phase_id: phaseId, query }
     });
+    const resultSets = log.result || [];
 
     milestones = new Set(log.milestones || []);
     renderObjectives();
@@ -301,21 +278,12 @@ async function executeSql() {
     feedback.className = 'query-feedback ok';
     feedback.textContent = `OK // ${rows} linha(s) retornada(s) // investigação atualizada`;
   } catch (error) {
-    try {
-      await api('/api/game?action=query', {
-        method: 'POST',
-        body: { phase_id: phaseId, query, executed: false }
-      });
-    } catch {
-      // O erro principal continua sendo a consulta SQL executada localmente.
-    }
-
     addHistory(query, false);
     renderError(`Erro SQL: ${error.message}`);
     feedback.className = 'query-feedback error';
     feedback.textContent = 'ERRO // comando rejeitado';
   } finally {
-    runBtn.disabled = !db;
+    runBtn.disabled = !ready;
   }
 }
 

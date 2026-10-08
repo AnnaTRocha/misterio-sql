@@ -1,15 +1,15 @@
 import { api, escapeHtml, logout, requireSession } from './api-client.js';
 
 const PHASE_META = {
-  1: { arc: 'ARQUIVO // 3301', theme: 'archive', evaluation: 'EXERCÍCIO 01 // 15%' },
-  2: { arc: 'ARQUIVO // 3301', theme: 'archive', evaluation: 'EXERCÍCIO 01 // 15%' },
-  3: { arc: 'OBSERVATÓRIO // 1987', theme: 'observatory', evaluation: 'EXERCÍCIO 02 // 15%' },
-  4: { arc: 'OBSERVATÓRIO // 1987', theme: 'observatory', evaluation: 'EXERCÍCIO 02 // 15%' },
-  5: { arc: 'OBSERVATÓRIO // 1987', theme: 'observatory', evaluation: 'EXERCÍCIO 03 // 15%' },
-  6: { arc: 'INTERCEPTAÇÃO // NÓ', theme: 'interception', evaluation: 'EXERCÍCIO 03 // 15%' },
-  7: { arc: 'INTERCEPTAÇÃO // NÓ', theme: 'interception', evaluation: 'EXERCÍCIO 04 // 15%' },
-  8: { arc: 'INTERCEPTAÇÃO // NÓ', theme: 'interception', evaluation: 'EXERCÍCIO 04 // 15%' },
-  9: { arc: 'OPERAÇÃO // FINAL', theme: 'operation', evaluation: 'EXERCÍCIO 05 // 40%' }
+  1: { arc: 'ARQUIVO // 3301', theme: 'archive' },
+  2: { arc: 'ARQUIVO // 3301', theme: 'archive' },
+  3: { arc: 'OBSERVATÓRIO // 1987', theme: 'observatory' },
+  4: { arc: 'OBSERVATÓRIO // 1987', theme: 'observatory' },
+  5: { arc: 'OBSERVATÓRIO // 1987', theme: 'observatory' },
+  6: { arc: 'INTERCEPTAÇÃO // NÓ', theme: 'interception' },
+  7: { arc: 'INTERCEPTAÇÃO // NÓ', theme: 'interception' },
+  8: { arc: 'INTERCEPTAÇÃO // NÓ', theme: 'interception' },
+  9: { arc: 'OPERAÇÃO // FINAL', theme: 'operation' }
 };
 
 async function load() {
@@ -21,9 +21,8 @@ async function load() {
     const { phases, progress, identity, assessment } = await api('/api/game?action=dashboard');
     const progressByPhase = Object.fromEntries(progress.map(item => [Number(item.phase_id), item]));
 
-    const developed = phases.filter(phase => phase.developed).length;
-    const completed = progress.filter(item => item.status === 'completed').length;
-    const percent = developed ? Math.round((completed / developed) * 100) : 0;
+    const completed = new Set(progress.filter(item => item.status === 'completed').map(item => Number(item.phase_id))).size;
+    const percent = phases.length ? Math.round((completed / phases.length) * 100) : 0;
 
     const identityText = identity
       ? `${escapeHtml(identity.alias)} // ${escapeHtml(user.is_test ? 'USUÁRIO TESTE' : (identity.group_code || 'SEM GRUPO'))}`
@@ -31,8 +30,8 @@ async function load() {
     const score = Number(assessment?.score || 0);
 
     document.getElementById('summary').innerHTML = `
-      <strong>${String(completed).padStart(2, '0')} / ${String(developed).padStart(2, '0')}</strong>
-      <span>arquivos desenvolvidos concluídos // ${percent}% da investigação decodificada</span>
+      <strong>${String(completed).padStart(2, '0')} / ${String(phases.length).padStart(2, '0')}</strong>
+      <span>atividades concluídas // ${percent}% da investigação decodificada</span>
       <span class="arg-identity">${identityText} // PONTUAÇÃO AVALIATIVA ${score}%</span>
       <div><i style="width:${percent}%"></i></div>`;
 
@@ -43,13 +42,16 @@ async function load() {
       const started = item?.status === 'in_progress';
       const finalGate = Number(phase.id) === 9 && !assessment?.final_eligible;
       const protocolGate = Number(phase.id) === 9 && assessment?.final_eligible && !assessment?.final_protocol_unlocked;
-      const locked = !phase.developed || !phase.released || finalGate || protocolGate;
+      const previousGate = Number(phase.id) >= 3 && progressByPhase[Number(phase.id) - 1]?.status !== 'completed';
+      const locked = !phase.developed || !phase.released || finalGate || protocolGate || previousGate;
 
       let action = '';
       if (!phase.developed) {
         action = '<span class="phase-state">[ arquivo ainda não recuperado ]</span>';
       } else if (finalGate) {
         action = '<span class="phase-state">[ exige 60% acumulados ]</span>';
+      } else if (previousGate) {
+        action = '<span class="phase-state">[ conclua o arquivo anterior ]</span>';
       } else if (protocolGate) {
         action = `<form class="final-protocol" data-final-protocol>
           <input name="protocol" inputmode="numeric" maxlength="4" placeholder="PROTOCOLO" required>
@@ -63,7 +65,7 @@ async function load() {
       }
 
       return `<article class="case-file theme-${meta.theme} ${locked ? 'locked' : ''}" data-index="${String(phase.id).padStart(2, '0')}">
-        <span class="phase-arc">${escapeHtml(meta.arc)} // ${escapeHtml(meta.evaluation)}</span>
+        <span class="phase-arc">${escapeHtml(meta.arc)} // EXERCÍCIO ${String(phase.id).padStart(2, '0')} // ${Number(phase.id) === 9 ? '40%' : '7,5%'}</span>
         <span class="phase-number">ARQUIVO_${String(phase.id).padStart(2, '0')} // ${done ? 'DECODIFICADO' : started ? 'ABERTO' : 'NÃO LIDO'}</span>
         <h2>${escapeHtml(phase.title)}</h2>
         <p>${escapeHtml(phase.description)}</p>
