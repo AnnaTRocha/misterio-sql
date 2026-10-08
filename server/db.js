@@ -94,14 +94,6 @@ export async function ensureSchema() {
       } else {
         console.warn('Conta do professor pendente: configure TEACHER_INITIAL_PASSWORD.');
       }
-    } else if (await bcrypt.compare('ihatefurry', professor[0].password_hash)) {
-      const replacement = process.env.TEACHER_INITIAL_PASSWORD;
-      if (replacement && replacement.length >= 12 && replacement !== 'ihatefurry') {
-        await db.query(`UPDATE users SET password_hash=$1, must_change_password=TRUE WHERE id=$2`,
-          [await bcrypt.hash(replacement, 12), professor[0].id]);
-      } else {
-        console.warn('Senha antiga do professor bloqueada: configure TEACHER_INITIAL_PASSWORD.');
-      }
     }
 
     const phases = [

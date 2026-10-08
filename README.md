@@ -15,7 +15,7 @@ Não há PHP no deploy.
 
 ## Configuração
 
-Na Vercel, conecte um banco PostgreSQL/Neon e configure `DATABASE_URL`. Também crie `SESSION_SECRET` com pelo menos 32 caracteres e `TEACHER_INITIAL_PASSWORD` com pelo menos 12 caracteres. Sem a senha inicial, as páginas dos alunos continuam disponíveis, mas a conta do professor não pode ser criada ou usada até configurar a variável.
+Na Vercel, conecte um banco PostgreSQL/Neon e configure `DATABASE_URL` e `SESSION_SECRET` com pelo menos 32 caracteres. As contas e senhas já existentes são preservadas. `TEACHER_INITIAL_PASSWORD` com pelo menos 12 caracteres só é necessário para criar a conta do professor em um banco novo.
 
 O usuário inicial do professor é:
 
