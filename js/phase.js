@@ -1,4 +1,5 @@
 import { api, escapeHtml, requireSession } from './api-client.js';
+import { sqlToExecute } from './sql-selection.js';
 
 const phaseId = Number(new URLSearchParams(location.search).get('id'));
 const PHASE_TABLES = {
@@ -251,7 +252,7 @@ function isReadOnly(sql) {
 async function executeSql() {
   if (!ready) return;
 
-  const query = editor.value.trim();
+  const query = sqlToExecute(editor);
   if (!query) return renderError('Nenhum comando recebido.');
   if (!isReadOnly(query)) {
     return renderError('Acesso negado: somente consultas de leitura SELECT/WITH são permitidas.');

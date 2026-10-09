@@ -19,16 +19,6 @@ export const CONCEPTS = {
     answer: 'sem_dependencia_transitiva',
     feedback: 'Pense em qual tabela deve guardar o telefone uma única vez.'
   },
-  3: {
-    prompt: 'Uma observação deve sempre apontar para um setor existente. Qual restrição expressa essa regra na criação da tabela?',
-    options: [
-      ['not_null', 'Apenas NOT NULL em setor_id.'],
-      ['foreign_key', 'FOREIGN KEY em setor_id referenciando setores(id).'],
-      ['unique', 'UNIQUE em setor_id.']
-    ],
-    answer: 'foreign_key',
-    feedback: 'A restrição precisa verificar a existência do registro em outra tabela.'
-  },
   4: {
     prompt: 'É preciso adicionar uma coluna sem perder as linhas do catálogo. Qual comando atende a isso?',
     options: [

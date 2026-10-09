@@ -76,7 +76,7 @@ As Aulas 01 e 02 mantêm a investigação original e as respostas **1987** e **O
 
 | Aula | Conteúdo dos slides | Investigação |
 | --- | --- | --- |
-| 03 | DDL, `CREATE TABLE`, chaves e restrições | Reconstruir a estrutura do observatório |
+| 03 | `JOIN` e `LEFT JOIN` | Relacionar evidências, referências e recursos para identificar o aglomerado |
 | 04 | `ALTER` e normalização | Corrigir o catálogo redundante |
 | 05 | DML e transações | Corrigir os símbolos em uma transação |
 | 06 | DQL, filtros, `DISTINCT` e agregações | Separar sinais de 1987 do ruído |
@@ -84,9 +84,9 @@ As Aulas 01 e 02 mantêm a investigação original e as respostas **1987** e **O
 | 08 | Subconsultas, CTE e funções de janela | Reunir padrões dos fragmentos |
 | 09 | NoSQL/MongoDB | ARG SQL em equipe mais uma pergunta breve sobre `find` |
 
-Os exercícios 03–09 executam SQL no servidor em uma cópia isolada de `server/curso.sql`. O servidor reexecuta as instruções registradas e valida o estado das tabelas ou o resultado das consultas. Uma instrução é executada por vez. A liberação pelo professor e a conclusão da fase anterior também são exigidas para avançar. Os títulos e as dicas permanecem narrativos; o SQL de referência só aparece para usuários de teste.
+Os exercícios 03–09 executam SQL no servidor em uma cópia isolada de `server/curso.sql`. O servidor reexecuta as instruções registradas e valida o estado das tabelas ou o resultado das consultas. Uma instrução é executada por vez. A liberação pelo professor e a conclusão da fase anterior também são exigidas para avançar. Os títulos e as dicas permanecem narrativos; o SQL de referência só aparece para usuários de teste. A Fase 3 mantém as cinco etapas e a resposta **PLEIADES** da atividade anterior; consultas e conclusões já registradas nela continuam válidas após a reorganização.
 
-Nas Aulas 01 e 02, o checklist só reconhece consultas que retornem a evidência esperada: uma consulta vazia não valida uma etapa apenas por conter palavras-chave. O código final só é aceito após os requisitos SQL e a checagem conceitual. Nas Aulas 03–08, a checagem conceitual é adicional aos requisitos SQL; a Aula 09 mantém a pergunta breve sobre MongoDB.
+Nas Aulas 01 e 02, o checklist só reconhece consultas que retornem a evidência esperada: uma consulta vazia não valida uma etapa apenas por conter palavras-chave. O código final só é aceito após os requisitos SQL e a checagem conceitual. A Aula 03 preserva as cinco etapas originais. Nas Aulas 04–08, a checagem conceitual é adicional aos requisitos SQL; a Aula 09 mantém a pergunta breve sobre MongoDB.
 
 Na Vercel, `npm run build` publica somente HTML, CSS e JavaScript minificado em `public/`; os bancos SQL e a validação permanecem nas funções da API. Não são gerados source maps. A API limita consultas a 12 por minuto e respostas a 5–8 por minuto por usuário. Para reforçar o bloqueio de automação, habilite Bot Protection e regras de rate limit no painel da Vercel; `robots.txt` e minificação não impedem um bot determinado.
 
@@ -100,9 +100,9 @@ O curso passa a ser preparado para 9 fases distribuídas em quatro arcos:
 - Fases 6–8: **INTERCEPTAÇÃO // NÓ**.
 - Fase 9: **OPERAÇÃO // 3301**.
 
-As Fases 1 e 2 preservam a investigação e as respostas já utilizadas pelos estudantes. A sequência posterior acompanha os conteúdos reais dos slides: o exercício de `JOIN` passou para a Fase 7.
+As Fases 1 a 3 preservam a investigação e as respostas já utilizadas pelos estudantes. A Fase 7 aprofunda o uso de `JOIN` em outro conjunto de dados.
 
-As fases 03–09 são desenvolvidas, mas começam bloqueadas para liberação pelo professor.
+As fases 04–09 começam bloqueadas para liberação pelo professor. A Fase 03 preserva o estado de liberação já definido pelo professor.
 
 ### Avaliações
 

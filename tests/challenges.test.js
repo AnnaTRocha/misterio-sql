@@ -7,8 +7,11 @@ import { expectedSqlForPhase } from '../server/test-tools.js';
 
 const solutions = {
   3: [
-    'CREATE TABLE setores(id INTEGER PRIMARY KEY,nome TEXT NOT NULL)',
-    'CREATE TABLE observacoes(id INTEGER PRIMARY KEY,setor_id INTEGER,FOREIGN KEY(setor_id) REFERENCES setores(id))'
+    'SELECT * FROM evidencias',
+    'SELECT * FROM evidencias e JOIN referencias r ON r.evidencia_id=e.id',
+    'SELECT * FROM evidencias e JOIN referencias r ON r.evidencia_id=e.id JOIN recursos rc ON rc.id=r.recurso_id',
+    "SELECT * FROM evidencias e JOIN referencias r ON r.evidencia_id=e.id JOIN recursos rc ON rc.id=r.recurso_id WHERE rc.status='recuperado'",
+    'SELECT * FROM evidencias e LEFT JOIN referencias r ON r.evidencia_id=e.id WHERE r.id IS NULL'
   ],
   4: [
     'ALTER TABLE objetos_celestes ADD COLUMN origem TEXT',
@@ -52,6 +55,8 @@ for (const [phase, queries] of Object.entries(solutions)) {
 }
 
 test('restrições e pistas não são aceitas por presença de palavras', async () => {
+  const empty = await evaluateChallenge(3, ['SELECT * FROM evidencias WHERE 1=0'], 1);
+  assert.deepEqual(empty.milestones, []);
   const ddl = await evaluateChallenge(3, ['CREATE TABLE setores(id INTEGER,nome TEXT)'], 1);
   assert.deepEqual(ddl.milestones, []);
   const transaction = await evaluateChallenge(5, ['BEGIN', 'COMMIT'], 1);
@@ -82,6 +87,10 @@ test('consulta vazia não valida descoberta só por conter palavras-chave', asyn
 
 test('cada aula tem uma pergunta pública sem a chave de resposta', () => {
   for (let phase = 1; phase <= 9; phase++) {
+    if (phase === 3) {
+      assert.equal(publicConcept(phase), null);
+      continue;
+    }
     const question = publicConcept(phase);
     assert.ok(question?.prompt);
     assert.equal(question.options.length, 3);

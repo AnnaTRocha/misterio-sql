@@ -1,4 +1,5 @@
 import { sql } from './db.js';
+import { PHASE_THREE_SQL } from './phase3.js';
 
 const EXPECTED_SQL = {
   1: [
@@ -15,10 +16,7 @@ const EXPECTED_SQL = {
     { step: '2.6 A', objective: 'Isolar o período e contar por usuário', sql: "SELECT usuario_id, COUNT(*) AS acessos FROM acessos WHERE data BETWEEN '1987-09-17' AND '1987-09-21' GROUP BY usuario_id ORDER BY acessos DESC;" },
     { step: '2.6 B', objective: 'Consultar o usuário identificado', sql: 'SELECT * FROM usuarios WHERE id = 37;' }
   ],
-  3: [
-    { step: '3.1', objective: 'Criar setores', sql: 'CREATE TABLE setores(id INTEGER PRIMARY KEY,nome TEXT NOT NULL);' },
-    { step: '3.2', objective: 'Criar observações relacionadas', sql: 'CREATE TABLE observacoes(id INTEGER PRIMARY KEY,setor_id INTEGER,FOREIGN KEY(setor_id) REFERENCES setores(id));' }
-  ],
+  3: PHASE_THREE_SQL,
   4: [
     { step: '4.1', objective: 'Estender o catálogo', sql: 'ALTER TABLE objetos_celestes ADD COLUMN origem TEXT;' },
     { step: '4.2', objective: 'Separar observadores', sql: 'CREATE TABLE observadores(id INTEGER PRIMARY KEY,nome TEXT,telefone TEXT UNIQUE);' }
@@ -63,6 +61,11 @@ export async function resetTestActivity(userId, phaseId) {
 
   await db.query('DELETE FROM student_queries WHERE user_id=$1 AND phase_id=$2', [userId, normalizedPhase]);
   await db.query('DELETE FROM progress WHERE user_id=$1 AND phase_id=$2', [userId, normalizedPhase]);
+
+  if (normalizedPhase === 3) {
+    await db.query('DELETE FROM phase3_queries WHERE user_id=$1', [userId]);
+    await db.query('DELETE FROM phase3_progress WHERE user_id=$1', [userId]);
+  }
 
   await db.query(
     `DELETE FROM arg_submissions

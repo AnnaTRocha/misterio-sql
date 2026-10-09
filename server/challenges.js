@@ -1,6 +1,7 @@
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import initSqlJs from 'sql.js/dist/sql-asm.js';
+import { PHASE_THREE, phaseThreeMilestones } from './phase3.js';
 
 const seed = readFileSync(fileURLToPath(new URL('./curso.sql', import.meta.url)), 'utf8');
 const archiveSeed = readFileSync(fileURLToPath(new URL('./caso.sql', import.meta.url)), 'utf8');
@@ -18,20 +19,7 @@ export async function executeArchiveQuery(query) {
 }
 
 export const LESSONS = {
-  3: {
-    title: 'Cartografia do Vazio', code: 'OBSERVATÓRIO // 1987', theme: 'observatory',
-    mission: 'O arquivo recuperado menciona setores e observações, mas a estrutura que os ligava desapareceu. Reconstrua-a.',
-    answerPrompt: 'Uma palavra antiga atravessa o arquivo recuperado. Qual é a identificação que permanece após a reconstrução?',
-    initial: 'CREATE TABLE setores (id INTEGER PRIMARY KEY, nome TEXT NOT NULL);',
-    tables: ['objetos_celestes', 'catalogo_bruto'],
-    objectives: [
-      ['setores', 'Criar setores com id como chave primária e nome obrigatório'],
-      ['observacoes', 'Criar observacoes com chave primária e setor_id'],
-      ['relacao', 'Definir setor_id como chave estrangeira de setores(id)']
-    ],
-    hints: ['Comece pela entidade que recebe as observações.', 'Uma observação precisa apontar para um setor existente.', 'Verifique a estrutura criada antes de tentar a identificação.'],
-    answer: 'CONSTELACAO'
-  },
+  3: PHASE_THREE,
   4: {
     title: 'O Padrão Quebrado', code: 'OBSERVATÓRIO // 1987', theme: 'observatory',
     mission: 'O mesmo contato aparece em mais de um registro. Reorganize a estrutura sem perder as observações.',
@@ -117,7 +105,8 @@ export function allowedStatement(phaseId, query) {
   const cleaned = String(query || '').replace(/--[^\n]*/g, '').replace(/\/\*[\s\S]*?\*\//g, '').trim();
   if (!cleaned || cleaned.length > 5000 || cleaned.split(';').filter(Boolean).length > 1) return false;
   if (/\b(ATTACH|DETACH|VACUUM|LOAD_EXTENSION)\b/i.test(cleaned)) return false;
-  if (phaseId <= 4) return /^(CREATE\s+TABLE|ALTER\s+TABLE|SELECT|PRAGMA\s+table_info|PRAGMA\s+foreign_key_list)/i.test(cleaned);
+  if (phaseId === 3) return /^(SELECT|WITH|PRAGMA\s+table_info)/i.test(cleaned) && !/\b(INSERT|UPDATE|DELETE|DROP|ALTER|CREATE|REPLACE)\b/i.test(cleaned);
+  if (phaseId === 4) return /^(CREATE\s+TABLE|ALTER\s+TABLE|SELECT|PRAGMA\s+table_info|PRAGMA\s+foreign_key_list)/i.test(cleaned);
   if (phaseId === 5) return /^(INSERT|UPDATE|DELETE|SELECT|BEGIN|COMMIT|ROLLBACK|SAVEPOINT)/i.test(cleaned);
   return /^(SELECT|WITH|PRAGMA\s+table_info)/i.test(cleaned) && !/\b(INSERT|UPDATE|DELETE|DROP|ALTER|CREATE|REPLACE)\b/i.test(cleaned);
 }
@@ -164,11 +153,7 @@ function checkMilestones(id, query, result, db, groupId) {
   const q = query.toUpperCase();
   const found = [];
   if (id === 3) {
-    const sectors = tableInfo(db, 'setores');
-    const observations = tableInfo(db, 'observacoes');
-    if (sectors.some(c => c[1] === 'id' && c[5] === 1) && sectors.some(c => c[1] === 'nome' && c[3] === 1)) found.push('setores');
-    if (observations.some(c => c[1] === 'id' && c[5] === 1) && observations.some(c => c[1] === 'setor_id')) found.push('observacoes');
-    if (db.exec('PRAGMA foreign_key_list(observacoes)')[0]?.values.some(c => c[2] === 'setores' && c[3] === 'setor_id' && c[4] === 'id')) found.push('relacao');
+    return phaseThreeMilestones(query, result);
   } else if (id === 4) {
     if (tableInfo(db, 'objetos_celestes').some(c => c[1] === 'origem')) found.push('alter');
     const observers = tableInfo(db, 'observadores');

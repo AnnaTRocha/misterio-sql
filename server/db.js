@@ -66,6 +66,22 @@ export async function ensureSchema() {
       created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
     )`);
 
+    await db.query(`CREATE TABLE IF NOT EXISTS phase3_progress (
+      user_id BIGINT PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
+      status VARCHAR(20) NOT NULL DEFAULT 'not_started',
+      started_at TIMESTAMPTZ,
+      completed_at TIMESTAMPTZ,
+      attempts INTEGER NOT NULL DEFAULT 0,
+      queries_count INTEGER NOT NULL DEFAULT 0
+    )`);
+    await db.query(`CREATE TABLE IF NOT EXISTS phase3_queries (
+      id BIGSERIAL PRIMARY KEY,
+      user_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      query_text TEXT NOT NULL,
+      success BOOLEAN NOT NULL DEFAULT FALSE,
+      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    )`);
+
     await db.query(`CREATE TABLE IF NOT EXISTS password_reset_requests (
       id BIGSERIAL PRIMARY KEY,
       user_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
@@ -99,7 +115,7 @@ export async function ensureSchema() {
     const phases = [
       [1, 'O Primeiro Acesso', 'Reative o Arquivo 3301, explore usuários e mensagens com SELECT/FROM e descubra o primeiro código de acesso.', true, true, '1987'],
       [2, 'O Registro Interrompido', 'Reconstrua o incidente por meio de filtros, ausências, ordenação e agregações.', true, false, 'ORION'],
-      [3, 'Cartografia do Vazio', 'O antigo código aponta para um mapa incompleto. Reconstrua a primeira camada.', true, false, 'CONSTELACAO'],
+      [3, 'O Aglomerado', 'Relacione evidências, referências e recursos com JOINs para recuperar o símbolo de seis estrelas.', true, false, 'PLEIADES'],
       [4, 'O Padrão Quebrado', 'Há registros repetidos no observatório. Descubra o que está fora do lugar.', true, false, 'NORMALIZACAO'],
       [5, 'A Sexta Estrela', 'Uma marca apagada e uma estrela ausente alteram a leitura do arquivo.', true, false, 'PLEIADES'],
       [6, 'Eco no Setor Norte', 'Os sinais de 1987 foram misturados a ruído. Separe o que importa.', true, false, 'N-04'],
@@ -132,6 +148,21 @@ export async function ensureSchema() {
         [STORY_VERSION]
       );
     }
+
+    await db.query(`INSERT INTO progress (user_id,phase_id,status,started_at,completed_at,attempts,queries_count)
+      SELECT user_id,3,status,started_at,completed_at,attempts,queries_count FROM phase3_progress WHERE TRUE
+      ON CONFLICT (user_id,phase_id) DO NOTHING`);
+    await db.query(`UPDATE progress p SET status=CASE
+        WHEN old.status='completed' THEN 'completed'
+        WHEN old.status='in_progress' AND p.status='not_started' THEN 'in_progress'
+        ELSE p.status END,
+      started_at=COALESCE(p.started_at,old.started_at),
+      completed_at=CASE WHEN old.status='completed'
+        THEN COALESCE(p.completed_at,old.completed_at,NOW()) ELSE p.completed_at END,
+      attempts=GREATEST(p.attempts,old.attempts),
+      queries_count=GREATEST(p.queries_count,old.queries_count)
+      FROM phase3_progress old
+      WHERE p.user_id=old.user_id AND p.phase_id=3`);
 
     initialized = true;
   })();

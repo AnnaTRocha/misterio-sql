@@ -77,3 +77,22 @@ CREATE TABLE identidades_arg (grupo INTEGER, usuario TEXT, dispositivo TEXT, cod
 INSERT INTO sessoes_arg VALUES (1,'us1','S-81'),(2,'us4','S-42');
 INSERT INTO dispositivos_arg VALUES (1,'us2','S-81','D-17'),(2,'us5','S-42','D-09');
 INSERT INTO identidades_arg VALUES (1,'us3','D-17',0),(2,'us6','D-09',0);
+
+-- Fase 3: evidências preservadas da investigação O Aglomerado.
+CREATE TABLE evidencias (id INTEGER PRIMARY KEY, codigo TEXT NOT NULL, descricao TEXT NOT NULL);
+CREATE TABLE recursos (id INTEGER PRIMARY KEY, tipo TEXT NOT NULL, endereco TEXT, status TEXT NOT NULL);
+CREATE TABLE referencias (
+  id INTEGER PRIMARY KEY,
+  evidencia_id INTEGER NOT NULL REFERENCES evidencias(id),
+  recurso_id INTEGER REFERENCES recursos(id)
+);
+INSERT INTO evidencias VALUES
+  (1,'ORION-1987','A resposta anterior não era um destino. Classificação associada: constelação.'),
+  (2,'SEIS-ESTRELAS','Símbolo externo identificado em um registro relacionado a seis estrelas.'),
+  (3,'FRAGMENTO-C','Arquivo sem relevância'),
+  (4,'FRAGMENTO-D','Registro sem recurso associado');
+INSERT INTO recursos VALUES
+  (2,'texto','/arquivo/desconhecido.txt','corrompido'),
+  (3,'imagem','/arquivo/fragmento.png','invalido'),
+  (7,'imagem','https://1000logos.net/wp-content/uploads/2018/03/Subaru-Logo-1999.jpg','recuperado');
+INSERT INTO referencias VALUES (1,1,3),(2,2,7),(3,3,2);

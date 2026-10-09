@@ -117,7 +117,9 @@ export default async function handler(req, res) {
         const state = await challengeState(user.id, phaseId);
         const progress = await sql().query(`SELECT status FROM progress WHERE user_id=$1 AND phase_id=$2`, [user.id, phaseId]);
         const { answer, ...publicLesson } = LESSONS[phaseId];
-        return res.status(200).json({ phase_id: phaseId, lesson: publicLesson, concept: publicConcept(phaseId), already_completed: progress[0]?.status === 'completed', ...state });
+        return res.status(200).json({ phase_id: phaseId, lesson: publicLesson,
+          concept: phaseId === 3 ? null : publicConcept(phaseId),
+          already_completed: progress[0]?.status === 'completed', ...state });
       } else {
         await ensureProgress(user.id, phaseId);
         await sql().query(
@@ -198,16 +200,20 @@ export default async function handler(req, res) {
 
       if (phaseId >= 3) {
         const state = await challengeState(user.id, phaseId);
-        const missing = LESSONS[phaseId].objectives.filter(([key]) => !state.milestones.includes(key));
+        const lesson = LESSONS[phaseId];
+        const missing = lesson.objectives.filter(([key]) => !state.milestones.includes(key));
         if (missing.length) return fail(res, 422, `Ainda faltam ${missing.length} requisito(s).`);
         const previousCompletion = await sql().query(`SELECT 1 FROM progress WHERE user_id=$1 AND phase_id=$2 AND status='completed' LIMIT 1`, [user.id, phaseId]);
-        if (!previousCompletion[0] && !state.concept_done) return fail(res, 422, 'Conclua a checagem conceitual desta aula.');
-        if (normalizeAccessCode(data.answer) !== normalizeAccessCode(LESSONS[phaseId].answer)) {
+        if (phaseId !== 3 && !previousCompletion[0] && !state.concept_done) return fail(res, 422, 'Conclua a checagem conceitual desta aula.');
+        if (normalizeAccessCode(data.answer) !== normalizeAccessCode(lesson.answer)) {
           await sql().query(`UPDATE progress SET attempts=attempts+1 WHERE user_id=$1 AND phase_id=$2`, [user.id, phaseId]);
           return fail(res, 422, 'Identificação incorreta.');
         }
         await sql().query(`UPDATE progress SET status='completed', completed_at=COALESCE(completed_at,NOW()) WHERE user_id=$1 AND phase_id=$2`, [user.id, phaseId]);
-        return res.status(200).json({ ok: true, reward: LESSONS[phaseId].answer });
+        if (phaseId === 3) {
+          await sql().query(`UPDATE phase3_progress SET status='completed', completed_at=COALESCE(completed_at,NOW()) WHERE user_id=$1`, [user.id]);
+        }
+        return res.status(200).json({ ok: true, reward: lesson.answer });
       }
 
       const required = PHASE_REQUIREMENTS[phaseId] || [];
@@ -252,12 +258,22 @@ export default async function handler(req, res) {
 
 async function challengeState(userId, phaseId) {
   const records = await sql().query(`SELECT query_text FROM student_queries WHERE user_id=$1 AND phase_id=$2 AND success=TRUE ORDER BY id`, [userId, phaseId]);
-  const history = records.map(row => row.query_text);
+  const oldRecords = phaseId === 3
+    ? await sql().query(`SELECT query_text FROM phase3_queries WHERE user_id=$1 AND success=TRUE ORDER BY id`, [userId])
+    : [];
+  const history = [...oldRecords, ...records].map(row => row.query_text);
   const quiz = await sql().query(`SELECT 1 FROM arg_submissions WHERE user_id=$1 AND assessment_id=$2 AND correct=TRUE LIMIT 1`, [userId, phaseId]);
   const identity = await argIdentityForUser(userId);
-  const concept_done = Boolean(quiz[0]);
+  const concept_done = phaseId === 3 || Boolean(quiz[0]);
   const nosql_done = phaseId === 9 && concept_done;
   const evaluated = await evaluateChallenge(phaseId, history, Number(identity?.group_id || 0), nosql_done);
+  if (phaseId === 3) {
+    const completed = await sql().query(`SELECT 1 FROM progress
+      WHERE user_id=$1 AND phase_id=3 AND status='completed' LIMIT 1`, [userId]);
+    if (completed[0]) {
+      return { history, milestones: LESSONS[3].objectives.map(([key]) => key), nosql_done, concept_done };
+    }
+  }
   return { history, milestones: evaluated.milestones, nosql_done, concept_done };
 }
 

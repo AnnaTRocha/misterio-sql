@@ -1,4 +1,5 @@
 import { api, escapeHtml, requireSession } from './api-client.js';
+import { sqlToExecute } from './sql-selection.js';
 
 const phaseId = Number(new URLSearchParams(location.search).get('id'));
 const $ = id => document.getElementById(id);
@@ -27,7 +28,7 @@ async function init() {
     $('phaseTitle').dataset.text = lesson.title;
     $('phaseMission').textContent = lesson.mission;
     $('terminalName').textContent = `/curso/3301/aula_${String(phaseId).padStart(2, '0')}.sql`;
-    $('storyLog').innerHTML = `<p>${escapeHtml(lesson.mission)}</p><p>Execute uma instrução por vez. Alterações acontecem apenas na sua cópia de investigação.</p>`;
+    $('storyLog').innerHTML = `<p>${escapeHtml(lesson.mission)}</p><p>${phaseId === 3 ? 'Execute uma consulta por vez para relacionar as pistas.' : 'Execute uma instrução por vez. Alterações acontecem apenas na sua cópia de investigação.'}</p>`;
     $('sqlEditor').value = lesson.initial;
     $('tableButtons').innerHTML = lesson.tables.map(name => `<button class="db-button" data-table="${escapeHtml(name)}" type="button">${escapeHtml(name)}</button>`).join('');
     document.querySelectorAll('[data-table]').forEach(button => button.addEventListener('click', () => {
@@ -90,12 +91,21 @@ function render() {
 
 function readOnlyPreview(result) {
   if (!result.length) return '<div class="empty-result"><span>✓</span><p>Instrução executada. Confira a estrutura ou os dados com SELECT/PRAGMA.</p></div>';
-  return result.map(set => `<div class="query-meta">${set.values.length} linha(s)</div><table class="result-table"><thead><tr>${set.columns.map(value => `<th>${escapeHtml(value)}</th>`).join('')}</tr></thead><tbody>${set.values.slice(0, 100).map(row => `<tr>${row.map(value => `<td>${escapeHtml(value == null ? 'NULL' : String(value))}</td>`).join('')}</tr>`).join('')}</tbody></table>`).join('');
+  return result.map(set => `<div class="query-meta">${set.values.length} linha(s)</div><table class="result-table"><thead><tr>${set.columns.map(value => `<th>${escapeHtml(value)}</th>`).join('')}</tr></thead><tbody>${set.values.slice(0, 100).map(row => `<tr>${row.map(value => `<td>${renderCell(value)}</td>`).join('')}</tr>`).join('')}</tbody></table>`).join('');
+}
+
+function renderCell(value) {
+  if (value == null) return 'NULL';
+  const text = String(value);
+  if (phaseId === 3 && /^https:\/\//i.test(text)) {
+    return `<a class="external-resource-link" href="${escapeHtml(text)}" target="_blank" rel="noopener noreferrer">[ abrir recurso externo ]</a>`;
+  }
+  return escapeHtml(text);
 }
 
 async function executeSql() {
   if (!ready) return;
-  const query = $('sqlEditor').value.trim();
+  const query = sqlToExecute($('sqlEditor'));
   if (!query) return;
   $('runBtn').disabled = true;
   try {
