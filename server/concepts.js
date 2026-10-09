@@ -10,14 +10,14 @@ export const CONCEPTS = {
     feedback: 'Revise a relação entre a chave da tabela de origem e a referência em outra tabela.'
   },
   2: {
-    prompt: 'O telefone de uma pessoa se repete em cada observação feita por ela. Qual mudança evita essa dependência na 3ª forma normal?',
+    prompt: 'O mesmo observador pode registrar várias observações. Hoje, o telefone dele aparece repetido em cada registro. Como organizar esses dados?',
     options: [
-      ['listas', 'Guardar todos os telefones numa lista dentro da observação.'],
-      ['ordenacao', 'Ordenar as observações pelo telefone antes de consultar.'],
-      ['sem_dependencia_transitiva', 'Separar os dados da pessoa e referenciá-la nas observações.']
+      ['listas', 'Guardar os telefones em uma lista dentro de cada observação.'],
+      ['ordenacao', 'Ordenar as observações pelo telefone sem mudar as tabelas.'],
+      ['sem_dependencia_transitiva', 'Criar uma tabela de observadores e usar seu identificador nas observações.']
     ],
     answer: 'sem_dependencia_transitiva',
-    feedback: 'Pense no que acontece ao corrigir um telefone armazenado em várias linhas.'
+    feedback: 'Pense em qual tabela deve guardar o telefone uma única vez.'
   },
   3: {
     prompt: 'Uma observação deve sempre apontar para um setor existente. Qual restrição expressa essa regra na criação da tabela?',
