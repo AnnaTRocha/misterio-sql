@@ -400,7 +400,7 @@ export function queryMilestones(phaseId, query, result = []) {
       /\bFROM\s+acessos\b/i.test(cleaned) &&
       hasDateRange &&
       hasCount &&
-      /\bGROUP\s+BY\s+(?:\w+\.)?usuario_id\b/i.test(cleaned)
+      /\bGROUP\s+BY\s+(?:\w+\.)?(?:pessoa_id|usuario_id)\b/i.test(cleaned)
     ) if (result.some(set => set.values.some(row => row.some(value => String(value) === '37') && row.some(value => String(value) === '12')))) found.push('window');
 
     if (
