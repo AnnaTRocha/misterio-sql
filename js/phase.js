@@ -218,7 +218,7 @@ function updateCompletion() {
 
   const required = PHASES[phaseId].objectives.map(([key]) => key);
   const ready = required.every(key => milestones.has(key));
-  button.disabled = false;
+  button.disabled = !ready || !conceptDone;
 
   const hint = document.getElementById('completionHint');
   if (!hint) return;
