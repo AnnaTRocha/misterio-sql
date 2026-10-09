@@ -21,7 +21,7 @@ export const LESSONS = {
   3: {
     title: 'Cartografia do Vazio', code: 'OBSERVATÓRIO // 1987', theme: 'observatory',
     mission: 'O arquivo recuperado menciona setores e observações, mas a estrutura que os ligava desapareceu. Reconstrua-a.',
-    answerPrompt: 'Depois de reconstruir a estrutura, consulte a classificação do primeiro objeto do catálogo. Qual termo ela registra?',
+    answerPrompt: 'Uma palavra antiga atravessa o arquivo recuperado. Qual é a identificação que permanece após a reconstrução?',
     initial: 'CREATE TABLE setores (id INTEGER PRIMARY KEY, nome TEXT NOT NULL);',
     tables: ['objetos_celestes', 'catalogo_bruto'],
     objectives: [
@@ -35,7 +35,7 @@ export const LESSONS = {
   4: {
     title: 'O Padrão Quebrado', code: 'OBSERVATÓRIO // 1987', theme: 'observatory',
     mission: 'O mesmo contato aparece em mais de um registro. Reorganize a estrutura sem perder as observações.',
-    answerPrompt: 'Qual princípio de organização você aplicou ao separar o contato repetido dos registros?',
+    answerPrompt: 'O padrão quebrado recebeu um novo arranjo. Que nome descreve a transformação?',
     initial: 'SELECT * FROM catalogo_bruto;', tables: ['catalogo_bruto', 'objetos_celestes'],
     objectives: [
       ['alter', 'Adicionar origem à estrutura de objetos_celestes'],
@@ -48,7 +48,7 @@ export const LESSONS = {
   5: {
     title: 'A Sexta Estrela', code: 'OBSERVATÓRIO // 1987', theme: 'observatory',
     mission: 'Três inconsistências foram encontradas no arquivo de símbolos. Corrija os dados da cópia de investigação.',
-    answerPrompt: 'Qual aglomerado de seis estrelas permanece confirmado após as correções?',
+    answerPrompt: 'Depois das correções, um nome resiste ao ruído. Qual?',
     initial: 'SELECT * FROM simbolos;', tables: ['simbolos'],
     objectives: [
       ['insert', 'Inserir o aglomerado de seis estrelas como confirmado'],
@@ -62,7 +62,7 @@ export const LESSONS = {
   6: {
     title: 'Eco no Setor Norte', code: 'INTERCEPTAÇÃO // NÓ', theme: 'interception',
     mission: 'Há sinais de anos diferentes. Encontre o conjunto que corresponde ao incidente e resuma o arquivo.',
-    answerPrompt: 'Qual setor identifica o registro inicial de 1987 depois de remover o ruído?',
+    answerPrompt: 'Um setor se repete no rastro certo. Qual identificação ele carrega?',
     initial: 'SELECT * FROM objetos_celestes;', tables: ['objetos_celestes', 'acessos_celestes'],
     objectives: [
       ['filter', 'Filtrar os objetos de 1987 no setor do primeiro registro'],
@@ -75,7 +75,7 @@ export const LESSONS = {
   7: {
     title: 'Linhas Cruzadas', code: 'INTERCEPTAÇÃO // NÓ', theme: 'interception',
     mission: 'Os acessos guardam números, enquanto os objetos guardam nomes. Reúna as duas perspectivas.',
-    answerPrompt: 'Qual objeto reúne quatro acessos após relacionar as tabelas?',
+    answerPrompt: 'As linhas cruzadas formam um nome. Qual deles permanece?',
     initial: 'SELECT * FROM acessos_celestes;', tables: ['acessos_celestes', 'objetos_celestes'],
     objectives: [
       ['inner', 'Relacionar acessos válidos de 1987 aos nomes dos objetos'],
@@ -88,7 +88,7 @@ export const LESSONS = {
   8: {
     title: 'O Sétimo Rastro', code: 'INTERCEPTAÇÃO // NÓ', theme: 'interception',
     mission: 'Os fragmentos das equipes parecem isolados. Um padrão de repetição pode revelar a ordem dos acontecimentos.',
-    answerPrompt: 'Qual nome coletivo descreve as peças de evidência que você reuniu?',
+    answerPrompt: 'Os rastros isolados agora podem ser lidos em conjunto. Como você identifica o que foi reunido?',
     initial: 'SELECT * FROM investigacoes;', tables: ['investigacoes', 'acessos_celestes'],
     objectives: [
       ['subquery', 'Selecionar usuários ligados a objetos de 1987 com subconsulta'],
@@ -101,7 +101,7 @@ export const LESSONS = {
   9: {
     title: 'Última Transmissão', code: 'OPERAÇÃO // 3301', theme: 'operation',
     mission: 'Três registros da sua equipe apontam para uma identidade que não aparece no diretório.',
-    answerPrompt: 'Qual identificação ausente é sugerida pelo código encontrado ao cruzar os três registros?',
+    answerPrompt: 'O último cruzamento aponta para uma ausência. Quem falta?',
     initial: 'SELECT * FROM sessoes_arg;', tables: ['sessoes_arg', 'dispositivos_arg', 'identidades_arg'],
     objectives: [
       ['join_three', 'Cruzar sessão, dispositivo e identidade da sua equipe'],
