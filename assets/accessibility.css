@@ -2,7 +2,8 @@ html { --reading-zoom: 1; }
 body { zoom: var(--reading-zoom); }
 
 .accessibility-controls { position: fixed; right: 16px; bottom: 16px; z-index: 1100; font: 14px/1.4 Arial, sans-serif; text-shadow: none; }
-.accessibility-toggle { min-height: 44px; padding: 9px 15px; border: 2px solid currentColor; border-radius: 6px; background: #fffdf8; color: #17241b; font-weight: 700; box-shadow: 0 3px 16px #0005; }
+.accessibility-toggle { display: grid; place-items: center; width: 44px; height: 44px; padding: 0; border: 1px solid #617165; border-radius: 50%; background: #fffdf8; color: #17241b; box-shadow: 0 2px 9px #0003; }
+.accessibility-toggle:hover, .accessibility-toggle[aria-expanded="true"] { background: #e6eee4; border-color: #174b2a; }
 .accessibility-panel { position: absolute; right: 0; bottom: calc(100% + 8px); width: min(270px, calc(100vw - 32px)); padding: 16px; border: 2px solid #526457; border-radius: 7px; background: #fffdf8; color: #17241b; box-shadow: 0 10px 30px #0005; }
 .accessibility-panel[hidden] { display: none; }
 .accessibility-panel label { display: grid; gap: 5px; margin-bottom: 12px; font-size: 14px; font-weight: 700; }

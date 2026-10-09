@@ -28,7 +28,11 @@ function renderControls() {
   const wrapper = document.createElement('div');
   wrapper.className = 'accessibility-controls';
   wrapper.innerHTML = `
-    <button class="accessibility-toggle" type="button" aria-expanded="false" aria-controls="accessibility-panel">Acessibilidade</button>
+    <button class="accessibility-toggle" type="button" aria-label="Opções de acessibilidade" title="Opções de acessibilidade" aria-expanded="false" aria-controls="accessibility-panel">
+      <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">
+        <circle cx="12" cy="3.5" r="1.5"/><path d="M4 8.5c2.6 1 5.3 1.5 8 1.5s5.4-.5 8-1.5M12 10v4.2m0 0-4 6.3m4-6.3 4 6.3"/>
+      </svg>
+    </button>
     <section class="accessibility-panel" id="accessibility-panel" aria-label="Preferências de acessibilidade" hidden>
       <label>Tema
         <select name="theme">
