@@ -6,7 +6,7 @@ import { argIdentityForUser, assessmentSummary, ensureArgFoundation, unlockFinal
 import { allowedStatement, evaluateChallenge, executeArchiveQuery, LESSONS } from '../server/challenges.js';
 import { consumeRateLimit } from '../server/rate-limit.js';
 import { CONCEPTS, publicConcept } from '../server/concepts.js';
-import { expectedSqlForPhase, resetTestActivity } from '../server/test-tools.js';
+import { validationGuideForPhase, resetTestActivity } from '../server/test-tools.js';
 
 const ACCESS_DIGESTS = {
   1: '744b93f9950fc38dad705556931ea48193b99dcb191cc9bd77097f65fbe2f0b8',
@@ -48,10 +48,8 @@ export default async function handler(req, res) {
       if (!Number.isInteger(phaseId) || phaseId < 1 || phaseId > 9) {
         return fail(res, 422, 'Fase inválida.');
       }
-      return res.status(200).json({
-        phase_id: phaseId,
-        expected_sql: expectedSqlForPhase(phaseId)
-      });
+      const phase = await sql().query('SELECT reward FROM phases WHERE id=$1 LIMIT 1', [phaseId]);
+      return res.status(200).json(validationGuideForPhase(phaseId, phase[0]?.reward));
     }
 
     if (!method(req, res, ['POST'])) return;
@@ -70,7 +68,7 @@ export default async function handler(req, res) {
     }
 
     if (op === 'nosql-answer') {
-      if (!(await availablePhase(9, user.id))) return fail(res, 403, 'Fase indisponível.');
+      if (!(await availablePhase(9, user))) return fail(res, 403, 'Fase indisponível.');
       const answer = normalizeAccessCode(data.answer);
       const correct = answer === 'find';
       await sql().query(`INSERT INTO arg_submissions(user_id,assessment_id,answer,correct) VALUES($1,9,$2,$3)`, [user.id, answer, correct]);
@@ -84,7 +82,7 @@ export default async function handler(req, res) {
 
     if (op === 'concept-answer') {
       const phaseId = Number(data.phase_id);
-      if (!CONCEPTS[phaseId] || !(await availablePhase(phaseId, user.id))) return fail(res, 403, 'Fase indisponível.');
+      if (!CONCEPTS[phaseId] || !(await availablePhase(phaseId, user))) return fail(res, 403, 'Fase indisponível.');
       const answer = String(data.answer || '');
       const correct = answer === CONCEPTS[phaseId].answer;
       await sql().query(`INSERT INTO arg_submissions(user_id,assessment_id,answer,correct) VALUES($1,$2,$3,$4)`,
@@ -107,7 +105,7 @@ export default async function handler(req, res) {
 
     if (op === 'start') {
       const phaseId = Number(data.phase_id);
-      const phase = await availablePhase(phaseId, user.id);
+      const phase = await availablePhase(phaseId, user);
       if (!phase) return fail(res, 403, 'Fase indisponível.');
 
       if (phaseId >= 3) {
@@ -141,14 +139,15 @@ export default async function handler(req, res) {
       const phaseId = Number(data.phase_id);
       const queryText = String(data.query || '').trim();
 
-      if (!(await availablePhase(phaseId, user.id))) return fail(res, 403, 'Fase indisponível.');
+      if (!(await availablePhase(phaseId, user))) return fail(res, 403, 'Fase indisponível.');
       if (!queryText || queryText.length > 5000) return fail(res, 422, 'Consulta inválida.');
 
       if (phaseId >= 3) {
         if (!allowedStatement(phaseId, queryText)) return fail(res, 422, 'Comando fora do escopo desta aula ou mais de uma instrução por execução.');
         const before = await challengeState(user.id, phaseId);
         const identity = await argIdentityForUser(user.id);
-        const checked = await evaluateChallenge(phaseId, [...before.history, queryText], Number(identity?.group_id || 0), before.nosql_done);
+        const groupId = user.is_test && phaseId === 9 ? 1 : Number(identity?.group_id || 0);
+        const checked = await evaluateChallenge(phaseId, [...before.history, queryText], groupId, before.nosql_done);
         const succeeded = checked.lastSucceeded;
         await ensureProgress(user.id, phaseId);
         await sql().query(`INSERT INTO student_queries(user_id,phase_id,query_text,success) VALUES($1,$2,$3,$4)`,
@@ -195,7 +194,7 @@ export default async function handler(req, res) {
 
     if (op === 'complete') {
       const phaseId = Number(data.phase_id);
-      const phase = await availablePhase(phaseId, user.id);
+      const phase = await availablePhase(phaseId, user);
       if (!phase) return fail(res, 403, 'Fase indisponível.');
 
       if (phaseId >= 3) {
@@ -266,7 +265,11 @@ async function challengeState(userId, phaseId) {
   const identity = await argIdentityForUser(userId);
   const concept_done = phaseId === 3 || Boolean(quiz[0]);
   const nosql_done = phaseId === 9 && concept_done;
-  const evaluated = await evaluateChallenge(phaseId, history, Number(identity?.group_id || 0), nosql_done);
+  const isTest = phaseId === 9
+    ? await sql().query('SELECT is_test FROM users WHERE id=$1 LIMIT 1', [userId])
+    : [];
+  const groupId = isTest[0]?.is_test ? 1 : Number(identity?.group_id || 0);
+  const evaluated = await evaluateChallenge(phaseId, history, groupId, nosql_done);
   if (phaseId === 3) {
     const completed = await sql().query(`SELECT 1 FROM progress
       WHERE user_id=$1 AND phase_id=3 AND status='completed' LIMIT 1`, [userId]);
@@ -277,20 +280,20 @@ async function challengeState(userId, phaseId) {
   return { history, milestones: evaluated.milestones, nosql_done, concept_done };
 }
 
-async function availablePhase(phaseId, userId) {
+async function availablePhase(phaseId, user) {
   if (!Number.isInteger(phaseId) || phaseId < 1 || phaseId > 9) return null;
-  if (phaseId === 9) {
-    const assessment = await assessmentSummary(userId);
+  if (!user.is_test && phaseId === 9) {
+    const assessment = await assessmentSummary(user.id);
     if (!assessment.final_eligible || !assessment.final_protocol_unlocked) return null;
   }
-  if (phaseId >= 3) {
+  if (!user.is_test && phaseId >= 3) {
     const previous = phaseId === 3
-      ? await sql().query(`SELECT 1 FROM progress WHERE user_id=$1 AND phase_id=2 AND status='completed' LIMIT 1`, [userId])
-      : await sql().query(`SELECT 1 FROM progress WHERE user_id=$1 AND phase_id=$2 AND status='completed' LIMIT 1`, [userId, phaseId - 1]);
+      ? await sql().query(`SELECT 1 FROM progress WHERE user_id=$1 AND phase_id=2 AND status='completed' LIMIT 1`, [user.id])
+      : await sql().query(`SELECT 1 FROM progress WHERE user_id=$1 AND phase_id=$2 AND status='completed' LIMIT 1`, [user.id, phaseId - 1]);
     if (!previous[0]) return null;
   }
   const rows = await sql().query(
-    'SELECT * FROM phases WHERE id=$1 AND developed=TRUE AND released=TRUE',
+    `SELECT * FROM phases WHERE id=$1 AND developed=TRUE${user.is_test ? '' : ' AND released=TRUE'}`,
     [phaseId]
   );
   return rows[0] || null;
@@ -411,6 +414,15 @@ export function queryMilestones(phaseId, query, result = []) {
         /\b37\s*=\s*(?:\w+\.)?id\b/i.test(cleaned)
       )
     ) if (has('ORION')) found.push('identify');
+
+    const combinedCode =
+      /\bFROM\s+acessos\b/i.test(cleaned) &&
+      /\bJOIN\s+usuarios\b/i.test(cleaned) &&
+      hasDateRange && hasCount &&
+      /\bGROUP\s+BY\s+(?:\w+\.)?usuario_id\b/i.test(cleaned) &&
+      result.some(set => set.values.some(row =>
+        [37, 12, 'ORION'].every(value => row.some(cell => String(cell).toUpperCase() === String(value)))));
+    if (combinedCode) found.push('window', 'identify', 'code');
 
     return [...new Set(found)];
   }

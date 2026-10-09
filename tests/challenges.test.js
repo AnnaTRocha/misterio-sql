@@ -74,8 +74,19 @@ test('consultas de referência das primeiras aulas produzem evidência real', as
       queryMilestones(phase, item.sql, result).forEach(key => found.add(key));
     }
     if (phase === 1) assert.deepEqual(found, new Set(['users', 'projection', 'messages']));
-    else assert.deepEqual(found, new Set(['witness', 'missing', 'cities', 'last_access', 'frequency', 'window', 'identify']));
+    else assert.deepEqual(found, new Set(['witness', 'missing', 'cities', 'last_access', 'frequency', 'window', 'identify', 'code']));
   }
+});
+
+test('etapa 2.6 usa uma consulta e mantém válidas as consultas antigas', async () => {
+  const guide = expectedSqlForPhase(2);
+  assert.equal(guide.filter(item => item.step.startsWith('2.6')).length, 1);
+  const combined = guide.at(-1).sql;
+  assert.deepEqual(new Set(queryMilestones(2, combined, await executeArchiveQuery(combined))), new Set(['window', 'identify', 'code']));
+  const oldCount = "SELECT usuario_id, COUNT(*) AS acessos FROM acessos WHERE data BETWEEN '1987-09-17' AND '1987-09-21' GROUP BY usuario_id ORDER BY acessos DESC;";
+  const oldUser = 'SELECT * FROM usuarios WHERE id = 37;';
+  assert.ok(queryMilestones(2, oldCount, await executeArchiveQuery(oldCount)).includes('window'));
+  assert.ok(queryMilestones(2, oldUser, await executeArchiveQuery(oldUser)).includes('identify'));
 });
 
 test('consulta vazia não valida descoberta só por conter palavras-chave', async () => {

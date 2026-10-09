@@ -846,4 +846,9 @@ body.crt-page[data-theme="operation"] {
 .test-sql-item pre{margin:0;overflow:auto;background:#10130f;border:1px solid #2d3328;padding:13px}
 .test-sql-item code{color:#cfe3c6;font:12px/1.55 var(--mono);white-space:pre-wrap}
 .test-empty{color:#9d967d;margin:0}
+.test-answer-list{display:grid;gap:12px;margin-top:18px}
+.test-answer-list p{margin:0 0 10px;color:#eee6c9;font-size:13px;line-height:1.5}
+.test-answer-list p:last-child{margin-bottom:0}
+.test-answer-list b,.test-answer-list code{color:#cfe3c6;font:700 13px/1.5 var(--mono)}
+.test-guide-note{margin:0;color:#bdb38d;font-size:12px}
 @media(max-width:720px){.test-tools-heading{flex-direction:column}.test-reset-btn{width:100%}}

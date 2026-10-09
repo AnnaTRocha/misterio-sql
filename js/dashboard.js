@@ -40,10 +40,10 @@ async function load() {
       const item = progressByPhase[Number(phase.id)];
       const done = item?.status === 'completed';
       const started = item?.status === 'in_progress';
-      const finalGate = Number(phase.id) === 9 && !assessment?.final_eligible;
-      const protocolGate = Number(phase.id) === 9 && assessment?.final_eligible && !assessment?.final_protocol_unlocked;
-      const previousGate = Number(phase.id) >= 3 && progressByPhase[Number(phase.id) - 1]?.status !== 'completed';
-      const locked = !phase.developed || !phase.released || finalGate || protocolGate || previousGate;
+      const finalGate = !user.is_test && Number(phase.id) === 9 && !assessment?.final_eligible;
+      const protocolGate = !user.is_test && Number(phase.id) === 9 && assessment?.final_eligible && !assessment?.final_protocol_unlocked;
+      const previousGate = !user.is_test && Number(phase.id) >= 3 && progressByPhase[Number(phase.id) - 1]?.status !== 'completed';
+      const locked = !phase.developed || (!user.is_test && !phase.released) || finalGate || protocolGate || previousGate;
 
       let action = '';
       if (!phase.developed) {
@@ -57,7 +57,7 @@ async function load() {
           <input name="protocol" inputmode="numeric" maxlength="4" placeholder="PROTOCOLO" required>
           <button type="submit">VALIDAR</button>
         </form>`;
-      } else if (!phase.released) {
+      } else if (!user.is_test && !phase.released) {
         action = '<span class="phase-state">[ bloqueado pelo professor ]</span>';
       } else {
         const label = done ? '✓ REABRIR ARQUIVO' : started ? 'CONTINUAR INVESTIGAÇÃO →' : 'INICIAR INVESTIGAÇÃO →';

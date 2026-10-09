@@ -1,5 +1,7 @@
 import { sql } from './db.js';
 import { PHASE_THREE_SQL } from './phase3.js';
+import { CONCEPTS } from './concepts.js';
+import { LESSONS } from './challenges.js';
 
 const EXPECTED_SQL = {
   1: [
@@ -13,8 +15,7 @@ const EXPECTED_SQL = {
     { step: '2.3', objective: 'Listar cidades sem repetição', sql: 'SELECT DISTINCT cidade FROM pessoas;' },
     { step: '2.4', objective: 'Ordenar os acessos do mais recente', sql: 'SELECT * FROM acessos ORDER BY data_hora DESC;' },
     { step: '2.5', objective: 'Contar acessos por pessoa', sql: 'SELECT pessoa_id, COUNT(*) AS acessos FROM acessos GROUP BY pessoa_id ORDER BY acessos DESC;' },
-    { step: '2.6 A', objective: 'Isolar o período e contar por usuário', sql: "SELECT usuario_id, COUNT(*) AS acessos FROM acessos WHERE data BETWEEN '1987-09-17' AND '1987-09-21' GROUP BY usuario_id ORDER BY acessos DESC;" },
-    { step: '2.6 B', objective: 'Consultar o usuário identificado', sql: 'SELECT * FROM usuarios WHERE id = 37;' }
+    { step: '2.6', objective: 'Contar os acessos no período e revelar o código do usuário', sql: "SELECT a.usuario_id, u.nome, u.codigo, COUNT(*) AS acessos FROM acessos a JOIN usuarios u ON u.id = a.usuario_id WHERE a.data BETWEEN '1987-09-17' AND '1987-09-21' GROUP BY a.usuario_id, u.nome, u.codigo ORDER BY acessos DESC;" }
   ],
   3: PHASE_THREE_SQL,
   4: [
@@ -44,13 +45,27 @@ const EXPECTED_SQL = {
     { step: '8.3', objective: 'Janela', sql: 'SELECT equipe,apelido,ROW_NUMBER() OVER(PARTITION BY equipe ORDER BY id) FROM investigacoes;' }
   ],
   9: [
-    { step: '9.1', objective: 'Cruzar os três fragmentos', sql: 'SELECT s.grupo,s.usuario,d.usuario,i.usuario,i.codigo FROM sessoes_arg s JOIN dispositivos_arg d ON s.sessao=d.sessao AND s.grupo=d.grupo JOIN identidades_arg i ON d.dispositivo=i.dispositivo AND d.grupo=i.grupo WHERE s.grupo=1;' },
-    { step: '9.2', objective: 'Revisão breve de NoSQL', sql: 'Método de consulta de documentos: find' }
+    { step: '9.1 · Grupo 01', objective: 'Cruzar os três fragmentos', sql: 'SELECT s.grupo,s.usuario,d.usuario,i.usuario,i.codigo FROM sessoes_arg s JOIN dispositivos_arg d ON s.sessao=d.sessao AND s.grupo=d.grupo JOIN identidades_arg i ON d.dispositivo=i.dispositivo AND d.grupo=i.grupo WHERE s.grupo=1;' },
+    { step: '9.1 · Grupo 02', objective: 'Cruzar os três fragmentos', sql: 'SELECT s.grupo,s.usuario,d.usuario,i.usuario,i.codigo FROM sessoes_arg s JOIN dispositivos_arg d ON s.sessao=d.sessao AND s.grupo=d.grupo JOIN identidades_arg i ON d.dispositivo=i.dispositivo AND d.grupo=i.grupo WHERE s.grupo=2;' }
   ]
 };
 
 export function expectedSqlForPhase(phaseId) {
   return EXPECTED_SQL[Number(phaseId)] || [];
+}
+
+export function validationGuideForPhase(phaseId, archiveReward) {
+  const id = Number(phaseId);
+  if (!Number.isInteger(id) || id < 1 || id > 9) return null;
+  const concept = CONCEPTS[id];
+  const answer = concept?.options.find(([value]) => value === concept.answer);
+  return {
+    phase_id: id,
+    expected_sql: expectedSqlForPhase(id),
+    concept_answer: concept ? { question: concept.prompt, value: answer[0], label: answer[1] } : null,
+    access_code: id <= 2 ? archiveReward : LESSONS[id].answer,
+    final_protocol: id === 9 ? '3301' : null
+  };
 }
 
 export async function resetTestActivity(userId, phaseId) {

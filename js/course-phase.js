@@ -1,5 +1,6 @@
 import { api, escapeHtml, requireSession } from './api-client.js';
 import { sqlToExecute } from './sql-selection.js';
+import { renderValidationGuide } from './validation-guide.js';
 
 const phaseId = Number(new URLSearchParams(location.search).get('id'));
 const $ = id => document.getElementById(id);
@@ -48,8 +49,7 @@ async function loadTestTools() {
   const data = await api(`/api/game?action=test-tools&phase_id=${phaseId}`);
   const area = $('testTools');
   area.hidden = false;
-  area.innerHTML = `<div class="test-tools-heading"><div><h2>Ferramentas de teste</h2><p>Consultas de referência para conferir os requisitos desta atividade.</p></div><button id="testReset" class="test-reset-btn" type="button">Refazer atividade</button></div>
-    <div class="test-sql-list">${data.expected_sql.map(item => `<article class="test-sql-item"><strong>${escapeHtml(item.step)} // ${escapeHtml(item.objective)}</strong><pre>${escapeHtml(item.sql)}</pre></article>`).join('')}</div>`;
+  area.innerHTML = renderValidationGuide(data, 'testReset');
   $('testReset').addEventListener('click', async () => {
     if (!confirm('Refazer esta atividade e apagar o progresso desta conta de teste?')) return;
     await api('/api/game?action=reset-test-activity', { method: 'POST', body: { phase_id: phaseId } });
