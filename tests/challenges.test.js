@@ -1,6 +1,9 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { evaluateChallenge, LESSONS } from '../server/challenges.js';
+import { evaluateChallenge, executeArchiveQuery, LESSONS } from '../server/challenges.js';
+import { queryMilestones } from '../api/game.js';
+import { CONCEPTS, publicConcept } from '../server/concepts.js';
+import { expectedSqlForPhase } from '../server/test-tools.js';
 
 const solutions = {
   3: [
@@ -56,4 +59,33 @@ test('restrições e pistas não são aceitas por presença de palavras', async 
   const direct = await evaluateChallenge(9, ['SELECT codigo FROM identidades_arg'], 1, false);
   assert.ok(!direct.milestones.includes('secret'));
   assert.ok(!direct.milestones.includes('nosql'));
+});
+
+test('consultas de referência das primeiras aulas produzem evidência real', async () => {
+  for (const phase of [1, 2]) {
+    const found = new Set();
+    for (const item of expectedSqlForPhase(phase)) {
+      const result = await executeArchiveQuery(item.sql);
+      queryMilestones(phase, item.sql, result).forEach(key => found.add(key));
+    }
+    if (phase === 1) assert.deepEqual(found, new Set(['users', 'projection', 'messages']));
+    else assert.deepEqual(found, new Set(['witness', 'missing', 'cities', 'last_access', 'frequency', 'window', 'identify']));
+  }
+});
+
+test('consulta vazia não valida descoberta só por conter palavras-chave', async () => {
+  const emptyUsers = 'SELECT * FROM usuarios WHERE 1=0';
+  const emptyMessages = 'SELECT * FROM mensagens WHERE remetente_id=3 AND 1=0';
+  assert.deepEqual(queryMilestones(1, emptyUsers, await executeArchiveQuery(emptyUsers)), []);
+  assert.deepEqual(queryMilestones(1, emptyMessages, await executeArchiveQuery(emptyMessages)), []);
+});
+
+test('cada aula tem uma pergunta pública sem a chave de resposta', () => {
+  for (let phase = 1; phase <= 9; phase++) {
+    const question = publicConcept(phase);
+    assert.ok(question?.prompt);
+    assert.equal(question.options.length, 3);
+    assert.ok(question.options.some(([value]) => value === CONCEPTS[phase].answer));
+    assert.ok(!Object.hasOwn(question, 'answer'));
+  }
 });

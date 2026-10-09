@@ -6,6 +6,8 @@ let ready = false;
 let lesson;
 let milestones = new Set();
 let hintIndex = 0;
+let concept;
+let conceptDone = false;
 
 async function init() {
   const user = await requireSession('student');
@@ -15,6 +17,8 @@ async function init() {
     const start = await api('/api/game?action=start', { method: 'POST', body: { phase_id: phaseId } });
     lesson = start.lesson;
     milestones = new Set(start.milestones);
+    concept = start.concept;
+    conceptDone = Boolean(start.concept_done || start.already_completed);
     document.body.dataset.theme = lesson.theme;
     document.querySelector('.brand span:last-child').textContent = lesson.code;
     document.title = `${lesson.title} — Mistério SQL`;
@@ -53,6 +57,11 @@ async function loadTestTools() {
 }
 
 function render() {
+  const codeValue = $('accessCodeInput')?.value || '';
+  const selectedConcept = document.querySelector('input[name="conceptAnswer"]:checked')?.value;
+  const conceptFeedback = $('conceptFeedback')?.textContent || '';
+  const verdictText = $('verdict')?.textContent || '';
+  const verdictClass = $('verdict')?.className || 'verdict';
   const done = lesson.objectives.filter(([key]) => milestones.has(key)).length;
   $('objectiveCounter').textContent = `${String(done).padStart(2, '0')}/${String(lesson.objectives.length).padStart(2, '0')}`;
   $('objectiveList').innerHTML = lesson.objectives.map(([key, label]) => `<div class="objective-item ${milestones.has(key) ? 'done' : ''}"><span class="check">${milestones.has(key) ? '✓' : '·'}</span><span>${escapeHtml(label)}</span></div>`).join('');
@@ -64,11 +73,19 @@ function render() {
   $('finishArea').innerHTML = `
     <span class="dashboard-kicker">PROTOCOLO FINAL</span>
     <h2>IDENTIFICAÇÃO</h2>
-    <p>Complete todos os requisitos e informe a identificação descoberta nesta etapa.</p>
-    ${phaseId === 9 && !milestones.has('nosql') ? `<form id="nosqlForm"><label for="nosqlInput">Revisão rápida: qual método consulta documentos de uma coleção no MongoDB?</label><div class="crt-input-row"><input id="nosqlInput" autocomplete="off" required><button type="submit">Validar NoSQL</button></div></form>` : ''}
-    <form id="codeForm"><div class="crt-input-row"><input id="accessCodeInput" placeholder="identificação" autocomplete="off" required><button id="completeBtn" type="submit" ${done < lesson.objectives.length ? 'disabled' : ''}>Concluir atividade</button></div><div id="verdict" class="verdict" aria-live="polite"></div></form>`;
+    <p>${escapeHtml(lesson.answerPrompt)}</p>
+    ${conceptDone ? '<p class="concept-confirmed">✓ CONCEITO VALIDADO</p>' : concept ? `<form id="conceptForm" class="concept-form"><fieldset><legend>${escapeHtml(concept.prompt)}</legend><div class="concept-options">${concept.options.map(([value, label]) => `<label class="concept-option"><input type="radio" name="conceptAnswer" value="${escapeHtml(value)}" required><span>${escapeHtml(label)}</span></label>`).join('')}</div></fieldset><button type="submit">Validar conceito</button><p id="conceptFeedback" class="concept-feedback" role="status" aria-live="polite"></p></form>` : ''}
+    <form id="codeForm"><div class="crt-input-row"><input id="accessCodeInput" placeholder="identificação" autocomplete="off" required><button id="completeBtn" type="submit" ${done < lesson.objectives.length || !conceptDone ? 'disabled' : ''}>Concluir atividade</button></div><div id="verdict" class="verdict" aria-live="polite"></div></form>`;
+  $('accessCodeInput').value = codeValue;
+  if (selectedConcept) {
+    const choice = [...document.querySelectorAll('input[name="conceptAnswer"]')].find(input => input.value === selectedConcept);
+    if (choice) choice.checked = true;
+  }
+  if ($('conceptFeedback')) $('conceptFeedback').textContent = conceptFeedback;
+  $('verdict').textContent = verdictText;
+  $('verdict').className = verdictClass;
   $('codeForm').addEventListener('submit', complete);
-  $('nosqlForm')?.addEventListener('submit', answerNosql);
+  $('conceptForm')?.addEventListener('submit', answerConcept);
 }
 
 function readOnlyPreview(result) {
@@ -97,13 +114,16 @@ async function executeSql() {
   }
 }
 
-async function answerNosql(event) {
+async function answerConcept(event) {
   event.preventDefault();
+  const answer = new FormData(event.currentTarget).get('conceptAnswer');
+  const feedback = $('conceptFeedback');
   try {
-    const result = await api('/api/game?action=nosql-answer', { method: 'POST', body: { answer: $('nosqlInput').value } });
-    milestones = new Set(result.milestones);
+    const result = await api('/api/game?action=concept-answer', { method: 'POST', body: { phase_id: phaseId, answer } });
+    conceptDone = true;
+    if (result.milestones) milestones = new Set(result.milestones);
     render();
-  } catch (error) { alert(error.message); }
+  } catch (error) { feedback.textContent = error.message; }
 }
 
 async function complete(event) {

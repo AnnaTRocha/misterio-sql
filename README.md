@@ -72,7 +72,7 @@ TEACHER_INITIAL_PASSWORD=uma-senha-aleatoria-com-12-ou-mais-caracteres
 
 ## Exercícios alinhados aos slides
 
-As Aulas 01 e 02 mantêm a investigação original e as respostas **1987** e **ORION**. Cada uma ganhou uma pergunta conceitual ligada aos slides: relações entre chaves na Aula 01 e normalização na Aula 02. Alunos que já haviam concluído essas fases não perdem o progresso.
+As Aulas 01 e 02 mantêm a investigação original e as respostas **1987** e **ORION**. Cada aula possui uma checagem conceitual curta, ligada aos slides, além da evidência SQL e do código. As alternativas aparecem como cartões acessíveis; a resposta correta é validada apenas no servidor. Atividades já concluídas permanecem concluídas.
 
 | Aula | Conteúdo dos slides | Investigação |
 | --- | --- | --- |
@@ -85,6 +85,8 @@ As Aulas 01 e 02 mantêm a investigação original e as respostas **1987** e **O
 | 09 | NoSQL/MongoDB | ARG SQL em equipe mais uma pergunta breve sobre `find` |
 
 Os exercícios 03–09 executam SQL no servidor em uma cópia isolada de `server/curso.sql`. O servidor reexecuta as instruções registradas e valida o estado das tabelas ou o resultado das consultas. Uma instrução é executada por vez. A liberação pelo professor e a conclusão da fase anterior também são exigidas para avançar. Os títulos e as dicas permanecem narrativos; o SQL de referência só aparece para usuários de teste.
+
+Nas Aulas 01 e 02, o checklist só reconhece consultas que retornem a evidência esperada: uma consulta vazia não valida uma etapa apenas por conter palavras-chave. O código final só é aceito após os requisitos SQL e a checagem conceitual. Nas Aulas 03–08, a checagem conceitual é adicional aos requisitos SQL; a Aula 09 mantém a pergunta breve sobre MongoDB.
 
 Na Vercel, `npm run build` publica somente HTML, CSS e JavaScript minificado em `public/`; os bancos SQL e a validação permanecem nas funções da API. Não são gerados source maps. A API limita consultas a 12 por minuto e respostas a 5–8 por minuto por usuário. Para reforçar o bloqueio de automação, habilite Bot Protection e regras de rate limit no painel da Vercel; `robots.txt` e minificação não impedem um bot determinado.
 

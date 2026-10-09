@@ -67,6 +67,7 @@ let hintIndex = 0;
 let milestones = new Set();
 let querySequence = 0;
 let conceptDone = false;
+let concept;
 
 const editor = document.getElementById('sqlEditor');
 const runBtn = document.getElementById('runBtn');
@@ -102,7 +103,8 @@ async function init() {
       body: { phase_id: phaseId }
     });
     milestones = new Set(start.milestones || []);
-    conceptDone = Boolean(start.concept_done);
+    conceptDone = Boolean(start.concept_done || start.already_completed);
+    concept = start.concept;
     renderObjectives();
     renderFinish();
   } catch (error) {
@@ -170,31 +172,27 @@ function renderObjectives() {
 
 function renderFinish() {
   const area = document.getElementById('finishArea');
-  const title = phaseId === 1 ? 'ACCESS CODE' : phaseId === 3 ? 'IDENTIFICAÇÃO' : 'CÓDIGO FINAL';
+  const title = phaseId === 1 ? 'ACCESS CODE' : 'CÓDIGO FINAL';
 
   const descriptions = {
     1: 'Digite o código encontrado nas mensagens do usuário desconhecido.',
-    2: 'Quando a etapa 2.6 revelar a identidade, use o código armazenado no cadastro do usuário.',
-    3: 'Conclua as relações entre as tabelas, abra o recurso externo recuperado e informe o que o símbolo representa.'
+    2: 'Quando a etapa 2.6 revelar a identidade, use o código armazenado no cadastro do usuário.'
   };
 
   area.innerHTML = `
     <span class="dashboard-kicker">PROTOCOLO FINAL</span>
     <h2>${title}</h2>
     <p id="completionHint">${descriptions[phaseId] || ''}</p>
-    ${conceptDone ? '' : `<form id="conceptForm">
-      <label for="conceptAnswer">${phaseId === 1 ? 'Qual chave conecta uma tabela a outra?' : 'Na 3ª forma normal, o que deve ser evitado?'}</label>
-      <div class="crt-input-row"><select id="conceptAnswer" required>
-        <option value="">Selecione uma resposta</option>
-        ${phaseId === 1
-          ? '<option value="chave_primaria">Uma segunda chave primária</option><option value="chave_estrangeira">Uma chave estrangeira que referencia a chave primária</option><option value="indice">Um índice sem referência</option>'
-          : '<option value="listas">Apenas listas em uma célula</option><option value="sem_dependencia_transitiva">Dependência transitiva entre atributos não-chave</option><option value="ordenacao">Ordenação por nome</option>'}
-      </select><button type="submit">Validar conceito</button></div>
-    </form>`}
+    ${conceptDone ? '<p class="concept-confirmed">✓ CONCEITO VALIDADO</p>' : concept ? `<form id="conceptForm" class="concept-form">
+      <fieldset><legend>${escapeHtml(concept.prompt)}</legend>
+        <div class="concept-options">${concept.options.map(([value, label]) => `<label class="concept-option"><input type="radio" name="conceptAnswer" value="${escapeHtml(value)}" required><span>${escapeHtml(label)}</span></label>`).join('')}</div>
+      </fieldset>
+      <button type="submit">Validar conceito</button><p id="conceptFeedback" class="concept-feedback" role="status" aria-live="polite"></p>
+    </form>` : ''}
     <form id="codeForm">
       <div class="crt-input-row">
-        <input id="accessCodeInput" placeholder="${phaseId === 3 ? 'identificação do símbolo' : 'código de acesso'}" autocomplete="off" required>
-        <button id="completeBtn" class="primary-btn" type="submit" disabled>Validar ${phaseId === 3 ? 'resposta' : 'código'}</button>
+        <input id="accessCodeInput" placeholder="código de acesso" autocomplete="off" required>
+        <button id="completeBtn" class="primary-btn" type="submit" disabled>Validar código</button>
       </div>
       <div id="verdict" class="verdict" aria-live="polite"></div>
     </form>`;
@@ -202,11 +200,13 @@ function renderFinish() {
   document.getElementById('codeForm').addEventListener('submit', complete);
   document.getElementById('conceptForm')?.addEventListener('submit', async event => {
     event.preventDefault();
+    const selected = new FormData(event.currentTarget).get('conceptAnswer');
+    const feedback = document.getElementById('conceptFeedback');
     try {
-      await api('/api/game?action=concept-answer', { method: 'POST', body: { phase_id: phaseId, answer: document.getElementById('conceptAnswer').value } });
+      await api('/api/game?action=concept-answer', { method: 'POST', body: { phase_id: phaseId, answer: selected } });
       conceptDone = true;
       renderFinish();
-    } catch (error) { alert(error.message); }
+    } catch (error) { feedback.textContent = error.message; }
   });
   updateCompletion();
 }
@@ -225,8 +225,7 @@ function updateCompletion() {
   if (ready) {
     const messages = {
       1: 'A trilha do usuário desconhecido está completa. Informe o código encontrado nas mensagens.',
-      2: 'As seis etapas foram reconstruídas. Informe o código associado à identidade que você identificou.',
-      3: 'As relações foram reconstruídas. Abra o recurso externo recuperado e informe o que o símbolo representa.'
+      2: 'As seis etapas foram reconstruídas. Informe o código associado à identidade que você identificou.'
     };
     hint.textContent = messages[phaseId] || '';
   }
@@ -346,9 +345,7 @@ async function complete(event) {
     verdict.className = 'verdict success';
     verdict.textContent = phaseId === 1
       ? `✓ ACCESS GRANTED // código ${data.reward} confirmado // Fase 02 pronta para liberação`
-      : phaseId === 3
-        ? `✓ SÍMBOLO IDENTIFICADO // ${data.reward} // ARQUIVO 03 DECODIFICADO`
-        : `✓ ARQUIVO 3301 DECODIFICADO // código ${data.reward} confirmado`;
+      : `✓ ARQUIVO 3301 DECODIFICADO // código ${data.reward} confirmado`;
   } catch (error) {
     verdict.className = 'verdict failure';
     verdict.textContent = `✕ ${error.message}`;
