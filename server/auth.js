@@ -98,9 +98,10 @@ export async function requireUser(req, res, role = null) {
 }
 
 export function normalizeUsername(value) {
-  return String(value || '').trim();
+  return String(value || '').normalize('NFC').trim().replace(/\s+/gu, ' ');
 }
 
 export function validUsername(value) {
-  return /^[A-Za-z0-9._-]{3,30}$/.test(value);
+  const length = Array.from(value).length;
+  return length >= 3 && length <= 30 && /^[\p{L}\p{N} ._-]+$/u.test(value) && /[\p{L}\p{N}]/u.test(value);
 }

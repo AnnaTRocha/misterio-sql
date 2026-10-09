@@ -40,10 +40,10 @@ export default async function handler(req, res) {
       const password = String(data.password || '');
       const confirm = String(data.confirm || '');
 
-      if (!validUsername(username)) return fail(res, 422, 'Use um login de 3 a 30 caracteres com letras, números, ponto, hífen ou _.');
-      if (username.toLowerCase() === 'professor') return fail(res, 422, 'Este login é reservado.');
-      if (password.length < 6) return fail(res, 422, 'A senha deve ter pelo menos 6 caracteres.');
-      if (password !== confirm) return fail(res, 422, 'As senhas não conferem.');
+      if (!validUsername(username)) return fail(res, 422, 'Nome de usuário: use de 3 a 30 caracteres, com ao menos uma letra ou número. São aceitos acentos, espaços, ponto, hífen e _.');
+      if (username.toLowerCase() === 'professor') return fail(res, 422, 'Nome de usuário: este identificador é reservado.');
+      if (password.length < 6) return fail(res, 422, 'Senha: use pelo menos 6 caracteres.');
+      if (password !== confirm) return fail(res, 422, 'Confirmar senha: os dois valores não coincidem.');
 
       const passwordHash = await bcrypt.hash(password, 12);
       try {
@@ -55,7 +55,7 @@ export default async function handler(req, res) {
         setSession(res, rows[0]);
         return res.status(201).json({ user: rows[0] });
       } catch (error) {
-        if (String(error.message).toLowerCase().includes('unique')) return fail(res, 409, 'Esse login já está em uso.');
+        if (String(error.message).toLowerCase().includes('unique')) return fail(res, 409, 'Nome de usuário: este nome já está em uso.');
         throw error;
       }
     }

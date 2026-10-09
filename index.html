@@ -35,17 +35,18 @@
       <div id="message" aria-live="polite"></div>
 
       <form id="loginForm">
-        <label>Identificador<input name="username" required autocomplete="username"></label>
-        <label>Chave de acesso<input name="password" type="password" required autocomplete="current-password"></label>
+        <label>Nome de usuário<input name="username" required autocomplete="username"></label>
+        <label>Senha<input name="password" type="password" required autocomplete="current-password"></label>
         <button class="primary-btn" type="submit">Abrir sessão</button>
       </form>
 
       <details>
         <summary>+ registrar estudante</summary>
-        <form id="registerForm">
-          <label>Identificador<input name="username" required minlength="3" maxlength="30"></label>
-          <label>Chave de acesso<input name="password" type="password" required minlength="6"></label>
-          <label>Repetir chave<input name="confirm" type="password" required minlength="6"></label>
+        <form id="registerForm" novalidate>
+          <div id="registerMessage" class="form-message error" role="alert" hidden></div>
+          <label>Nome de usuário<input name="username" required maxlength="30" autocomplete="username" aria-describedby="registerUsernameHelp"><small id="registerUsernameHelp" class="field-help">3 a 30 caracteres, com letra ou número. Pode usar acentos, espaços, ponto, hífen e _. Ex.: João Silva.</small></label>
+          <label>Senha<input name="password" type="password" required autocomplete="new-password" aria-describedby="registerPasswordHelp"><small id="registerPasswordHelp" class="field-help">Pelo menos 6 caracteres; pode usar letras, números e símbolos.</small></label>
+          <label>Confirmar senha<input name="confirm" type="password" required autocomplete="new-password"></label>
           <button class="secondary-btn" type="submit">Criar credencial</button>
         </form>
       </details>
@@ -53,7 +54,7 @@
       <details>
         <summary>+ recuperar acesso</summary>
         <form id="resetForm">
-          <label>Identificador<input name="username" required></label>
+          <label>Nome de usuário<input name="username" required autocomplete="username"></label>
           <button class="secondary-btn" type="submit">Solicitar redefinição</button>
         </form>
       </details>

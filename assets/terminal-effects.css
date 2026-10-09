@@ -257,6 +257,16 @@
   border: 1px solid rgba(141,255,173,.2);
 }
 
+.crt-page .auth-card .field-help {
+  color: var(--crt-muted);
+  font: 11px/1.5 var(--crt-mono);
+  font-weight: 400;
+}
+
+.crt-page .auth-card input[aria-invalid="true"] {
+  border-color: #ff8f8a;
+}
+
 .cursor-blink::after {
   content: "█";
   color: var(--crt-green);
