@@ -47,7 +47,7 @@ export const CONCEPTS = {
       ['having', 'HAVING status = ... após o agrupamento.']
     ],
     answer: 'where',
-    feedback: 'Uma cláusula filtra linhas de entrada; outra filtra grupos já formados.'
+    feedback: 'Uma cláusula filtra as linhas antes do agrupamento. A outra filtra os grupos já formados.'
   },
   7: {
     prompt: 'Qual junção mantém também os objetos que nunca tiveram acesso registrado?',

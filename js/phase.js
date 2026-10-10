@@ -45,12 +45,12 @@ const PHASES = {
       'Resolva as seis etapas na ordem que preferir. O banco só entrega o que sua consulta conseguir provar.'
     ],
     objectives: [
-      ['witness', '2.1 // Testemunha: idade 20–30 e nome iniciado por A'],
-      ['missing', '2.2 // Registro ausente: localizar uma saída NULL'],
-      ['cities', '2.3 // Cidades: remover repetições com DISTINCT'],
-      ['last_access', '2.4 // Último acesso: ordenar por data_hora DESC'],
-      ['frequency', '2.5 // Maior frequência: contar acessos por pessoa'],
-      ['code', '2.6 // Código: isolar dia 17/09 à 21/09, identificar o usuário e coletar o código']
+      ['witness', '2.1 // Encontrar uma testemunha de 20 a 30 anos cujo nome começa com A'],
+      ['missing', '2.2 // Encontrar um acesso sem horário de saída'],
+      ['cities', '2.3 // Listar as cidades sem repetição com DISTINCT'],
+      ['last_access', '2.4 // Ordenar os acessos por data_hora DESC'],
+      ['frequency', '2.5 // Contar os acessos por pessoa'],
+      ['code', '2.6 // Analisar os acessos de 17/09 a 21/09, identificar o usuário e encontrar o código']
     ],
     hints: [
       '2.1 // A testemunha pertence a uma faixa etária e seu nome começa com uma letra específica.',
@@ -58,7 +58,7 @@ const PHASES = {
       '2.3 // Conte cada cidade apenas uma vez.',
       '2.4 // O acesso mais recente muda a direção da investigação.',
       '2.5 // Frequência exige agrupar pessoas antes de comparar totais.',
-      '2.6 // Restrinja a janela do incidente; a identidade está no cadastro de quem mais aparece.'
+      '2.6 // Restrinja o período do incidente. A identidade está no cadastro de quem aparece com mais frequência.'
     ],
     initial: 'SELECT * FROM pessoas;'
   }
@@ -86,7 +86,7 @@ async function init() {
 
   document.getElementById('username').textContent = user.username;
   document.body.dataset.theme = phase.theme || 'archive';
-  document.title = `${phase.title} — Mistério SQL`;
+  document.title = `${phase.title} | Mistério SQL`;
   document.getElementById('phaseLabel').textContent = `${phase.code} // FASE ${String(phaseId).padStart(2, '0')}`;
   setTitle(phase.title);
   document.getElementById('phaseMission').textContent = phase.mission;

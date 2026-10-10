@@ -23,7 +23,7 @@ async function init() {
     conceptDone = Boolean(start.concept_done || start.already_completed);
     document.body.dataset.theme = lesson.theme;
     document.querySelector('.brand span:last-child').textContent = lesson.code;
-    document.title = `${lesson.title} — Mistério SQL`;
+    document.title = `${lesson.title} | Mistério SQL`;
     $('phaseLabel').textContent = `${lesson.code} // AULA ${String(phaseId).padStart(2, '0')}`;
     $('phaseTitle').textContent = lesson.title;
     $('phaseTitle').dataset.text = lesson.title;

@@ -8,10 +8,10 @@ import { expectedSqlForPhase } from '../server/test-tools.js';
 const solutions = {
   3: [
     'SELECT * FROM evidencias',
-    'SELECT * FROM evidencias e JOIN referencias r ON r.evidencia_id=e.id',
-    'SELECT * FROM referencias r JOIN recursos rc ON rc.id=r.recurso_id',
-    "SELECT rc.endereco FROM referencias r JOIN recursos rc ON rc.id=r.recurso_id WHERE rc.status='recuperado'",
-    'SELECT * FROM evidencias e LEFT JOIN referencias r ON r.evidencia_id=e.id WHERE r.id IS NULL'
+    'SELECT * FROM evidencias e JOIN referencias r ON r.evidencia_id=e.evidencia_id',
+    'SELECT * FROM referencias r JOIN recursos rc ON rc.recurso_id=r.recurso_id',
+    "SELECT rc.endereco FROM referencias r JOIN recursos rc ON rc.recurso_id=r.recurso_id WHERE rc.status='recuperado'",
+    'SELECT * FROM evidencias e LEFT JOIN referencias r ON r.evidencia_id=e.evidencia_id WHERE r.referencia_id IS NULL'
   ],
   4: [
     'ALTER TABLE objetos_celestes ADD COLUMN origem TEXT',
@@ -44,36 +44,54 @@ const solutions = {
   ]
 };
 
-test('aula 3: objetivos e consultas de referência descrevem a mesma tarefa', () => {
-  assert.deepEqual(expectedSqlForPhase(3).map(item => item.objective), LESSONS[3].objectives.map(([, label]) => label));
+test('aula 3: cada consulta de referência conclui o objetivo correspondente', async () => {
+  const guide = expectedSqlForPhase(3);
+  assert.deepEqual(guide.map(item => item.objective), LESSONS[3].objectives.map(([, label]) => label));
+  for (const [index, item] of guide.entries()) {
+    const result = await evaluateChallenge(3, [item.sql], 1);
+    assert.ok(result.milestones.includes(LESSONS[3].objectives[index][0]), item.step);
+  }
+});
+
+test('aula 3: as chaves das três tabelas têm nomes distintos e claros', async () => {
+  for (const [table, expected] of [
+    ['evidencias', ['evidencia_id', 'codigo', 'descricao']],
+    ['referencias', ['referencia_id', 'evidencia_id', 'recurso_id']],
+    ['recursos', ['recurso_id', 'tipo', 'endereco', 'status']]
+  ]) {
+    const result = await evaluateChallenge(3, [`PRAGMA table_info(${table})`], 1);
+    assert.deepEqual(result.result[0].values.map(row => row[1]), expected);
+  }
 });
 
 test('aula 3: aceita aliases, ordem invertida, projeções e filtros equivalentes', async () => {
   const queries = [
     "select codigo from evidencias where codigo = 'SEIS-ESTRELAS'",
-    "SELECT e.codigo FROM referencias AS r INNER JOIN evidencias AS e ON e.id = r.evidencia_id WHERE e.codigo = 'SEIS-ESTRELAS'",
-    "SELECT rc.endereco FROM recursos AS rc INNER JOIN referencias AS r ON r.recurso_id = rc.id WHERE rc.status = 'recuperado'",
-    "SELECT endereco FROM recursos WHERE id = 7",
-    'SELECT e.codigo FROM evidencias AS e LEFT OUTER JOIN referencias AS r ON e.id = r.evidencia_id WHERE r.evidencia_id IS NULL'
+    "SELECT e.codigo FROM referencias AS r INNER JOIN evidencias AS e ON e.evidencia_id = r.evidencia_id WHERE e.codigo = 'SEIS-ESTRELAS'",
+    "SELECT rc.endereco FROM recursos AS rc INNER JOIN referencias AS r ON r.recurso_id = rc.recurso_id WHERE rc.status = 'recuperado'",
+    "SELECT endereco FROM recursos WHERE recurso_id = 7",
+    'SELECT e.codigo FROM evidencias AS e LEFT OUTER JOIN referencias AS r ON e.evidencia_id = r.evidencia_id WHERE r.evidencia_id IS NULL'
   ];
   const result = await evaluateChallenge(3, queries, 1);
   assert.deepEqual(new Set(result.milestones), new Set(LESSONS[3].objectives.map(([key]) => key)));
   const withoutAliases = await evaluateChallenge(3, [
-    'SELECT evidencias.codigo FROM evidencias JOIN referencias ON (evidencias.id) = (referencias.evidencia_id)'
+    'SELECT evidencias.codigo FROM evidencias JOIN referencias ON (evidencias.evidencia_id) = (referencias.evidencia_id)'
   ], 1);
   assert.ok(withoutAliases.milestones.includes('evidence_join'));
   const commaJoin = await evaluateChallenge(3, [
-    'SELECT e.codigo FROM evidencias e, referencias r WHERE e.id = r.evidencia_id'
+    'SELECT e.codigo FROM evidencias e, referencias r WHERE e.evidencia_id = r.evidencia_id'
   ], 1);
   assert.ok(commaJoin.milestones.includes('evidence_join'));
 });
 
 test('aula 3: relações incorretas ou resultados não isolados não completam objetivos', async () => {
-  const wrongJoin = await evaluateChallenge(3, ['SELECT * FROM evidencias e JOIN referencias r ON e.id = r.id'], 1);
+  const oldColumn = await evaluateChallenge(3, ['SELECT * FROM evidencias JOIN referencias r ON r.id = evidencia_id'], 1);
+  assert.equal(oldColumn.lastSucceeded, false);
+  const wrongJoin = await evaluateChallenge(3, ['SELECT * FROM evidencias e JOIN referencias r ON e.evidencia_id = r.referencia_id'], 1);
   assert.ok(!wrongJoin.milestones.includes('evidence_join'));
   const unfilteredResources = await evaluateChallenge(3, ['SELECT * FROM recursos'], 1);
   assert.ok(!unfilteredResources.milestones.includes('resource_found'));
-  const allEvidences = await evaluateChallenge(3, ['SELECT * FROM evidencias e LEFT JOIN referencias r ON e.id = r.evidencia_id'], 1);
+  const allEvidences = await evaluateChallenge(3, ['SELECT * FROM evidencias e LEFT JOIN referencias r ON e.evidencia_id = r.evidencia_id'], 1);
   assert.ok(!allEvidences.milestones.includes('orphans'));
 });
 

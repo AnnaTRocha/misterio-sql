@@ -7,7 +7,7 @@ export function renderValidationGuide(data, resetButtonId) {
     <div>
       <span class="classified">USUÁRIO TESTE</span>
       <h2>Ferramentas de validação</h2>
-      <p>Consultas mínimas esperadas para validar os checklists desta atividade.</p>
+      <p>Consultas de referência para validar os objetivos desta atividade.</p>
     </div>
     <button id="${resetButtonId}" class="test-reset-btn" type="button">Refazer atividade</button>
   </div>

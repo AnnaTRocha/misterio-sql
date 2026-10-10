@@ -83,13 +83,13 @@ function renderStudents(students) {
   root.innerHTML = students.map(student => `
     <tr class="${student.is_test ? 'test-student' : ''}">
       <td>${escapeHtml(student.username)}</td>
-      <td>${escapeHtml(student.investigator_alias || '—')}</td>
-      <td>${student.is_test ? '<span class="test-badge">SEM GRUPO</span>' : escapeHtml(student.group_code || '—')}</td>
+      <td>${escapeHtml(student.investigator_alias || 'Não informado')}</td>
+      <td>${student.is_test ? '<span class="test-badge">SEM GRUPO</span>' : escapeHtml(student.group_code || 'Não informado')}</td>
       <td>${student.completed} / ${phaseCount}</td>
       <td>${student.score || 0}%</td>
       <td>${student.queries}</td>
       <td>${student.attempts}</td>
-      <td>${student.last_login_at ? formatDate(student.last_login_at) : '—'}</td>
+      <td>${student.last_login_at ? formatDate(student.last_login_at) : 'Sem acesso'}</td>
       <td>
         <label class="switch-row test-user-toggle">
           <input type="checkbox" data-test-user="${student.id}" ${student.is_test ? 'checked' : ''}>
@@ -115,7 +115,7 @@ function renderStudents(students) {
 }
 
 function formatDate(value) {
-  if (!value) return '—';
+  if (!value) return 'Não informado';
   return new Intl.DateTimeFormat('pt-BR', { dateStyle: 'short', timeStyle: 'short' }).format(new Date(value));
 }
 

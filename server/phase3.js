@@ -15,7 +15,7 @@ export const PHASE_THREE = {
     'Comece pelas evidências e observe os códigos encontrados.',
     'Uma referência aponta para uma evidência.',
     'Cada referência também pode apontar para um recurso.',
-    'Nem todo recurso está disponível; observe o status.',
+    'Nem todo recurso está disponível. Observe o status de cada um.',
     'A ausência de correspondência também é uma pista.'
   ],
   answer: 'PLEIADES'
@@ -23,10 +23,10 @@ export const PHASE_THREE = {
 
 export const PHASE_THREE_SQL = [
   { step: '3.1', objective: 'Examinar as evidências recuperadas', sql: 'SELECT * FROM evidencias;' },
-  { step: '3.2', objective: 'Relacionar evidências e referências', sql: 'SELECT * FROM evidencias e JOIN referencias r ON r.evidencia_id = e.id;' },
-  { step: '3.3', objective: 'Relacionar referências e recursos', sql: 'SELECT * FROM referencias r JOIN recursos rc ON rc.id = r.recurso_id;' },
-  { step: '3.4', objective: 'Localizar o recurso externo recuperado', sql: "SELECT rc.endereco FROM referencias r JOIN recursos rc ON rc.id = r.recurso_id WHERE rc.status = 'recuperado';" },
-  { step: '3.5', objective: 'Identificar evidências sem referência usando LEFT JOIN', sql: 'SELECT e.codigo FROM evidencias e LEFT JOIN referencias r ON r.evidencia_id = e.id WHERE r.id IS NULL;' }
+  { step: '3.2', objective: 'Relacionar evidências e referências', sql: 'SELECT * FROM evidencias e JOIN referencias r ON r.evidencia_id = e.evidencia_id;' },
+  { step: '3.3', objective: 'Relacionar referências e recursos', sql: 'SELECT * FROM referencias r JOIN recursos rc ON rc.recurso_id = r.recurso_id;' },
+  { step: '3.4', objective: 'Localizar o recurso externo recuperado', sql: "SELECT rc.endereco FROM referencias r JOIN recursos rc ON rc.recurso_id = r.recurso_id WHERE rc.status = 'recuperado';" },
+  { step: '3.5', objective: 'Identificar evidências sem referência usando LEFT JOIN', sql: 'SELECT e.codigo FROM evidencias e LEFT JOIN referencias r ON r.evidencia_id = e.evidencia_id WHERE r.referencia_id IS NULL;' }
 ];
 
 export function phaseThreeMilestones(query, result) {
@@ -42,8 +42,8 @@ export function phaseThreeMilestones(query, result) {
   const uses = name => aliases.has(name);
   const column = (table, name) => `${aliases.get(table)}\\s*\\.\\s*${name}`;
   const relation = (left, right) => new RegExp(`(?:${left}\\s*=\\s*${right}|${right}\\s*=\\s*${left})`, 'i').test(structure);
-  const evidenceRelation = uses('evidencias') && uses('referencias') && relation(column('evidencias', 'id'), column('referencias', 'evidencia_id'));
-  const resourceRelation = uses('referencias') && uses('recursos') && relation(column('referencias', 'recurso_id'), column('recursos', 'id'));
+  const evidenceRelation = uses('evidencias') && uses('referencias') && relation(column('evidencias', 'evidencia_id'), column('referencias', 'evidencia_id'));
+  const resourceRelation = uses('referencias') && uses('recursos') && relation(column('referencias', 'recurso_id'), column('recursos', 'recurso_id'));
   const leftEvidenceJoin = /\bLEFT\s+(?:OUTER\s+)?JOIN\s+referencias\b/i.test(structure);
   const found = [];
   if (uses('evidencias') && has('SEIS-ESTRELAS')) found.push('evidence');

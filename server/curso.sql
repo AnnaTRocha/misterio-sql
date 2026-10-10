@@ -79,12 +79,12 @@ INSERT INTO dispositivos_arg VALUES (1,'us2','S-81','D-17'),(2,'us5','S-42','D-0
 INSERT INTO identidades_arg VALUES (1,'us3','D-17',0),(2,'us6','D-09',0);
 
 -- Fase 3: evidências preservadas da investigação O Aglomerado.
-CREATE TABLE evidencias (id INTEGER PRIMARY KEY, codigo TEXT NOT NULL, descricao TEXT NOT NULL);
-CREATE TABLE recursos (id INTEGER PRIMARY KEY, tipo TEXT NOT NULL, endereco TEXT, status TEXT NOT NULL);
+CREATE TABLE evidencias (evidencia_id INTEGER PRIMARY KEY, codigo TEXT NOT NULL, descricao TEXT NOT NULL);
+CREATE TABLE recursos (recurso_id INTEGER PRIMARY KEY, tipo TEXT NOT NULL, endereco TEXT, status TEXT NOT NULL);
 CREATE TABLE referencias (
-  id INTEGER PRIMARY KEY,
-  evidencia_id INTEGER NOT NULL REFERENCES evidencias(id),
-  recurso_id INTEGER REFERENCES recursos(id)
+  referencia_id INTEGER PRIMARY KEY,
+  evidencia_id INTEGER NOT NULL REFERENCES evidencias(evidencia_id),
+  recurso_id INTEGER REFERENCES recursos(recurso_id)
 );
 INSERT INTO evidencias VALUES
   (1,'ORION-1987','A resposta anterior não era um destino. Classificação associada: constelação.'),

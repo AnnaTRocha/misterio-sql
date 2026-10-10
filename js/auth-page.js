@@ -24,7 +24,7 @@ function validateRegistration(form) {
   };
 
   if (length < 3 || length > 30 || !/^[\p{L}\p{N} ._-]+$/u.test(username.value) || !/[\p{L}\p{N}]/u.test(username.value)) {
-    return invalid(username, 'Nome de usuário: use de 3 a 30 caracteres, com ao menos uma letra ou número. São aceitos acentos, espaços, ponto, hífen e _.');
+    return invalid(username, 'Nome de usuário: use de 3 a 30 caracteres e inclua pelo menos uma letra ou um número. São aceitos acentos, espaços, pontos, hífens e sublinhados (_).');
   }
   if (password.value.length < 6) return invalid(password, 'Senha: use pelo menos 6 caracteres.');
   if (password.value !== confirm.value) return invalid(confirm, 'Confirmar senha: os dois valores não coincidem.');

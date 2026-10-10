@@ -23,11 +23,11 @@ export const LESSONS = {
   4: {
     title: 'O Padrão Quebrado', code: 'OBSERVATÓRIO // 1987', theme: 'observatory',
     mission: 'O mesmo contato aparece em mais de um registro. Reorganize a estrutura sem perder as observações.',
-    answerPrompt: 'O padrão quebrado recebeu um novo arranjo. Que nome descreve a transformação?',
+    answerPrompt: 'Que nome recebe essa reorganização dos dados?',
     initial: 'SELECT * FROM catalogo_bruto;', tables: ['catalogo_bruto', 'objetos_celestes'],
     objectives: [
       ['alter', 'Adicionar origem à estrutura de objetos_celestes'],
-      ['observadores', 'Criar observadores com identificador, nome e telefone'],
+      ['observadores', 'Criar uma tabela de observadores com identificador, nome e telefone'],
       ['unico', 'Impedir duplicação do telefone na nova tabela']
     ],
     hints: ['Os registros antigos ainda precisam existir após a correção.', 'Um contato repetido pode pertencer a uma entidade separada.', 'Impeça que a nova estrutura aceite o mesmo telefone duas vezes.'],
@@ -44,16 +44,16 @@ export const LESSONS = {
       ['delete', 'Remover somente a marca com quantidade incorreta de estrelas'],
       ['transaction', 'Agrupar ao menos uma correção entre BEGIN e COMMIT']
     ],
-    hints: ['Compare as quantidades de estrelas e os estados dos registros.', 'Uma correção adiciona; outra altera.', 'A exclusão deve preservar as duas evidências válidas. Confirme a transação ao final.'],
+    hints: ['Compare as quantidades de estrelas e os estados dos registros.', 'Uma correção adiciona um registro. Outra altera um registro existente.', 'A exclusão deve preservar as duas evidências válidas. Confirme a transação ao final.'],
     answer: 'PLEIADES'
   },
   6: {
     title: 'Eco no Setor Norte', code: 'INTERCEPTAÇÃO // NÓ', theme: 'interception',
     mission: 'Há sinais de anos diferentes. Encontre o conjunto que corresponde ao incidente e resuma o arquivo.',
-    answerPrompt: 'Um setor se repete no rastro certo. Qual identificação ele carrega?',
+    answerPrompt: 'Qual é o código do setor associado aos registros do incidente?',
     initial: 'SELECT * FROM objetos_celestes;', tables: ['objetos_celestes', 'acessos_celestes'],
     objectives: [
-      ['filter', 'Filtrar os objetos de 1987 no setor do primeiro registro'],
+      ['filter', 'Filtrar os objetos de 1987 pelo setor do primeiro registro'],
       ['distinct', 'Listar setores sem repetição'],
       ['aggregate', 'Contar objetos por ano e ordenar o maior grupo primeiro']
     ],
@@ -63,7 +63,7 @@ export const LESSONS = {
   7: {
     title: 'Linhas Cruzadas', code: 'INTERCEPTAÇÃO // NÓ', theme: 'interception',
     mission: 'Os acessos guardam números, enquanto os objetos guardam nomes. Reúna as duas perspectivas.',
-    answerPrompt: 'As linhas cruzadas formam um nome. Qual deles permanece?',
+    answerPrompt: 'Qual nome permanece após o cruzamento dos registros?',
     initial: 'SELECT * FROM acessos_celestes;', tables: ['acessos_celestes', 'objetos_celestes'],
     objectives: [
       ['inner', 'Relacionar acessos válidos de 1987 aos nomes dos objetos'],
@@ -89,14 +89,14 @@ export const LESSONS = {
   9: {
     title: 'Última Transmissão', code: 'OPERAÇÃO // 3301', theme: 'operation',
     mission: 'Três registros da sua equipe apontam para uma identidade que não aparece no diretório.',
-    answerPrompt: 'O último cruzamento aponta para uma ausência. Quem falta?',
+    answerPrompt: 'Qual código identifica o usuário ausente?',
     initial: 'SELECT * FROM sessoes_arg;', tables: ['sessoes_arg', 'dispositivos_arg', 'identidades_arg'],
     objectives: [
       ['join_three', 'Cruzar sessão, dispositivo e identidade da sua equipe'],
       ['secret', 'Encontrar o código do usuário oculto nos registros relacionados'],
       ['nosql', 'Responder a pergunta breve sobre consultas em MongoDB']
     ],
-    hints: ['Cada integrante guarda uma parte da relação.', 'A sessão liga dois fragmentos; outro identificador leva ao terceiro.', 'Compare o código encontrado com os usuários visíveis.'],
+    hints: ['Cada integrante guarda uma parte da relação.', 'A sessão liga dois fragmentos. Outro identificador leva ao terceiro.', 'Compare o código encontrado com os usuários visíveis.'],
     answer: 'US0'
   }
 };
