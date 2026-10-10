@@ -115,7 +115,7 @@ export async function ensureSchema() {
     const phases = [
       [1, 'O Primeiro Acesso', 'Reative o Arquivo 3301, explore usuários e mensagens com SELECT/FROM e descubra o primeiro código de acesso.', true, true, '1987'],
       [2, 'O Registro Interrompido', 'Reconstrua o incidente por meio de filtros, ausências, ordenação e agregações.', true, false, 'ORION'],
-      [3, 'O Aglomerado', 'Relacione evidências, referências e recursos com JOINs para recuperar o símbolo de seis estrelas.', true, false, 'PLEIADES'],
+      [3, 'O Aglomerado', 'Relacione evidências, referências e recursos para recuperar o símbolo de seis estrelas.', true, false, 'PLEIADES'],
       [4, 'O Padrão Quebrado', 'Há registros repetidos no observatório. Descubra o que está fora do lugar.', true, false, 'NORMALIZACAO'],
       [5, 'A Sexta Estrela', 'Uma marca apagada e uma estrela ausente alteram a leitura do arquivo.', true, false, 'PLEIADES'],
       [6, 'Eco no Setor Norte', 'Os sinais de 1987 foram misturados a ruído. Separe o que importa.', true, false, 'N-04'],

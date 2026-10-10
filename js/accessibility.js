@@ -17,6 +17,7 @@ function apply() {
   const theme = settings.theme === 'system' ? (systemDark.matches ? 'dark' : 'light') : settings.theme;
   root.dataset.colorTheme = theme;
   root.dataset.fontSize = settings.font;
+  root.dataset.readingZoom = settings.zoom;
   root.style.setProperty('--reading-zoom', `${Number(settings.zoom) / 100}`);
   root.style.colorScheme = theme;
 }
@@ -56,6 +57,13 @@ function renderControls() {
   toggle.addEventListener('click', () => {
     panel.hidden = !panel.hidden;
     toggle.setAttribute('aria-expanded', String(!panel.hidden));
+  });
+  panel.addEventListener('keydown', event => {
+    if (event.key === 'Escape') {
+      panel.hidden = true;
+      toggle.setAttribute('aria-expanded', 'false');
+      toggle.focus();
+    }
   });
   for (const select of wrapper.querySelectorAll('select')) {
     select.value = settings[select.name];

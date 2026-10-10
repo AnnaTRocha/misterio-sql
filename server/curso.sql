@@ -90,9 +90,9 @@ INSERT INTO evidencias VALUES
   (1,'ORION-1987','A resposta anterior não era um destino. Classificação associada: constelação.'),
   (2,'SEIS-ESTRELAS','Símbolo externo identificado em um registro relacionado a seis estrelas.'),
   (3,'FRAGMENTO-C','Arquivo sem relevância'),
-  (4,'FRAGMENTO-D','Registro sem recurso associado');
+  (4,'FRAGMENTO-D','Evidência sem referência registrada');
 INSERT INTO recursos VALUES
   (2,'texto','/arquivo/desconhecido.txt','corrompido'),
   (3,'imagem','/arquivo/fragmento.png','invalido'),
   (7,'imagem','https://1000logos.net/wp-content/uploads/2018/03/Subaru-Logo-1999.jpg','recuperado');
-INSERT INTO referencias VALUES (1,1,3),(2,2,7),(3,3,2);
+INSERT INTO referencias VALUES (11,1,3),(12,2,7),(13,3,2);
