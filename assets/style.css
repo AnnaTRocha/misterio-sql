@@ -824,3 +824,22 @@ footer span {
 .test-user-toggle{display:inline-flex;align-items:center;gap:7px;white-space:nowrap;cursor:pointer}
 .test-user-toggle input{accent-color:var(--red)}
 @media(max-width:800px){.admin-section-heading{align-items:flex-start;flex-direction:column}}
+
+.recovery-callout{margin:0 0 28px;font-size:13px}
+.recovery-callout a{font-weight:700;color:var(--red)}
+.recovery-page{max-width:1000px}
+.recovery-page>h1{margin-bottom:14px}
+.recovery-lead{max-width:820px;color:var(--muted);font-size:16px;line-height:1.65}
+.recovery-section{margin-top:28px;padding:clamp(20px,4vw,34px);background:var(--white);border:1px solid var(--line)}
+.recovery-section h2{margin:0 0 18px;font:700 28px var(--serif)}
+.recovery-steps{display:grid;gap:14px;margin:0;padding-left:22px}
+.recovery-steps li{padding-left:4px;line-height:1.6}
+.recovery-steps strong{color:var(--ink)}
+.recovery-table th[scope="row"]{font:700 13px var(--mono)}
+.assessment-list{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px 24px;padding-left:20px}
+.recovery-section p{line-height:1.6}
+.teacher-guidance summary{cursor:pointer;font-weight:700;font-size:16px}
+.teacher-guidance[open] summary{margin-bottom:16px}
+.teacher-guidance li{margin-bottom:9px;line-height:1.55}
+.recovery-footer{margin-top:26px}
+@media(max-width:650px){.assessment-list{grid-template-columns:1fr}.recovery-table{min-width:650px}}

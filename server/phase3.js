@@ -1,7 +1,7 @@
 export const PHASE_THREE = {
-  title: 'O Aglomerado', code: 'OBSERVATÓRIO // 1987', theme: 'observatory',
-  mission: 'Relacione evidências, referências e recursos para recuperar o símbolo de seis estrelas.',
-  answerPrompt: 'Abra o recurso recuperado. O que representa o símbolo de seis estrelas?',
+  title: 'O Aglomerado', code: 'OBSERVATÓRIO // 1987', theme: 'blueprint',
+  mission: 'Relacione evidências, referências e recursos para identificar a marca associada ao símbolo de seis estrelas.',
+  answerPrompt: 'Qual marca está identificada no registro ligado ao símbolo de seis estrelas?',
   initial: 'SELECT * FROM evidencias;',
   tables: ['evidencias', 'referencias', 'recursos'],
   objectives: [
@@ -18,7 +18,7 @@ export const PHASE_THREE = {
     'Nem todo recurso está disponível. Observe o status de cada um.',
     'A ausência de correspondência também é uma pista.'
   ],
-  answer: 'PLEIADES'
+  answer: 'SUBARU'
 };
 
 export const PHASE_THREE_SQL = [

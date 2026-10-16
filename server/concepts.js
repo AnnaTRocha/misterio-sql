@@ -20,14 +20,14 @@ export const CONCEPTS = {
     feedback: 'Pense em qual tabela deve guardar o telefone uma única vez.'
   },
   4: {
-    prompt: 'É preciso adicionar uma coluna sem perder as linhas do catálogo. Qual comando atende a isso?',
+    prompt: 'Qual comando SQL modifica a estrutura de uma tabela existente?',
     options: [
-      ['drop', 'DROP TABLE seguido da criação de outra tabela.'],
-      ['truncate', 'TRUNCATE TABLE no catálogo.'],
-      ['alter', 'ALTER TABLE com ADD COLUMN.']
+      ['create', 'CREATE TABLE cria uma tabela.'],
+      ['alter', 'ALTER TABLE altera a estrutura de uma tabela.'],
+      ['drop', 'DROP TABLE remove uma tabela.']
     ],
     answer: 'alter',
-    feedback: 'Compare alterar a estrutura com apagar dados ou apagar a tabela.'
+    feedback: 'Considere a diferença entre criar, alterar e remover uma tabela.'
   },
   5: {
     prompt: 'Uma correção foi feita dentro de uma transação, mas está errada e ainda não recebeu COMMIT. O que desfaz a alteração?',

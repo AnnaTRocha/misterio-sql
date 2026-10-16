@@ -76,15 +76,15 @@ As Aulas 01 e 02 mantêm a investigação original e as respostas **1987** e **O
 
 | Aula | Conteúdo dos slides | Investigação |
 | --- | --- | --- |
-| 03 | `JOIN` e `LEFT JOIN` | Relacionar evidências, referências e recursos para identificar o aglomerado |
+| 03 | `JOIN` e `LEFT JOIN` | Relacionar evidências, referências e recursos para identificar a marca registrada |
 | 04 | `ALTER` e normalização | Corrigir o catálogo redundante |
 | 05 | DML e transações | Corrigir os símbolos em uma transação |
 | 06 | DQL, filtros, `DISTINCT` e agregações | Separar sinais de 1987 do ruído |
-| 07 | `JOIN` | Relacionar acessos e objetos e achar ausências |
+| 07 | `JOIN` | Relacionar acessos e objetos, achar ausências e setor do aglomerado |
 | 08 | Subconsultas, CTE e funções de janela | Reunir padrões dos fragmentos |
 | 09 | NoSQL/MongoDB | ARG SQL em equipe mais uma pergunta breve sobre `find` |
 
-Os exercícios 03 a 09 executam SQL no servidor em uma cópia isolada de `server/curso.sql`. O servidor reexecuta as instruções registradas e valida o estado das tabelas ou o resultado das consultas. Uma instrução é executada por vez. A liberação pelo professor e a conclusão da fase anterior também são exigidas para avançar. Os títulos e as dicas permanecem narrativos. O SQL de referência só aparece para usuários de teste. A Fase 3 mantém as cinco etapas e a resposta **PLEIADES** da atividade anterior. Consultas e conclusões já registradas nela continuam válidas após a reorganização.
+As fases 03 a 09 executam SQL no servidor em uma cópia isolada de `server/curso.sql`. O servidor reexecuta as instruções registradas e valida o estado das tabelas ou o resultado das consultas. Uma instrução é executada por vez. A liberação pelo professor e a conclusão da fase anterior também são exigidas para avançar. O SQL de referência só aparece para usuários de teste. Na Fase 03, a resposta atual é **SUBARU** e a evidência está disponível no banco, sem depender do link externo. Conclusões anteriores permanecem válidas.
 
 Usuários marcados como teste podem abrir qualquer fase desenvolvida para verificar o conteúdo antes da liberação. Em cada fase, o painel de validação mostra as consultas de referência, a resposta conceitual quando houver e o código final. Na Fase 9, mostra também o protocolo **3301** e as consultas dos dois grupos. A conta de teste valida a consulta do Grupo 01.
 
@@ -92,6 +92,10 @@ Nas Aulas 01 e 02, o checklist só reconhece consultas que retornem a evidência
 
 Na Vercel, `npm run build` publica somente HTML, CSS e JavaScript minificado em `public/`. Os bancos SQL e a validação permanecem nas funções da API. Não são gerados source maps. A API limita consultas a 12 por minuto e respostas a 5 a 8 por minuto por usuário. Para reforçar o bloqueio de automação, habilite Bot Protection e regras de rate limit no painel da Vercel. O arquivo `robots.txt` e a minificação não impedem um bot determinado.
 
+
+## Plano da turma conforme as nove aulas do Canva
+
+A turma está avançando para a Fase 04. O [plano de atividades](plano-aulas-04-a-09.html) relaciona as fases aos conteúdos das nove apresentações do Canva. As Fases 07 e 08 podem ser feitas em outro momento, depois do conteúdo correspondente; a plataforma exige completar 05 e 06 antes. O progresso não deve ser reiniciado. A organização de atividades posteriores à Aula 09 permanece para definição.
 
 ## Arquitetura narrativa do curso
 
@@ -102,20 +106,23 @@ O curso tem nove fases distribuídas em quatro arcos:
 - Fases 6 a 8: **INTERCEPTAÇÃO // NÓ**.
 - Fase 9: **OPERAÇÃO // 3301**.
 
-As Fases 1 a 3 preservam a investigação e as respostas já utilizadas pelos estudantes. A Fase 7 aprofunda o uso de `JOIN` em outro conjunto de dados.
+As Fases 1 e 2 preservam as respostas já utilizadas pelos estudantes. A Fase 3 passa a identificar a marca Subaru; a Fase 5 mantém Plêiades como evidência da correção DML; e a Fase 7 identifica o setor N-06. Conclusões existentes não são apagadas nem reavaliadas.
 
 As fases 04 a 09 começam bloqueadas para liberação pelo professor. A Fase 03 preserva o estado de liberação já definido pelo professor.
 
 ### Avaliações
 
-A nota é distribuída entre as nove atividades:
+As nove fases formam cinco exercícios avaliativos:
 
-| Avaliação | Fase | Peso |
+| Avaliação | Fases | Peso |
 | --- | --- | ---: |
-| Exercícios 01 a 08 | 1 a 8, respectivamente | 7,5% cada (60% no total) |
-| Exercício 09 | 9 | 40% |
+| Exercício 01 | 1–2 | 15% |
+| Exercício 02 | 3–4 | 15% |
+| Exercício 03 | 5–6 | 15% |
+| Exercício 04 | 7–8 | 15% |
+| Exercício 05 | 9 | 40% |
 
-O painel calcula a pontuação a partir da conclusão de cada atividade. As oito primeiras totalizam 60%. A API exige esses 60% antes de permitir a Fase 9 e mantém um estado separado para a validação do protocolo final **3301**.
+Cada fase concluída nos quatro primeiros exercícios vale 7,5 pontos; a Fase 09 vale 40 pontos quando concluída. A API e os painéis usam os mesmos agrupamentos. Para acessar a Fase 09, o aluno precisa completar as Fases 01–08, atingir 60 pontos e validar o protocolo final **3301**.
 
 ### Identidades do ARG
 

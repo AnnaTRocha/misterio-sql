@@ -38,10 +38,21 @@ export default async function handler(req, res) {
         LEFT JOIN progress pr ON pr.user_id=u.id
         LEFT JOIN arg_identities ai ON ai.user_id=u.id
         LEFT JOIN arg_groups ag ON ag.id=ai.group_id
+        LEFT JOIN LATERAL (
+          SELECT MIN(p.id)::int AS current_phase
+          FROM phases p
+          LEFT JOIN progress next_pr ON next_pr.user_id=u.id AND next_pr.phase_id=p.id
+          WHERE p.developed=TRUE
+            AND COALESCE(next_pr.status,'not_started') <> 'completed'
+        ) cp ON TRUE
         WHERE u.role='student'
-        GROUP BY u.id,ai.alias,ag.code
+        GROUP BY u.id,ai.alias,ag.code,cp.current_phase
         ORDER BY u.username
       `);
+
+      for (const student of students) {
+        student.current_phase = student.current_phase ? Number(student.current_phase) : null;
+      }
 
       const scores = await assessmentScores(students.map(student => Number(student.id)));
       for (const student of students) {

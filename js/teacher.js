@@ -1,6 +1,15 @@
 import { api, escapeHtml, logout, requireSession } from './api-client.js';
 
 let phaseCount = 0;
+const formatScore = value => new Intl.NumberFormat('pt-BR', { maximumFractionDigits: 1 }).format(Number(value || 0));
+
+const ASSESSMENTS = [
+  { title: 'Exercício 01', start: 1, end: 2, weight: 15 },
+  { title: 'Exercício 02', start: 3, end: 4, weight: 15 },
+  { title: 'Exercício 03', start: 5, end: 6, weight: 15 },
+  { title: 'Exercício 04', start: 7, end: 8, weight: 15 },
+  { title: 'Exercício 05', start: 9, end: 9, weight: 40 }
+];
 
 async function load() {
   try {
@@ -19,15 +28,18 @@ async function load() {
 
 function renderPhases(phases) {
   const root = document.getElementById('phaseAdmin');
-  root.innerHTML = phases.map(phase => `
-    <article class="admin-card">
-      <strong>Fase ${phase.id} · ${escapeHtml(phase.title)}</strong>
-      <span>Exercício ${String(phase.id).padStart(2, '0')} · ${Number(phase.id) === 9 ? '40%' : '7,5%'} da nota</span>
-      <span>${phase.completed} concluíram · ${phase.started} iniciaram</span>
-      ${phase.developed
-        ? `<label class="switch-row"><input type="checkbox" data-release="${phase.id}" ${phase.released ? 'checked' : ''}> Liberada</label>`
-        : '<em>Ainda não desenvolvido</em>'}
-    </article>`).join('');
+  root.innerHTML = phases.map(phase => {
+    const assessment = ASSESSMENTS.find(item => phase.id >= item.start && phase.id <= item.end);
+    return `
+      <article class="admin-card">
+        <strong>Fase ${phase.id} · ${escapeHtml(phase.title)}</strong>
+        <span>${escapeHtml(assessment?.title || 'Exercício')} · ${assessment?.weight || 0} pontos (fases ${String(assessment?.start || phase.id).padStart(2, '0')}–${String(assessment?.end || phase.id).padStart(2, '0')})</span>
+        <span>${phase.completed} concluíram · ${phase.started} iniciaram</span>
+        ${phase.developed
+          ? `<label class="switch-row"><input type="checkbox" data-release="${phase.id}" ${phase.released ? 'checked' : ''}> Liberada</label>`
+          : '<em>Ainda não desenvolvido</em>'}
+      </article>`;
+  }).join('');
 
   root.querySelectorAll('[data-release]').forEach(input => input.addEventListener('change', async () => {
     try {
@@ -54,7 +66,8 @@ function renderResets(resets) {
       <strong>${escapeHtml(reset.username)}</strong>
       <span>Solicitado em ${formatDate(reset.requested_at)}</span>
       <div class="reset-row">
-        <input type="text" minlength="6" placeholder="Senha temporária" data-password-for="${reset.user_id}">
+        <label class="sr-only" for="reset-password-${reset.user_id}">Senha temporária para ${escapeHtml(reset.username)}</label>
+        <input id="reset-password-${reset.user_id}" type="password" minlength="6" required autocomplete="new-password" placeholder="Senha temporária" data-password-for="${reset.user_id}">
         <button type="button" data-reset="${reset.user_id}">Redefinir</button>
       </div>
     </article>`).join('');
@@ -62,6 +75,7 @@ function renderResets(resets) {
   root.querySelectorAll('[data-reset]').forEach(button => button.addEventListener('click', async () => {
     const userId = Number(button.dataset.reset);
     const input = root.querySelector(`[data-password-for="${userId}"]`);
+    if (!input.reportValidity()) return;
     try {
       await api('/api/teacher?action=reset-password', {
         method: 'POST',
@@ -77,7 +91,7 @@ function renderResets(resets) {
 function renderStudents(students) {
   const root = document.getElementById('studentRows');
   if (!students.length) {
-    root.innerHTML = '<tr><td colspan="9">Nenhum estudante cadastrado.</td></tr>';
+    root.innerHTML = '<tr><td colspan="10">Nenhum estudante cadastrado.</td></tr>';
     return;
   }
   root.innerHTML = students.map(student => `
@@ -86,7 +100,8 @@ function renderStudents(students) {
       <td>${escapeHtml(student.investigator_alias || 'Não informado')}</td>
       <td>${student.is_test ? '<span class="test-badge">SEM GRUPO</span>' : escapeHtml(student.group_code || 'Não informado')}</td>
       <td>${student.completed} / ${phaseCount}</td>
-      <td>${student.score || 0}%</td>
+      <td>${student.current_phase ? `Fase ${String(student.current_phase).padStart(2, '0')}` : 'Curso concluído'}</td>
+      <td>${formatScore(student.score)}%</td>
       <td>${student.queries}</td>
       <td>${student.attempts}</td>
       <td>${student.last_login_at ? formatDate(student.last_login_at) : 'Sem acesso'}</td>
@@ -120,6 +135,7 @@ function formatDate(value) {
 }
 
 document.getElementById('reorganizeGroups').addEventListener('click', async event => {
+  if (!window.confirm('Reorganizar os estudantes ativos nos grupos agora? Isso pode alterar a equipe atribuída a cada estudante.')) return;
   const button = event.currentTarget;
   const original = button.textContent;
   button.disabled = true;

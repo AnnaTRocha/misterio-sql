@@ -21,20 +21,29 @@ export async function executeArchiveQuery(query) {
 export const LESSONS = {
   3: PHASE_THREE,
   4: {
-    title: 'O Padrão Quebrado', code: 'OBSERVATÓRIO // 1987', theme: 'observatory',
-    mission: 'O mesmo contato aparece em mais de um registro. Reorganize a estrutura sem perder as observações.',
-    answerPrompt: 'Que nome recebe essa reorganização dos dados?',
+    title: 'O Padrão Quebrado', code: 'OBSERVATÓRIO // 1987', theme: 'catalog',
+    mission: 'Em três registros, um contato se repete. Reorganize o catálogo sem perder observações e vínculos.',
+    answerPrompt: 'Informe o código que encerra a investigação.',
     initial: 'SELECT * FROM catalogo_bruto;', tables: ['catalogo_bruto', 'objetos_celestes'],
     objectives: [
-      ['alter', 'Adicionar origem à estrutura de objetos_celestes'],
-      ['observadores', 'Criar uma tabela de observadores com identificador, nome e telefone'],
-      ['unico', 'Impedir duplicação do telefone na nova tabela']
+      ['alter', 'Adicionar origem_objeto_celeste sem remover os objetos cadastrados'],
+      ['observadores', 'Criar observadores com chave primária e campos obrigatórios'],
+      ['unico', 'Impedir telefone duplicado com uma restrição única'],
+      ['relacoes', 'Criar observacoes_catalogo com chaves válidas e vínculo único'],
+      ['migrar_observadores', 'Transferir cada contato uma única vez'],
+      ['migrar_observacoes', 'Representar as três observações originais sem perder os vínculos']
     ],
-    hints: ['Os registros antigos ainda precisam existir após a correção.', 'Um contato repetido pode pertencer a uma entidade separada.', 'Impeça que a nova estrutura aceite o mesmo telefone duas vezes.'],
+    hints: [
+      'Compare a quantidade de registros antes e depois da alteração estrutural.',
+      'Guarde cada contato uma única vez e use uma chave para localizá-lo.',
+      'Uma restrição pode impedir a repetição de um valor em vários registros.',
+      'Cada vínculo deve apontar para um objeto e um observador existentes.',
+      'Compare os registros organizados com as linhas da fonte.'
+    ],
     answer: 'NORMALIZACAO'
   },
   5: {
-    title: 'A Sexta Estrela', code: 'OBSERVATÓRIO // 1987', theme: 'observatory',
+    title: 'A Sexta Estrela', code: 'OBSERVATÓRIO // 1987', theme: 'transaction',
     mission: 'Três inconsistências foram encontradas no arquivo de símbolos. Corrija os dados da cópia de investigação.',
     answerPrompt: 'Depois das correções, um nome resiste ao ruído. Qual?',
     initial: 'SELECT * FROM simbolos;', tables: ['simbolos'],
@@ -48,7 +57,7 @@ export const LESSONS = {
     answer: 'PLEIADES'
   },
   6: {
-    title: 'Eco no Setor Norte', code: 'INTERCEPTAÇÃO // NÓ', theme: 'interception',
+    title: 'Eco no Setor Norte', code: 'INTERCEPTAÇÃO // NÓ', theme: 'scanner',
     mission: 'Há sinais de anos diferentes. Encontre o conjunto que corresponde ao incidente e resuma o arquivo.',
     answerPrompt: 'Qual é o código do setor associado aos registros do incidente?',
     initial: 'SELECT * FROM objetos_celestes;', tables: ['objetos_celestes', 'acessos_celestes'],
@@ -61,20 +70,20 @@ export const LESSONS = {
     answer: 'N-04'
   },
   7: {
-    title: 'Linhas Cruzadas', code: 'INTERCEPTAÇÃO // NÓ', theme: 'interception',
+    title: 'Linhas Cruzadas', code: 'INTERCEPTAÇÃO // NÓ', theme: 'relations',
     mission: 'Os acessos guardam números, enquanto os objetos guardam nomes. Reúna as duas perspectivas.',
-    answerPrompt: 'Qual nome permanece após o cruzamento dos registros?',
+    answerPrompt: 'Depois do cruzamento dos acessos e dos objetos, em qual setor está o aglomerado identificado?',
     initial: 'SELECT * FROM acessos_celestes;', tables: ['acessos_celestes', 'objetos_celestes'],
     objectives: [
-      ['inner', 'Relacionar acessos válidos de 1987 aos nomes dos objetos'],
+      ['inner', 'Relacionar acessos válidos de 1987 aos nomes e setores dos objetos'],
       ['left', 'Encontrar um objeto sem acesso com LEFT JOIN'],
       ['group', 'Contar acessos por objeto após o JOIN']
     ],
     hints: ['Procure a chave que liga as duas tabelas.', 'Uma das respostas está justamente na ausência de correspondência.', 'Conte os acessos depois de estabelecer a relação.'],
-    answer: 'PLEIADES'
+    answer: 'N-06'
   },
   8: {
-    title: 'O Sétimo Rastro', code: 'INTERCEPTAÇÃO // NÓ', theme: 'interception',
+    title: 'O Sétimo Rastro', code: 'INTERCEPTAÇÃO // NÓ', theme: 'analysis',
     mission: 'Os fragmentos das equipes parecem isolados. Um padrão de repetição pode revelar a ordem dos acontecimentos.',
     answerPrompt: 'Os rastros isolados agora podem ser lidos em conjunto. Como você identifica o que foi reunido?',
     initial: 'SELECT * FROM investigacoes;', tables: ['investigacoes', 'acessos_celestes'],
@@ -87,7 +96,7 @@ export const LESSONS = {
     answer: 'FRAGMENTOS'
   },
   9: {
-    title: 'Última Transmissão', code: 'OPERAÇÃO // 3301', theme: 'operation',
+    title: 'Última Transmissão', code: 'OPERAÇÃO // 3301', theme: 'nosql',
     mission: 'Três registros da sua equipe apontam para uma identidade que não aparece no diretório.',
     answerPrompt: 'Qual código identifica o usuário ausente?',
     initial: 'SELECT * FROM sessoes_arg;', tables: ['sessoes_arg', 'dispositivos_arg', 'identidades_arg'],
@@ -106,7 +115,7 @@ export function allowedStatement(phaseId, query) {
   if (!cleaned || cleaned.length > 5000 || cleaned.split(';').filter(Boolean).length > 1) return false;
   if (/\b(ATTACH|DETACH|VACUUM|LOAD_EXTENSION)\b/i.test(cleaned)) return false;
   if (phaseId === 3) return /^(SELECT|WITH|PRAGMA\s+table_info)/i.test(cleaned) && !/\b(INSERT|UPDATE|DELETE|DROP|ALTER|CREATE|REPLACE)\b/i.test(cleaned);
-  if (phaseId === 4) return /^(CREATE\s+TABLE|ALTER\s+TABLE|SELECT|PRAGMA\s+table_info|PRAGMA\s+foreign_key_list)/i.test(cleaned);
+  if (phaseId === 4) return /^(CREATE\s+TABLE|CREATE\s+(?:UNIQUE\s+)?INDEX|ALTER\s+TABLE\s+objetos_celestes\b|INSERT(?:\s+OR\s+IGNORE)?\s+INTO\s+(?:observadores|observacoes_catalogo)\b|SELECT|PRAGMA\s+(?:table_info|foreign_key_list|index_list|index_info))/i.test(cleaned);
   if (phaseId === 5) return /^(INSERT|UPDATE|DELETE|SELECT|BEGIN|COMMIT|ROLLBACK|SAVEPOINT)/i.test(cleaned);
   return /^(SELECT|WITH|PRAGMA\s+table_info)/i.test(cleaned) && !/\b(INSERT|UPDATE|DELETE|DROP|ALTER|CREATE|REPLACE)\b/i.test(cleaned);
 }
@@ -120,14 +129,23 @@ export async function evaluateChallenge(phaseId, queries, groupId, nosqlDone = f
   let lastError = null;
   let transactionOpen = false;
   let transactionTouched = false;
+  const appliedPhaseFourStatements = new Set();
   try {
     db.run(seed);
     for (const query of queries) {
       if (!allowedStatement(phaseId, query)) { lastSucceeded = false; continue; }
+      const statementKey = String(query).replace(/--[^\n]*/g, '').replace(/\/\*[\s\S]*?\*\//g, '').trim().replace(/;\s*$/, '');
+      if (phaseId === 4 && appliedPhaseFourStatements.has(statementKey)) {
+        result = [];
+        lastSucceeded = true;
+        lastError = null;
+        continue;
+      }
       try {
         result = db.exec(query);
         lastSucceeded = true;
         lastError = null;
+        if (phaseId === 4) appliedPhaseFourStatements.add(statementKey);
         checkMilestones(phaseId, query, result, db, groupId).forEach(key => milestones.add(key));
         if (phaseId === 5 && /^BEGIN\b/i.test(query.trim())) { transactionOpen = true; transactionTouched = false; }
         if (phaseId === 5 && transactionOpen && /^(INSERT|UPDATE|DELETE)\b/i.test(query.trim())) transactionTouched = true;
@@ -148,6 +166,58 @@ function rows(result) { return result.flatMap(item => item.values); }
 function includes(result, value) { return rows(result).some(row => row.some(cell => String(cell).toUpperCase() === String(value).toUpperCase())); }
 function tableInfo(db, name) { return db.exec(`PRAGMA table_info(${name})`)[0]?.values || []; }
 function count(db, query) { return Number(db.exec(query)[0]?.values[0]?.[0] || 0); }
+function sameRows(left, right) {
+  const normalize = values => values.map(row => JSON.stringify(row)).sort();
+  return JSON.stringify(normalize(left)) === JSON.stringify(normalize(right));
+}
+
+function hasSingleColumnUniqueIndex(db, table, column) {
+  return hasUniqueIndexForColumns(db, table, [column]);
+}
+
+function hasUniqueIndexForColumns(db, table, expectedColumns) {
+  const indexes = db.exec(`PRAGMA index_list(${table})`)[0]?.values || [];
+  return indexes.some(index => {
+    if (index[2] !== 1) return false;
+    const columns = db.exec(`PRAGMA index_info("${String(index[1]).replace(/"/g, '""')}")`)[0]?.values || [];
+    return sameRows(columns.map(column => [column[2]]), expectedColumns.map(column => [column]));
+  });
+}
+
+function phaseFourSourceObjectsPreserved(db) {
+  const current = db.exec('SELECT id_objeto_celeste,nome,tipo,ano,setor FROM objetos_celestes ORDER BY id_objeto_celeste')[0]?.values || [];
+  return sameRows(current, [
+    [1, 'ORION', 'constelacao', 1987, 'N-04'],
+    [2, 'ALDEBARAN', 'estrela', 1986, 'N-04'],
+    [3, 'PLEIADES', 'aglomerado', 1987, 'N-06'],
+    [4, 'SIRIUS', 'estrela', 1988, 'S-02'],
+    [5, 'ORION-B', 'constelacao', 1987, 'N-04']
+  ]);
+}
+
+function hasPhaseFourObserverSchema(db) {
+  const columns = tableInfo(db, 'observadores');
+  const id = columns.find(column => column[1] === 'id_observador');
+  const name = columns.find(column => column[1] === 'nome_observador');
+  const phone = columns.find(column => column[1] === 'telefone_observador');
+  return id?.[2]?.toUpperCase() === 'INTEGER' && id?.[5] === 1
+    && name?.[2]?.toUpperCase() === 'TEXT' && name?.[3] === 1
+    && phone?.[2]?.toUpperCase() === 'TEXT' && phone?.[3] === 1;
+}
+
+function hasPhaseFourObservationSchema(db) {
+  const columns = tableInfo(db, 'observacoes_catalogo');
+  const id = columns.find(column => column[1] === 'id_observacao_catalogo');
+  const objectId = columns.find(column => column[1] === 'id_objeto_celeste');
+  const observerId = columns.find(column => column[1] === 'id_observador');
+  const observatory = columns.find(column => column[1] === 'nome_observatorio');
+  const foreignKeys = db.exec('PRAGMA foreign_key_list(observacoes_catalogo)')[0]?.values || [];
+  return id?.[2]?.toUpperCase() === 'INTEGER' && id?.[5] === 1
+    && objectId?.[3] === 1 && observerId?.[3] === 1 && observatory?.[3] === 1
+    && hasUniqueIndexForColumns(db, 'observacoes_catalogo', ['id_objeto_celeste', 'id_observador', 'nome_observatorio'])
+    && foreignKeys.some(key => key[2] === 'objetos_celestes' && key[3] === 'id_objeto_celeste' && key[4] === 'id_objeto_celeste')
+    && foreignKeys.some(key => key[2] === 'observadores' && key[3] === 'id_observador' && key[4] === 'id_observador');
+}
 
 function checkMilestones(id, query, result, db, groupId) {
   const q = query.toUpperCase();
@@ -155,11 +225,31 @@ function checkMilestones(id, query, result, db, groupId) {
   if (id === 3) {
     return phaseThreeMilestones(query, result);
   } else if (id === 4) {
-    if (tableInfo(db, 'objetos_celestes').some(c => c[1] === 'origem')) found.push('alter');
-    const observers = tableInfo(db, 'observadores');
-    if (observers.some(c => c[1] === 'id' && c[5] === 1) && observers.some(c => c[1] === 'nome') && observers.some(c => c[1] === 'telefone')) found.push('observadores');
-    const indexes = db.exec('PRAGMA index_list(observadores)')[0]?.values || [];
-    if (indexes.some(index => index[2] === 1 && db.exec(`PRAGMA index_info("${index[1]}")`)[0]?.values.some(column => column[2] === 'telefone'))) found.push('unico');
+    const origin = tableInfo(db, 'objetos_celestes').find(column => column[1] === 'origem_objeto_celeste');
+    if (origin?.[2]?.toUpperCase() === 'TEXT' && phaseFourSourceObjectsPreserved(db)) found.push('alter');
+
+    const observerSchema = hasPhaseFourObserverSchema(db);
+    if (observerSchema) found.push('observadores');
+    if (observerSchema && hasSingleColumnUniqueIndex(db, 'observadores', 'telefone_observador')) found.push('unico');
+
+    const observationSchema = hasPhaseFourObservationSchema(db);
+    if (observationSchema) found.push('relacoes');
+
+    if (observerSchema) {
+      const source = db.exec(`SELECT DISTINCT nome_observador,telefone_observador FROM catalogo_bruto ORDER BY nome_observador,telefone_observador`)[0]?.values || [];
+      const migrated = db.exec(`SELECT nome_observador,telefone_observador FROM observadores ORDER BY nome_observador,telefone_observador`)[0]?.values || [];
+      if (source.length === 2 && sameRows(source, migrated)) found.push('migrar_observadores');
+    }
+
+    if (observationSchema && hasSingleColumnUniqueIndex(db, 'observadores', 'telefone_observador')) {
+      const source = db.exec(`SELECT o.id_objeto_celeste,ob.id_observador,c.nome_observatorio
+        FROM catalogo_bruto c
+        JOIN objetos_celestes o ON o.nome=c.nome_objeto_celeste
+        JOIN observadores ob ON ob.nome_observador=c.nome_observador AND ob.telefone_observador=c.telefone_observador`)[0]?.values || [];
+      const migrated = db.exec(`SELECT id_objeto_celeste,id_observador,nome_observatorio FROM observacoes_catalogo`)[0]?.values || [];
+      const foreignKeyViolations = db.exec('PRAGMA foreign_key_check(observacoes_catalogo)')[0]?.values || [];
+      if (source.length === 3 && sameRows(source, migrated) && foreignKeyViolations.length === 0) found.push('migrar_observacoes');
+    }
   } else if (id === 5) {
     if (count(db,"SELECT COUNT(*) FROM simbolos WHERE nome='PLEIADES' AND estrelas=6 AND status='confirmado'") === 1) found.push('insert');
     if (count(db,"SELECT COUNT(*) FROM simbolos WHERE nome='SUBARU' AND status='confirmado'") === 1) found.push('update');
@@ -169,7 +259,7 @@ function checkMilestones(id, query, result, db, groupId) {
     if (/SELECT\s+DISTINCT\s+SETOR/.test(q) && includes(result,'N-04') && includes(result,'N-06')) found.push('distinct');
     if (/COUNT\s*\(/.test(q) && /GROUP\s+BY/.test(q) && /ORDER\s+BY/.test(q) && includes(result,1987) && includes(result,3)) found.push('aggregate');
   } else if (id === 7) {
-    if (/JOIN\s+OBJETOS_CELESTES/.test(q) && /FROM\s+ACESSOS_CELESTES/.test(q) && /WHERE/.test(q) && includes(result,'PLEIADES')) found.push('inner');
+    if (/JOIN\s+OBJETOS_CELESTES/.test(q) && /FROM\s+ACESSOS_CELESTES/.test(q) && /WHERE/.test(q) && includes(result,'PLEIADES') && includes(result,'N-06')) found.push('inner');
     if (/LEFT\s+JOIN\s+ACESSOS_CELESTES/.test(q) && /FROM\s+OBJETOS_CELESTES/.test(q) && /IS\s+NULL/.test(q) && includes(result,'ORION-B')) found.push('left');
     if (/JOIN/.test(q) && /COUNT\s*\(/.test(q) && /GROUP\s+BY/.test(q) && includes(result,'PLEIADES') && includes(result,4)) found.push('group');
   } else if (id === 8) {

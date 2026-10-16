@@ -72,11 +72,13 @@ function render() {
   $('hintCounter').textContent = `${hintIndex}/${lesson.hints.length}`;
   $('hintBtn').disabled = hintIndex >= lesson.hints.length;
   $('finishArea').innerHTML = `
-    <span class="dashboard-kicker">PROTOCOLO FINAL</span>
-    <h2>IDENTIFICAÇÃO</h2>
-    <p>${escapeHtml(lesson.answerPrompt)}</p>
-    ${conceptDone ? '<p class="concept-confirmed">✓ CONCEITO VALIDADO</p>' : concept ? `<form id="conceptForm" class="concept-form"><fieldset><legend>${escapeHtml(concept.prompt)}</legend><div class="concept-options">${concept.options.map(([value, label]) => `<label class="concept-option"><input type="radio" name="conceptAnswer" value="${escapeHtml(value)}" required><span>${escapeHtml(label)}</span></label>`).join('')}</div></fieldset><button type="submit">Validar conceito</button><p id="conceptFeedback" class="concept-feedback" role="status" aria-live="polite"></p></form>` : ''}
-    <form id="codeForm"><div class="crt-input-row"><input id="accessCodeInput" placeholder="identificação" autocomplete="off" required><button id="completeBtn" type="submit" ${done < lesson.objectives.length || !conceptDone ? 'disabled' : ''}>Concluir atividade</button></div><div id="verdict" class="verdict" aria-live="polite"></div></form>`;
+    ${concept ? `<section class="concept-check"><span class="classified">CHECAGEM CONCEITUAL</span>${conceptDone ? '<p class="concept-confirmed">✓ CONCEITO VALIDADO</p>' : `<form id="conceptForm" class="concept-form"><fieldset><legend>${escapeHtml(concept.prompt)}</legend><div class="concept-options">${concept.options.map(([value, label]) => `<label class="concept-option"><input type="radio" name="conceptAnswer" value="${escapeHtml(value)}" required><span>${escapeHtml(label)}</span></label>`).join('')}</div></fieldset><button type="submit">Validar conceito</button><p id="conceptFeedback" class="concept-feedback" role="status" aria-live="polite"></p></form>`}</section>` : ''}
+    <section class="final-identification">
+      <span class="dashboard-kicker">RESPOSTA FINAL</span>
+      <h2>IDENTIFICAÇÃO</h2>
+      <p>${escapeHtml(lesson.answerPrompt)}</p>
+      <form id="codeForm"><label for="accessCodeInput">Código de conclusão</label><div class="crt-input-row"><input id="accessCodeInput" placeholder="código de conclusão" autocomplete="off" required><button id="completeBtn" type="submit" ${done < lesson.objectives.length || !conceptDone ? 'disabled' : ''}>Concluir atividade</button></div><div id="verdict" class="verdict" aria-live="polite"></div></form>
+    </section>`;
   $('accessCodeInput').value = codeValue;
   if (selectedConcept) {
     const choice = [...document.querySelectorAll('input[name="conceptAnswer"]')].find(input => input.value === selectedConcept);

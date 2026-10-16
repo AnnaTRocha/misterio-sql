@@ -2,7 +2,7 @@ import crypto from 'node:crypto';
 import { ensureProgress, ensureSchema, sql } from '../server/db.js';
 import { requireUser } from '../server/auth.js';
 import { action, body, fail, method } from '../server/http.js';
-import { argIdentityForUser, assessmentSummary, ensureArgFoundation, unlockFinalProtocol } from '../server/arg.js';
+import { argIdentityForUser, assessmentIdForPhase, assessmentSummary, ensureArgFoundation, unlockFinalProtocol } from '../server/arg.js';
 import { allowedStatement, evaluateChallenge, executeArchiveQuery, LESSONS } from '../server/challenges.js';
 import { consumeRateLimit } from '../server/rate-limit.js';
 import { CONCEPTS, publicConcept } from '../server/concepts.js';
@@ -71,7 +71,8 @@ export default async function handler(req, res) {
       if (!(await availablePhase(9, user))) return fail(res, 403, 'Fase indisponível.');
       const answer = normalizeAccessCode(data.answer);
       const correct = answer === 'find';
-      await sql().query(`INSERT INTO arg_submissions(user_id,assessment_id,answer,correct) VALUES($1,9,$2,$3)`, [user.id, answer, correct]);
+      await sql().query(`INSERT INTO arg_submissions(user_id,assessment_id,phase_id,answer,correct) VALUES($1,$2,9,$3,$4)`,
+        [user.id, assessmentIdForPhase(9), answer, correct]);
       if (!correct) {
         await ensureProgress(user.id, 9);
         await sql().query(`UPDATE progress SET attempts=attempts+1 WHERE user_id=$1 AND phase_id=9`, [user.id]);
@@ -85,8 +86,8 @@ export default async function handler(req, res) {
       if (!CONCEPTS[phaseId] || !(await availablePhase(phaseId, user))) return fail(res, 403, 'Fase indisponível.');
       const answer = String(data.answer || '');
       const correct = answer === CONCEPTS[phaseId].answer;
-      await sql().query(`INSERT INTO arg_submissions(user_id,assessment_id,answer,correct) VALUES($1,$2,$3,$4)`,
-        [user.id, phaseId, answer, correct]);
+      await sql().query(`INSERT INTO arg_submissions(user_id,assessment_id,phase_id,answer,correct) VALUES($1,$2,$3,$4,$5)`,
+        [user.id, assessmentIdForPhase(phaseId), phaseId, answer, correct]);
       if (!correct) {
         await ensureProgress(user.id, phaseId);
         await sql().query(`UPDATE progress SET attempts=attempts+1 WHERE user_id=$1 AND phase_id=$2`, [user.id, phaseId]);
@@ -130,7 +131,7 @@ export default async function handler(req, res) {
       }
 
       const milestones = await collectedMilestones(user.id, phaseId);
-      const quiz = await sql().query(`SELECT 1 FROM arg_submissions WHERE user_id=$1 AND assessment_id=$2 AND correct=TRUE LIMIT 1`, [user.id, phaseId]);
+      const quiz = await sql().query(`SELECT 1 FROM arg_submissions WHERE user_id=$1 AND phase_id=$2 AND correct=TRUE LIMIT 1`, [user.id, phaseId]);
       const progress = await sql().query(`SELECT status FROM progress WHERE user_id=$1 AND phase_id=$2`, [user.id, phaseId]);
       return res.status(200).json({ phase_id: phase.id, milestones, concept: publicConcept(phaseId), concept_done: Boolean(quiz[0]), already_completed: progress[0]?.status === 'completed' });
     }
@@ -204,7 +205,7 @@ export default async function handler(req, res) {
         if (missing.length) return fail(res, 422, `Ainda faltam ${missing.length} requisito(s).`);
         const previousCompletion = await sql().query(`SELECT 1 FROM progress WHERE user_id=$1 AND phase_id=$2 AND status='completed' LIMIT 1`, [user.id, phaseId]);
         if (phaseId !== 3 && !previousCompletion[0] && !state.concept_done) return fail(res, 422, 'Conclua a checagem conceitual desta aula.');
-        if (normalizeAccessCode(data.answer) !== normalizeAccessCode(lesson.answer)) {
+        if (!previousCompletion[0] && normalizeAccessCode(data.answer) !== normalizeAccessCode(lesson.answer)) {
           await sql().query(`UPDATE progress SET attempts=attempts+1 WHERE user_id=$1 AND phase_id=$2`, [user.id, phaseId]);
           return fail(res, 422, 'Identificação incorreta.');
         }
@@ -224,7 +225,7 @@ export default async function handler(req, res) {
 
       const previousCompletion = await sql().query(`SELECT 1 FROM progress WHERE user_id=$1 AND phase_id=$2 AND status='completed' LIMIT 1`, [user.id, phaseId]);
       if (!previousCompletion[0]) {
-        const quiz = await sql().query(`SELECT 1 FROM arg_submissions WHERE user_id=$1 AND assessment_id=$2 AND correct=TRUE LIMIT 1`, [user.id, phaseId]);
+        const quiz = await sql().query(`SELECT 1 FROM arg_submissions WHERE user_id=$1 AND phase_id=$2 AND correct=TRUE LIMIT 1`, [user.id, phaseId]);
         if (!quiz[0]) return fail(res, 422, 'Conclua a pergunta conceitual desta aula.');
       }
 
@@ -261,7 +262,7 @@ async function challengeState(userId, phaseId) {
     ? await sql().query(`SELECT query_text FROM phase3_queries WHERE user_id=$1 AND success=TRUE ORDER BY id`, [userId])
     : [];
   const history = [...oldRecords, ...records].map(row => row.query_text);
-  const quiz = await sql().query(`SELECT 1 FROM arg_submissions WHERE user_id=$1 AND assessment_id=$2 AND correct=TRUE LIMIT 1`, [userId, phaseId]);
+  const quiz = await sql().query(`SELECT 1 FROM arg_submissions WHERE user_id=$1 AND phase_id=$2 AND correct=TRUE LIMIT 1`, [userId, phaseId]);
   const identity = await argIdentityForUser(userId);
   const concept_done = phaseId === 3 || Boolean(quiz[0]);
   const nosql_done = phaseId === 9 && concept_done;

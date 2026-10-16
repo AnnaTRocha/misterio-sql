@@ -1,7 +1,7 @@
 PRAGMA foreign_keys=ON;
 
 CREATE TABLE objetos_celestes (
-  id INTEGER PRIMARY KEY,
+  id_objeto_celeste INTEGER CONSTRAINT pk_objetos_celestes PRIMARY KEY,
   nome TEXT NOT NULL,
   tipo TEXT NOT NULL,
   ano INTEGER NOT NULL,
@@ -15,11 +15,11 @@ INSERT INTO objetos_celestes VALUES
   (5,'ORION-B','constelacao',1987,'N-04');
 
 CREATE TABLE catalogo_bruto (
-  id INTEGER PRIMARY KEY,
-  objeto TEXT NOT NULL,
-  observador TEXT NOT NULL,
-  telefone TEXT NOT NULL,
-  observatorio TEXT NOT NULL
+  id_registro_catalogo INTEGER CONSTRAINT pk_catalogo_bruto PRIMARY KEY,
+  nome_objeto_celeste TEXT NOT NULL,
+  nome_observador TEXT NOT NULL,
+  telefone_observador TEXT NOT NULL,
+  nome_observatorio TEXT NOT NULL
 );
 INSERT INTO catalogo_bruto VALUES
   (1,'ORION','LIA','4801','NORTE'),
@@ -37,12 +37,13 @@ INSERT INTO simbolos VALUES
   (2,'SUBARU',6,'pendente');
 
 CREATE TABLE acessos_celestes (
-  id INTEGER PRIMARY KEY,
+  id_acesso_celeste INTEGER CONSTRAINT pk_acessos_celestes PRIMARY KEY,
   usuario TEXT NOT NULL,
-  objeto_id INTEGER NOT NULL,
+  id_objeto_celeste INTEGER NOT NULL,
   ano INTEGER NOT NULL,
   status TEXT NOT NULL,
-  FOREIGN KEY(objeto_id) REFERENCES objetos_celestes(id)
+  CONSTRAINT fk_acessos_celestes_id_objeto_celeste
+    FOREIGN KEY(id_objeto_celeste) REFERENCES objetos_celestes(id_objeto_celeste)
 );
 INSERT INTO acessos_celestes VALUES
   (1,'us1',1,1987,'valido'),
@@ -88,7 +89,7 @@ CREATE TABLE referencias (
 );
 INSERT INTO evidencias VALUES
   (1,'ORION-1987','A resposta anterior não era um destino. Classificação associada: constelação.'),
-  (2,'SEIS-ESTRELAS','Símbolo externo identificado em um registro relacionado a seis estrelas.'),
+  (2,'SEIS-ESTRELAS','Registro local da marca Subaru, representada por seis estrelas; o recurso gráfico externo é opcional.'),
   (3,'FRAGMENTO-C','Arquivo sem relevância'),
   (4,'FRAGMENTO-D','Evidência sem referência registrada');
 INSERT INTO recursos VALUES

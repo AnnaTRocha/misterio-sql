@@ -115,11 +115,11 @@ export async function ensureSchema() {
     const phases = [
       [1, 'O Primeiro Acesso', 'Reative o Arquivo 3301, explore usuários e mensagens com SELECT/FROM e descubra o primeiro código de acesso.', true, true, '1987'],
       [2, 'O Registro Interrompido', 'Reconstrua o incidente por meio de filtros, ausências, ordenação e agregações.', true, false, 'ORION'],
-      [3, 'O Aglomerado', 'Relacione evidências, referências e recursos para recuperar o símbolo de seis estrelas.', true, false, 'PLEIADES'],
+      [3, 'O Aglomerado', 'Relacione evidências, referências e recursos para identificar a marca associada ao símbolo de seis estrelas.', true, false, 'SUBARU'],
       [4, 'O Padrão Quebrado', 'Há registros repetidos no observatório. Descubra o que está fora do lugar.', true, false, 'NORMALIZACAO'],
       [5, 'A Sexta Estrela', 'Uma marca apagada e uma estrela ausente alteram a leitura do arquivo.', true, false, 'PLEIADES'],
       [6, 'Eco no Setor Norte', 'Os sinais de 1987 foram misturados a ruído. Separe o que importa.', true, false, 'N-04'],
-      [7, 'Linhas Cruzadas', 'As respostas estão em registros que não foram guardados juntos.', true, false, 'PLEIADES'],
+      [7, 'Linhas Cruzadas', 'Relacione acessos e objetos para localizar o setor do aglomerado.', true, false, 'N-06'],
       [8, 'O Sétimo Rastro', 'As sessões deixam padrões que só aparecem quando vistas em conjunto.', true, false, 'FRAGMENTOS'],
       [9, 'Última Transmissão', 'Três fragmentos, uma identidade ausente e um protocolo final.', true, false, 'US0']
     ];

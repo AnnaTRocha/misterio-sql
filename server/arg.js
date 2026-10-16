@@ -4,9 +4,17 @@ let initialized = false;
 let initPromise;
 
 const ASSESSMENTS = [
-  ...Array.from({ length: 8 }, (_, index) => [index + 1, `Exercício ${String(index + 1).padStart(2, '0')}`, index + 1, index + 1, 7.5, false]),
-  [9, 'Exercício 09', 9, 9, 40, true]
+  [10, 'Exercício 01', 1, 2, 15, false],
+  [11, 'Exercício 02', 3, 4, 15, false],
+  [12, 'Exercício 03', 5, 6, 15, false],
+  [13, 'Exercício 04', 7, 8, 15, false],
+  [14, 'Exercício 05', 9, 9, 40, true]
 ];
+
+export function assessmentIdForPhase(phaseId) {
+  const phase = Number(phaseId);
+  return ASSESSMENTS.find(([, , start, end]) => phase >= start && phase <= end)?.[0] ?? null;
+}
 
 export async function ensureArgFoundation() {
   if (!initialized) {
@@ -82,10 +90,18 @@ async function initializeFoundation() {
     id BIGSERIAL PRIMARY KEY,
     user_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
     assessment_id INTEGER REFERENCES course_assessments(id),
+    phase_id INTEGER REFERENCES phases(id) ON DELETE CASCADE,
     answer TEXT,
     correct BOOLEAN NOT NULL DEFAULT FALSE,
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
   )`);
+
+  await db.query('ALTER TABLE arg_submissions ADD COLUMN IF NOT EXISTS phase_id INTEGER REFERENCES phases(id) ON DELETE CASCADE');
+  await db.query(`UPDATE arg_submissions
+    SET phase_id=assessment_id
+    WHERE phase_id IS NULL AND assessment_id BETWEEN 1 AND 9`);
+  await db.query(`CREATE INDEX IF NOT EXISTS arg_submissions_user_phase_idx
+    ON arg_submissions(user_id, phase_id)`);
 
   await db.query(`CREATE TABLE IF NOT EXISTS arg_state (
     user_id BIGINT PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
@@ -268,21 +284,12 @@ export async function argIdentityForUser(userId) {
 export async function assessmentSummary(userId) {
   const completed = await completedPhaseMap([userId]);
   const phases = completed.get(Number(userId)) || new Set();
-  const assessments = ASSESSMENTS.map(([id, title, start, end, weight, isFinal]) => {
-    const required = [];
-    for (let phase = start; phase <= end; phase += 1) required.push(phase);
-    const done = required.every(phase => phases.has(phase));
-    return { id, title, phase_start: start, phase_end: end, weight, is_final: isFinal, completed: done };
-  });
-  const score = assessments.reduce((sum, item) => sum + (item.completed ? item.weight : 0), 0);
-  const baseScore = assessments
-    .filter(item => !item.is_final)
-    .reduce((sum, item) => sum + (item.completed ? item.weight : 0), 0);
+  const results = calculateAssessmentResults(phases);
   const finalProtocolUnlocked = await isFinalProtocolUnlocked(userId);
   return {
-    assessments,
-    score,
-    final_eligible: baseScore >= 60,
+    assessments: results.assessments,
+    score: results.score,
+    final_eligible: results.baseScore >= 60,
     final_protocol_unlocked: finalProtocolUnlocked
   };
 }
@@ -295,18 +302,7 @@ export async function assessmentScores(userIds) {
   const completed = await completedPhaseMap(normalized);
   for (const userId of normalized) {
     const phases = completed.get(userId) || new Set();
-    let score = 0;
-    for (const [, , start, end, weight] of ASSESSMENTS) {
-      let done = true;
-      for (let phase = start; phase <= end; phase += 1) {
-        if (!phases.has(phase)) {
-          done = false;
-          break;
-        }
-      }
-      if (done) score += weight;
-    }
-    result.set(userId, score);
+    result.set(userId, calculateAssessmentResults(phases).score);
   }
   return result;
 }
@@ -314,20 +310,9 @@ export async function assessmentScores(userIds) {
 export async function unlockFinalProtocol(userId, protocol) {
   const completed = await completedPhaseMap([userId]);
   const phases = completed.get(Number(userId)) || new Set();
-  const previousWeight = ASSESSMENTS
-    .filter(item => !item[5])
-    .reduce((sum, [, , start, end, weight]) => {
-      let done = true;
-      for (let phase = start; phase <= end; phase += 1) {
-        if (!phases.has(phase)) {
-          done = false;
-          break;
-        }
-      }
-      return sum + (done ? weight : 0);
-    }, 0);
+  const { baseScore } = calculateAssessmentResults(phases);
 
-  if (previousWeight < 60 || String(protocol || '').trim() !== '3301') return false;
+  if (baseScore < 60 || String(protocol || '').trim() !== '3301') return false;
 
   await sql().query(
     `INSERT INTO arg_state (user_id, final_protocol_unlocked, updated_at)
@@ -364,4 +349,35 @@ async function completedPhaseMap(userIds) {
   }
 
   return map;
+}
+
+function calculateAssessmentResults(phases) {
+  const assessments = ASSESSMENTS.map(([id, title, start, end, weight, isFinal]) => {
+    const required = Array.from({ length: end - start + 1 }, (_, index) => start + index);
+    const completedPhases = required.filter(phase => phases.has(phase));
+    const completed = completedPhases.length === required.length;
+    const score = isFinal
+      ? (completed ? weight : 0)
+      : (completedPhases.length * weight) / required.length;
+
+    return {
+      id,
+      title,
+      phase_start: start,
+      phase_end: end,
+      weight,
+      is_final: isFinal,
+      completed,
+      completed_phases: completedPhases,
+      completed_count: completedPhases.length,
+      total_phases: required.length,
+      score
+    };
+  });
+  const score = assessments.reduce((sum, item) => sum + item.score, 0);
+  const baseScore = assessments
+    .filter(item => !item.is_final)
+    .reduce((sum, item) => sum + item.score, 0);
+
+  return { assessments, score, baseScore };
 }

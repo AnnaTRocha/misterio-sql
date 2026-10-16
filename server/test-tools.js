@@ -19,8 +19,12 @@ const EXPECTED_SQL = {
   ],
   3: PHASE_THREE_SQL,
   4: [
-    { step: '4.1', objective: 'Estender o catálogo', sql: 'ALTER TABLE objetos_celestes ADD COLUMN origem TEXT;' },
-    { step: '4.2', objective: 'Separar observadores', sql: 'CREATE TABLE observadores(id INTEGER PRIMARY KEY,nome TEXT,telefone TEXT UNIQUE);' }
+    { step: '4.1', objective: 'Adicionar origem_objeto_celeste sem remover os objetos cadastrados', sql: 'ALTER TABLE objetos_celestes ADD COLUMN origem_objeto_celeste TEXT;' },
+    { step: '4.2', objective: 'Criar observadores com chave primária e campos obrigatórios', sql: 'CREATE TABLE observadores (id_observador INTEGER CONSTRAINT pk_observadores PRIMARY KEY, nome_observador TEXT NOT NULL, telefone_observador TEXT NOT NULL);' },
+    { step: '4.3', objective: 'Impedir telefone duplicado com uma restrição única', sql: 'CREATE UNIQUE INDEX ux_observadores_telefone_observador ON observadores (telefone_observador);' },
+    { step: '4.4', objective: 'Criar observacoes_catalogo com chaves válidas e vínculo único', sql: 'CREATE TABLE observacoes_catalogo (id_observacao_catalogo INTEGER CONSTRAINT pk_observacoes_catalogo PRIMARY KEY, id_objeto_celeste INTEGER NOT NULL, id_observador INTEGER NOT NULL, nome_observatorio TEXT NOT NULL, CONSTRAINT uq_observacoes_catalogo_vinculo UNIQUE (id_objeto_celeste, id_observador, nome_observatorio), CONSTRAINT fk_observacoes_catalogo_id_objeto_celeste FOREIGN KEY (id_objeto_celeste) REFERENCES objetos_celestes (id_objeto_celeste), CONSTRAINT fk_observacoes_catalogo_id_observador FOREIGN KEY (id_observador) REFERENCES observadores (id_observador));' },
+    { step: '4.5', objective: 'Transferir cada contato uma única vez', sql: 'INSERT OR IGNORE INTO observadores (nome_observador, telefone_observador) SELECT DISTINCT nome_observador, telefone_observador FROM catalogo_bruto;' },
+    { step: '4.6', objective: 'Representar as três observações originais sem perder os vínculos', sql: 'INSERT OR IGNORE INTO observacoes_catalogo (id_objeto_celeste, id_observador, nome_observatorio) SELECT o.id_objeto_celeste, ob.id_observador, c.nome_observatorio FROM catalogo_bruto AS c JOIN objetos_celestes AS o ON o.nome = c.nome_objeto_celeste JOIN observadores AS ob ON ob.nome_observador = c.nome_observador AND ob.telefone_observador = c.telefone_observador;' }
   ],
   5: [
     { step: '5.1', objective: 'Iniciar transação', sql: 'BEGIN;' },
@@ -35,12 +39,12 @@ const EXPECTED_SQL = {
     { step: '6.3', objective: 'Resumo', sql: 'SELECT ano,COUNT(*) FROM objetos_celestes GROUP BY ano ORDER BY COUNT(*) DESC;' }
   ],
   7: [
-    { step: '7.1', objective: 'Relacionar acessos', sql: "SELECT o.nome FROM acessos_celestes a JOIN objetos_celestes o ON a.objeto_id=o.id WHERE a.ano=1987 AND a.status='valido';" },
-    { step: '7.2', objective: 'Encontrar ausência', sql: 'SELECT o.nome FROM objetos_celestes o LEFT JOIN acessos_celestes a ON a.objeto_id=o.id WHERE a.id IS NULL;' },
-    { step: '7.3', objective: 'Contar relações', sql: 'SELECT o.nome,COUNT(*) FROM acessos_celestes a JOIN objetos_celestes o ON a.objeto_id=o.id GROUP BY o.nome;' }
+    { step: '7.1', objective: 'Relacionar acessos válidos de 1987 aos nomes e setores dos objetos', sql: "SELECT o.nome,o.setor FROM acessos_celestes a JOIN objetos_celestes o ON a.id_objeto_celeste=o.id_objeto_celeste WHERE a.ano=1987 AND a.status='valido';" },
+    { step: '7.2', objective: 'Encontrar ausência', sql: 'SELECT o.nome FROM objetos_celestes o LEFT JOIN acessos_celestes a ON a.id_objeto_celeste=o.id_objeto_celeste WHERE a.id_acesso_celeste IS NULL;' },
+    { step: '7.3', objective: 'Contar relações', sql: 'SELECT o.nome,COUNT(*) FROM acessos_celestes a JOIN objetos_celestes o ON a.id_objeto_celeste=o.id_objeto_celeste GROUP BY o.nome;' }
   ],
   8: [
-    { step: '8.1', objective: 'Subconsulta', sql: 'SELECT usuario FROM acessos_celestes WHERE objeto_id IN (SELECT id FROM objetos_celestes WHERE ano=1987);' },
+    { step: '8.1', objective: 'Subconsulta', sql: 'SELECT usuario FROM acessos_celestes WHERE id_objeto_celeste IN (SELECT id_objeto_celeste FROM objetos_celestes WHERE ano=1987);' },
     { step: '8.2', objective: 'CTE', sql: 'WITH equipes AS (SELECT equipe,COUNT(*) AS total FROM investigacoes GROUP BY equipe) SELECT * FROM equipes;' },
     { step: '8.3', objective: 'Janela', sql: 'SELECT equipe,apelido,ROW_NUMBER() OVER(PARTITION BY equipe ORDER BY id) FROM investigacoes;' }
   ],
@@ -84,11 +88,7 @@ export async function resetTestActivity(userId, phaseId) {
 
   await db.query(
     `DELETE FROM arg_submissions
-     WHERE user_id=$1
-       AND assessment_id IN (
-         SELECT id FROM course_assessments
-         WHERE $2 BETWEEN phase_start AND phase_end
-       )`,
+     WHERE user_id=$1 AND phase_id=$2`,
     [userId, normalizedPhase]
   );
 

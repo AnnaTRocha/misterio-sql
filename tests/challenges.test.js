@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { evaluateChallenge, executeArchiveQuery, LESSONS } from '../server/challenges.js';
+import { allowedStatement, evaluateChallenge, executeArchiveQuery, LESSONS } from '../server/challenges.js';
 import { queryMilestones } from '../api/game.js';
 import { CONCEPTS, publicConcept } from '../server/concepts.js';
 import { expectedSqlForPhase } from '../server/test-tools.js';
@@ -13,10 +13,7 @@ const solutions = {
     "SELECT rc.endereco FROM referencias r JOIN recursos rc ON rc.recurso_id=r.recurso_id WHERE rc.status='recuperado'",
     'SELECT * FROM evidencias e LEFT JOIN referencias r ON r.evidencia_id=e.evidencia_id WHERE r.referencia_id IS NULL'
   ],
-  4: [
-    'ALTER TABLE objetos_celestes ADD COLUMN origem TEXT',
-    'CREATE TABLE observadores(id INTEGER PRIMARY KEY,nome TEXT,telefone TEXT UNIQUE)'
-  ],
+  4: expectedSqlForPhase(4).map(item => item.sql),
   5: [
     'BEGIN',
     "INSERT INTO simbolos VALUES(3,'PLEIADES',6,'confirmado')",
@@ -30,12 +27,12 @@ const solutions = {
     'SELECT ano, COUNT(*) FROM objetos_celestes GROUP BY ano ORDER BY COUNT(*) DESC'
   ],
   7: [
-    "SELECT o.nome FROM acessos_celestes a JOIN objetos_celestes o ON a.objeto_id=o.id WHERE a.ano=1987 AND a.status='valido'",
-    'SELECT o.nome FROM objetos_celestes o LEFT JOIN acessos_celestes a ON a.objeto_id=o.id WHERE a.id IS NULL',
-    'SELECT o.nome,COUNT(*) FROM acessos_celestes a JOIN objetos_celestes o ON a.objeto_id=o.id GROUP BY o.nome'
+    "SELECT o.nome,o.setor FROM acessos_celestes a JOIN objetos_celestes o ON a.id_objeto_celeste=o.id_objeto_celeste WHERE a.ano=1987 AND a.status='valido'",
+    'SELECT o.nome FROM objetos_celestes o LEFT JOIN acessos_celestes a ON a.id_objeto_celeste=o.id_objeto_celeste WHERE a.id_acesso_celeste IS NULL',
+    'SELECT o.nome,COUNT(*) FROM acessos_celestes a JOIN objetos_celestes o ON a.id_objeto_celeste=o.id_objeto_celeste GROUP BY o.nome'
   ],
   8: [
-    'SELECT usuario FROM acessos_celestes WHERE objeto_id IN (SELECT id FROM objetos_celestes WHERE ano=1987)',
+    'SELECT usuario FROM acessos_celestes WHERE id_objeto_celeste IN (SELECT id_objeto_celeste FROM objetos_celestes WHERE ano=1987)',
     'WITH equipes AS (SELECT equipe,COUNT(*) AS total FROM investigacoes GROUP BY equipe) SELECT * FROM equipes',
     'SELECT equipe,apelido,ROW_NUMBER() OVER(PARTITION BY equipe ORDER BY id) FROM investigacoes'
   ],
@@ -104,6 +101,74 @@ for (const [phase, queries] of Object.entries(solutions)) {
     assert.deepEqual(new Set(result.milestones), new Set(LESSONS[id].objectives.map(([key]) => key)));
   });
 }
+
+test('aula 4: aceita sintaxes equivalentes que preservam os dados e as relações', async () => {
+  const queries = [
+    "ALTER TABLE objetos_celestes ADD origem_objeto_celeste TEXT NOT NULL DEFAULT 'sem origem'",
+    `CREATE TABLE observadores (
+      nome_observador TEXT NOT NULL,
+      telefone_observador TEXT NOT NULL,
+      id_observador INTEGER NOT NULL,
+      CONSTRAINT pk_contatos PRIMARY KEY (id_observador),
+      CONSTRAINT uq_telefone UNIQUE (telefone_observador)
+    )`,
+    `CREATE TABLE observacoes_catalogo (
+      id_observacao_catalogo INTEGER PRIMARY KEY,
+      id_objeto_celeste INTEGER NOT NULL REFERENCES objetos_celestes(id_objeto_celeste),
+      id_observador INTEGER NOT NULL REFERENCES observadores(id_observador),
+      nome_observatorio TEXT NOT NULL,
+      UNIQUE (nome_observatorio, id_observador, id_objeto_celeste)
+    )`,
+    'INSERT OR IGNORE INTO observadores (telefone_observador, nome_observador) SELECT telefone_observador, nome_observador FROM catalogo_bruto GROUP BY telefone_observador, nome_observador',
+    `INSERT OR IGNORE INTO observacoes_catalogo (nome_observatorio, id_objeto_celeste, id_observador)
+      SELECT c.nome_observatorio, o.id_objeto_celeste, ob.id_observador
+      FROM catalogo_bruto c
+      INNER JOIN objetos_celestes o ON o.nome = c.nome_objeto_celeste
+      INNER JOIN observadores ob ON ob.telefone_observador = c.telefone_observador
+        AND ob.nome_observador = c.nome_observador`
+  ];
+  const result = await evaluateChallenge(4, queries, 1);
+  assert.equal(result.lastSucceeded, true);
+  assert.deepEqual(new Set(result.milestones), new Set(LESSONS[4].objectives.map(([key]) => key)));
+});
+
+test('aula 4: rejeita esquemas que não respeitam a nomenclatura ou as relações', async () => {
+  const wrongPrimaryKey = await evaluateChallenge(4, [
+    'CREATE TABLE observadores (id INTEGER PRIMARY KEY, nome TEXT, telefone TEXT UNIQUE)'
+  ], 1);
+  assert.ok(!wrongPrimaryKey.milestones.includes('observadores'));
+  assert.ok(!wrongPrimaryKey.milestones.includes('unico'));
+
+  const wrongForeignKey = await evaluateChallenge(4, [
+    'CREATE TABLE observadores (id_observador INTEGER PRIMARY KEY, nome_observador TEXT NOT NULL, telefone_observador TEXT NOT NULL UNIQUE)',
+    'CREATE TABLE observacoes_catalogo (id_observacao_catalogo INTEGER PRIMARY KEY, id_objeto_celeste INTEGER NOT NULL REFERENCES objetos_celestes(nome), id_observador INTEGER NOT NULL REFERENCES observadores(id_observador), nome_observatorio TEXT NOT NULL, UNIQUE(id_objeto_celeste,id_observador,nome_observatorio))'
+  ], 1);
+  assert.ok(!wrongForeignKey.milestones.includes('relacoes'));
+});
+
+test('aula 4: migra todos os registros e mantém a trilha idempotente', async () => {
+  const queries = expectedSqlForPhase(4).map(item => item.sql);
+  const result = await evaluateChallenge(4, [...queries, ...queries], 1);
+  assert.equal(result.lastSucceeded, true);
+  assert.deepEqual(new Set(result.milestones), new Set(LESSONS[4].objectives.map(([key]) => key)));
+});
+
+test('aula 4: não conclui a migração quando faltam observações e protege a fonte', async () => {
+  const queries = expectedSqlForPhase(4).map(item => item.sql);
+  queries[5] = queries[5].replace(/;$/, " WHERE c.nome_objeto_celeste = 'ORION'");
+
+  const result = await evaluateChallenge(4, queries, 1);
+  assert.ok(result.milestones.includes('migrar_observadores'));
+  assert.ok(!result.milestones.includes('migrar_observacoes'));
+  assert.equal(allowedStatement(4, "INSERT INTO catalogo_bruto VALUES (4,'VEGA','LIA','4801','NORTE')"), false);
+  assert.equal(allowedStatement(4, 'DELETE FROM catalogo_bruto'), false);
+});
+
+test('aula 4: o guia de validação acompanha os objetivos publicados', () => {
+  const guide = expectedSqlForPhase(4);
+  assert.deepEqual(guide.map(item => item.step), ['4.1', '4.2', '4.3', '4.4', '4.5', '4.6']);
+  assert.deepEqual(guide.map(item => item.objective), LESSONS[4].objectives.map(([, label]) => label));
+});
 
 test('restrições e pistas não são aceitas por presença de palavras', async () => {
   const empty = await evaluateChallenge(3, ['SELECT * FROM evidencias WHERE 1=0'], 1);
