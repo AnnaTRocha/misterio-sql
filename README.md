@@ -95,7 +95,7 @@ Na Vercel, `npm run build` publica somente HTML, CSS e JavaScript minificado em 
 
 ## Plano da turma conforme as nove aulas do Canva
 
-A turma está avançando para a Fase 04. O [plano de atividades](plano-aulas-04-a-09.html) relaciona as fases aos conteúdos das nove apresentações do Canva. As Fases 07 e 08 podem ser feitas em outro momento, depois do conteúdo correspondente; a plataforma exige completar 05 e 06 antes. O progresso não deve ser reiniciado. A organização de atividades posteriores à Aula 09 permanece para definição.
+A turma está avançando para a Fase 04. O [plano de atividades](plano-aulas-04-a-09.html) relaciona as fases aos conteúdos das nove apresentações do Canva. O painel do professor controla separadamente a publicação desse plano e a liberação das fases. Na área dos estudantes, cada cartão identifica apenas o arquivo e a fase; os agrupamentos de avaliação ficam no painel do professor. As Fases 07 e 08 podem ser feitas em outro momento, depois do conteúdo correspondente; a plataforma exige completar 05 e 06 antes. O progresso não deve ser reiniciado. A organização de atividades posteriores à Aula 09 permanece para definição.
 
 ## Arquitetura narrativa do curso
 

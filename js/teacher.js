@@ -19,6 +19,8 @@ async function load() {
     const data = await api('/api/teacher?action=overview');
     phaseCount = data.phases.length;
     renderPhases(data.phases);
+    renderAssessments();
+    renderActivityPlanVisibility(data.activity_plan_public);
     renderResets(data.resets);
     renderStudents(data.students);
   } catch (error) {
@@ -28,18 +30,14 @@ async function load() {
 
 function renderPhases(phases) {
   const root = document.getElementById('phaseAdmin');
-  root.innerHTML = phases.map(phase => {
-    const assessment = ASSESSMENTS.find(item => phase.id >= item.start && phase.id <= item.end);
-    return `
-      <article class="admin-card">
-        <strong>Fase ${phase.id} · ${escapeHtml(phase.title)}</strong>
-        <span>${escapeHtml(assessment?.title || 'Exercício')} · ${assessment?.weight || 0} pontos (fases ${String(assessment?.start || phase.id).padStart(2, '0')}–${String(assessment?.end || phase.id).padStart(2, '0')})</span>
-        <span>${phase.completed} concluíram · ${phase.started} iniciaram</span>
-        ${phase.developed
-          ? `<label class="switch-row"><input type="checkbox" data-release="${phase.id}" ${phase.released ? 'checked' : ''}> Liberada</label>`
-          : '<em>Ainda não desenvolvido</em>'}
-      </article>`;
-  }).join('');
+  root.innerHTML = phases.map(phase => `
+    <article class="admin-card">
+      <strong>Fase ${String(phase.id).padStart(2, '0')} · ${escapeHtml(phase.title)}</strong>
+      <span>${phase.started} começaram · ${phase.completed} concluíram esta fase</span>
+      ${phase.developed
+        ? `<label class="switch-row"><input type="checkbox" data-release="${phase.id}" ${phase.released ? 'checked' : ''}> Fase liberada</label>`
+        : '<em>Ainda não desenvolvida</em>'}
+    </article>`).join('');
 
   root.querySelectorAll('[data-release]').forEach(input => input.addEventListener('change', async () => {
     try {
@@ -52,6 +50,58 @@ function renderPhases(phases) {
       alert(error.message);
     }
   }));
+}
+
+function renderAssessments() {
+  const root = document.getElementById('assessmentAdmin');
+  root.innerHTML = ASSESSMENTS.map(assessment => {
+    const firstPhase = String(assessment.start).padStart(2, '0');
+    const lastPhase = String(assessment.end).padStart(2, '0');
+    const phaseLabel = assessment.start === assessment.end
+      ? `Fase ${firstPhase}`
+      : `Fases ${firstPhase} e ${lastPhase}`;
+    const scoreLabel = assessment.start === assessment.end
+      ? `${assessment.weight} pontos ao concluir a fase`
+      : `${formatScore(assessment.weight / 2)} pontos por fase concluída`;
+
+    return `
+      <article class="admin-card">
+        <strong>${escapeHtml(assessment.title)} · ${assessment.weight} pontos</strong>
+        <span>Avalia ${phaseLabel}</span>
+        <span>${scoreLabel}</span>
+      </article>`;
+  }).join('');
+}
+
+function renderActivityPlanVisibility(isPublic) {
+  const input = document.getElementById('activityPlanPublic');
+  const status = document.getElementById('activityPlanStatus');
+  input.checked = isPublic === true;
+  input.disabled = false;
+  status.textContent = input.checked
+    ? 'Plano publicado: qualquer pessoa com o link pode visualizar.'
+    : 'Plano oculto: o conteúdo não é exibido na página pública.';
+
+  input.onchange = async () => {
+    const requestedVisibility = input.checked;
+    input.disabled = true;
+    status.textContent = requestedVisibility ? 'Publicando plano...' : 'Ocultando plano...';
+    try {
+      await api('/api/teacher?action=activity-plan-visibility', {
+        method: 'POST',
+        body: { is_public: requestedVisibility }
+      });
+      status.textContent = requestedVisibility
+        ? 'Plano publicado: qualquer pessoa com o link pode visualizar.'
+        : 'Plano oculto: o conteúdo não é exibido na página pública.';
+    } catch (error) {
+      input.checked = !requestedVisibility;
+      status.textContent = 'Não foi possível salvar a configuração.';
+      alert(error.message);
+    } finally {
+      input.disabled = false;
+    }
+  };
 }
 
 function renderResets(resets) {

@@ -20,7 +20,7 @@ await mkdir(join(output, 'js'), { recursive: true });
 await writeFile(join(output, 'js', 'accessibility.js'), await readFile(join('js', 'accessibility.js')));
 
 await build({
-  entryPoints: ['js/auth-page.js', 'js/dashboard.js', 'js/phase-router.js', 'js/teacher.js', 'js/change-password.js'],
+  entryPoints: ['js/auth-page.js', 'js/dashboard.js', 'js/phase-router.js', 'js/teacher.js', 'js/change-password.js', 'js/activity-plan.js'],
   outdir: join(output, 'js'),
   entryNames: '[name]',
   chunkNames: 'chunks/[name]-[hash]',

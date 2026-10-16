@@ -1,0 +1,60 @@
+export const ACTIVITY_PLAN_CONTENT = String.raw`
+<span class="eyebrow">PLANEJAMENTO DA TURMA // CONTEÚDO CANVA 01 A 09</span>
+<h1>Fases alinhadas às aulas</h1>
+<p class="recovery-lead">O conteúdo do curso se baseia nas nove apresentações do Canva. Muitos estudantes estão chegando à Fase 04 do Mistério SQL; este plano organiza as atividades conforme o conteúdo apresentado e preserva o progresso já concluído.</p>
+
+<section class="recovery-section" aria-labelledby="student-steps">
+  <h2 id="student-steps">Como avançar</h2>
+  <ol class="recovery-steps">
+    <li><strong>Continue do seu ponto atual.</strong> Não refaça nem reinicie fases concluídas.</li>
+    <li><strong>Siga a ordem das fases.</strong> Conclua as Fases 05 e 06 antes das Fases 07 e 08. A plataforma não permite pular uma fase.</li>
+    <li><strong>Faça as Fases 07 e 08 em outro momento, conforme a orientação do professor.</strong> Elas correspondem aos conteúdos de JOIN e SQL avançado das Aulas 07 e 08.</li>
+    <li><strong>Use o conteúdo da Aula 09 para a Fase 09.</strong> O acesso à fase depende também da conclusão das Fases 01–08, de 60 pontos e do protocolo <code>3301</code>.</li>
+  </ol>
+</section>
+
+<section class="recovery-section" aria-labelledby="sequence-title">
+  <h2 id="sequence-title">Relação entre conteúdo e atividades</h2>
+  <div class="table-wrap">
+    <table class="admin-table recovery-table">
+      <caption class="sr-only">Relação entre as aulas do Canva e as fases do Mistério SQL</caption>
+      <thead><tr><th scope="col">Aulas Canva</th><th scope="col">Atividade no Mistério SQL</th><th scope="col">Conteúdo relacionado</th></tr></thead>
+      <tbody>
+        <tr><th scope="row">Aulas 01–04</th><td>Continuar do ponto atual</td><td>Manter o progresso registrado; muitos estudantes estão chegando à Fase 04.</td></tr>
+        <tr><th scope="row">Aula 05</th><td>Fase 05</td><td>DML e transações: inserir, atualizar e remover registros com segurança.</td></tr>
+        <tr><th scope="row">Aula 06</th><td>Fase 06</td><td>Consultas, filtros e agregações.</td></tr>
+        <tr><th scope="row">Aula 07</th><td>Fase 07</td><td>Relacionamentos entre tabelas com JOIN.</td></tr>
+        <tr><th scope="row">Aula 08</th><td>Fase 08</td><td>SQL avançado: subconsulta, CTE e função de janela.</td></tr>
+        <tr><th scope="row">Aula 09</th><td>Fase 09</td><td>NoSQL/MongoDB e etapa avaliativa de 40 pontos, sujeita aos pré-requisitos do sistema.</td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<section class="recovery-section" aria-labelledby="grading-title">
+  <h2 id="grading-title">Pontuação por fase</h2>
+  <ul class="assessment-list">
+    <li><strong>Fases 01 e 02:</strong> até 15 pontos no total · 7,5 por fase concluída</li>
+    <li><strong>Fases 03 e 04:</strong> até 15 pontos no total · 7,5 por fase concluída</li>
+    <li><strong>Fases 05 e 06:</strong> até 15 pontos no total · 7,5 por fase concluída</li>
+    <li><strong>Fases 07 e 08:</strong> até 15 pontos no total · 7,5 por fase concluída</li>
+    <li><strong>Fase 09:</strong> até 40 pontos</li>
+  </ul>
+  <p>A Fase 09 só pode ser iniciada depois de concluir as Fases 01–08, atingir 60 pontos e validar o protocolo <code>3301</code>.</p>
+</section>
+
+<details class="recovery-section teacher-guidance">
+  <summary>Orientação para o professor</summary>
+  <ul>
+    <li>Não reinicie fases nem apague progresso concluído.</li>
+    <li>Libere as fases em sintonia com o conteúdo das nove apresentações. A sequência obrigatória é preservada pela plataforma.</li>
+    <li>As Fases 07 e 08 podem ser liberadas como atividades para outro momento após o conteúdo correspondente. A turma precisa concluir 05 e 06 antes de entrar nelas.</li>
+    <li>Mantenha a Fase 09 fechada até a apresentação do conteúdo da Aula 09 e até que seus requisitos de acesso sejam cumpridos.</li>
+    <li>O painel identifica a fase atual de cada estudante para orientar o apoio.</li>
+    <li>A Fase 03 tem uma identificação revisada com evidência local; o recurso externo não é necessário para resolver a atividade. Conclusões antigas permanecem válidas.</li>
+  </ul>
+  <p class="muted">Este plano cobre as nove apresentações de conteúdo do Canva. A organização de atividades ou encontros posteriores permanece para definição.</p>
+</details>
+
+<p class="recovery-footer"><a class="secondary-btn" href="dashboard.html">Abrir o Mistério SQL</a></p>
+`;

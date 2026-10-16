@@ -2,6 +2,7 @@ import bcrypt from 'bcryptjs';
 import { ensureSchema, sql } from '../server/db.js';
 import { requireUser } from '../server/auth.js';
 import { action, body, fail, method } from '../server/http.js';
+import { getActivityPlanVisibility, setActivityPlanVisibility } from '../server/activity-plan.js';
 import {
   assessmentScores,
   ensureArgFoundation,
@@ -66,11 +67,20 @@ export default async function handler(req, res) {
         WHERE r.status='pending'
         ORDER BY r.requested_at
       `);
-      return res.status(200).json({ phases, students, resets });
+      const activityPlanPublic = await getActivityPlanVisibility();
+      return res.status(200).json({ phases, students, resets, activity_plan_public: activityPlanPublic });
     }
 
     if (!method(req, res, ['POST'])) return;
     const data = body(req);
+
+    if (op === 'activity-plan-visibility') {
+      if (typeof data.is_public !== 'boolean') {
+        return fail(res, 422, 'Informe se a visualização pública deve ficar ativa ou inativa.');
+      }
+      await setActivityPlanVisibility(data.is_public);
+      return res.status(200).json({ ok: true, activity_plan_public: data.is_public });
+    }
 
     if (op === 'release') {
       const phaseId = Number(data.phase_id);

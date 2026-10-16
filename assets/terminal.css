@@ -724,22 +724,13 @@ body.crt-page {
 /* Dashboard */
 
 
-/* Arcos narrativos — mantém as Fases 01–02 no tema original. */
+/* Identificação do estudante e do grupo no resumo de progresso. */
 .arg-identity {
   display: block;
   margin: 7px 0 10px;
   color: var(--crt-amber);
   font-size: 10px;
   letter-spacing: .08em;
-  text-transform: uppercase;
-}
-
-.phase-arc {
-  display: block;
-  margin-bottom: 7px;
-  color: var(--crt-muted);
-  font-size: 9px;
-  letter-spacing: .11em;
   text-transform: uppercase;
 }
 
@@ -866,43 +857,6 @@ body.crt-page[data-theme="operation"] {
 .test-guide-note{margin:0;color:#bdb38d;font-size:12px}
 @media(max-width:720px){.test-tools-heading{flex-direction:column}.test-reset-btn{width:100%}}
 
-/* Identidade individual por aula; a base do terminal permanece comum. */
-.assessment-breakdown {
-  grid-column: 1 / -1;
-  margin-top: 18px;
-  padding-top: 14px;
-  border-top: 1px solid var(--crt-line);
-}
-.assessment-breakdown h2 {
-  margin: 0 0 10px;
-  color: var(--crt-muted);
-  font: 700 10px var(--crt-mono);
-  letter-spacing: .14em;
-  text-transform: uppercase;
-}
-.assessment-breakdown ul {
-  display: grid;
-  grid-template-columns: repeat(5, minmax(0, 1fr));
-  gap: 8px;
-  margin: 0;
-  padding: 0;
-  list-style: none;
-}
-.assessment-row {
-  display: grid;
-  gap: 7px;
-  min-width: 0;
-  padding: 10px;
-  border: 1px solid var(--crt-line);
-  background: rgba(0,0,0,.2);
-}
-.assessment-row span { display: grid; gap: 4px; }
-.assessment-row strong { color: var(--crt-green-strong); font: 700 9px var(--crt-mono); }
-.assessment-row small { color: var(--crt-muted); font: 8px var(--crt-mono); }
-.assessment-row b { color: var(--crt-amber); font: 700 10px var(--crt-mono); }
-@media(max-width:850px){.assessment-breakdown ul{grid-template-columns:repeat(2,minmax(0,1fr))}}
-@media(max-width:520px){.assessment-breakdown ul{grid-template-columns:1fr}}
-
 .case-file.theme-blueprint {
   border-color: rgba(132,151,255,.32);
   background: linear-gradient(135deg, rgba(103,91,225,.12), transparent 58%), rgba(8,9,22,.96);
@@ -932,14 +886,6 @@ body.crt-page[data-theme="operation"] {
   border-color: rgba(74,208,181,.34);
   background: linear-gradient(135deg, rgba(201,131,79,.085), transparent 45%), radial-gradient(circle at 90% 10%, rgba(74,208,181,.1), transparent 34%), rgba(5,7,8,.98);
 }
-.case-file.theme-blueprint .phase-arc { color: #a6a2ff; }
-.case-file.theme-catalog .phase-arc { color: #d9c28e; }
-.case-file.theme-transaction .phase-arc { color: #72d8e8; }
-.case-file.theme-scanner .phase-arc { color: #8ee8a0; }
-.case-file.theme-relations .phase-arc { color: #9d9aff; }
-.case-file.theme-analysis .phase-arc { color: #d1a8ff; }
-.case-file.theme-nosql .phase-arc { color: #73d8bd; }
-
 body.crt-page[data-theme="blueprint"] {
   --crt-bg: #080a19; --crt-panel: #101228; --crt-panel-2: #171a35;
   --crt-green: #8b9aff; --crt-green-strong: #dce1ff; --crt-green-dim: #5f6ed1;
