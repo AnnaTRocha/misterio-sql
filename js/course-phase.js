@@ -11,6 +11,13 @@ let hintIndex = 0;
 let concept;
 let conceptDone = false;
 
+function renderTableButtons(tables) {
+  $('tableButtons').innerHTML = tables.map(name => `<button class="db-button" data-table="${escapeHtml(name)}" type="button">${escapeHtml(name)}</button>`).join('');
+  $('tableButtons').querySelectorAll('[data-table]').forEach(button => button.addEventListener('click', () => {
+    $('sqlEditor').value = `SELECT * FROM ${button.dataset.table};`;
+  }));
+}
+
 async function init() {
   const user = await requireSession('student');
   if (!user) return;
@@ -24,21 +31,28 @@ async function init() {
     document.body.dataset.theme = lesson.theme;
     document.querySelector('.brand span:last-child').textContent = lesson.code;
     document.title = `${lesson.title} | Mistério SQL`;
-    $('phaseLabel').textContent = `${lesson.code} // AULA ${String(phaseId).padStart(2, '0')}`;
+    $('phaseLabel').textContent = `${lesson.code} // FASE ${String(phaseId).padStart(2, '0')}`;
     $('phaseTitle').textContent = lesson.title;
     $('phaseTitle').dataset.text = lesson.title;
     $('phaseMission').textContent = lesson.mission;
-    $('terminalName').textContent = `/curso/3301/aula_${String(phaseId).padStart(2, '0')}.sql`;
-    $('storyLog').innerHTML = `<p>${escapeHtml(lesson.mission)}</p><p>${phaseId === 3 ? 'Execute uma consulta por vez para relacionar as pistas.' : 'Execute uma instrução por vez. Alterações acontecem apenas na sua cópia de investigação.'}</p>`;
+    $('terminalName').textContent = `/archive/3301/fase_${String(phaseId).padStart(2, '0')}.sql`;
+    const scopeText = phaseId === 3
+      ? 'Execute uma consulta por vez para relacionar as pistas.'
+      : phaseId === 4
+        ? 'Os dados de origem já estão carregados. As tabelas de destino ainda não existem: você vai criá-las e migrar os dados. Sua cópia é individual: suas alterações não afetam os demais estudantes.'
+        : 'Execute uma instrução por vez. Alterações acontecem apenas na sua cópia de investigação.';
+    $('storyLog').innerHTML = `<p>${escapeHtml(lesson.mission)}</p><p>${scopeText}</p>`;
     $('sqlEditor').value = lesson.initial;
-    $('tableButtons').innerHTML = lesson.tables.map(name => `<button class="db-button" data-table="${escapeHtml(name)}" type="button">${escapeHtml(name)}</button>`).join('');
-    document.querySelectorAll('[data-table]').forEach(button => button.addEventListener('click', () => {
-      $('sqlEditor').value = `SELECT * FROM ${button.dataset.table};`;
-    }));
+    renderTableButtons(lesson.tables);
     render();
     ready = true;
     $('runBtn').disabled = false;
-    $('queryFeedback').textContent = 'CONEXÃO ESTABELECIDA // cópia isolada carregada';
+    if (phaseId === 4 && start.initial_preview?.length) {
+      $('resultArea').innerHTML = readOnlyPreview(start.initial_preview, lesson.initial);
+      $('queryFeedback').textContent = 'PRÉVIA DA ORIGEM // os dados iniciais estão carregados na sua cópia isolada';
+    } else {
+      $('queryFeedback').textContent = 'CONEXÃO ESTABELECIDA // cópia isolada carregada';
+    }
     if (user.is_test) await loadTestTools();
   } catch (error) {
     $('queryFeedback').textContent = `FALHA // ${error.message}`;
@@ -91,9 +105,43 @@ function render() {
   $('conceptForm')?.addEventListener('submit', answerConcept);
 }
 
-function readOnlyPreview(result) {
-  if (!result.length) return '<div class="empty-result"><span>✓</span><p>Instrução executada. Confira a estrutura ou os dados com SELECT/PRAGMA.</p></div>';
-  return result.map(set => `<div class="query-meta">${set.values.length} linha(s)</div><table class="result-table"><thead><tr>${set.columns.map(value => `<th>${escapeHtml(value)}</th>`).join('')}</tr></thead><tbody>${set.values.slice(0, 100).map(row => `<tr>${row.map(value => `<td>${renderCell(value)}</td>`).join('')}</tr>`).join('')}</tbody></table>`).join('');
+function statementForFeedback(query) {
+  return String(query || '').replace(/--[^\n]*/g, '').replace(/\/\*[\s\S]*?\*\//g, '').trim();
+}
+
+function readOnlyPreview(result, query = '') {
+  const statement = statementForFeedback(query);
+  const returnsRows = /^(SELECT|WITH|PRAGMA)\b/i.test(statement);
+  const tableInfo = statement.match(/^PRAGMA\s+table_info\s*\(\s*["'`]?([\w-]+)["'`]?\s*\)/i);
+  if (!result.length) {
+    const message = returnsRows
+      ? tableInfo
+        ? `Nenhuma coluna encontrada para “${escapeHtml(tableInfo[1])}”. Confira o nome da tabela e se ela existe nesta fase.`
+        : 'A consulta foi executada, mas não retornou linhas. Confira o nome da tabela e os filtros aplicados.'
+      : 'Comando executado. Esta instrução não retorna uma tabela de resultados; consulte os dados com SELECT ou a estrutura com PRAGMA table_info(nome_da_tabela).';
+    return `<div class="empty-result"><span>${returnsRows ? '!' : '✓'}</span><p>${message}</p></div>`;
+  }
+
+  return result.map(set => {
+    const hasRows = set.values.length > 0;
+    const emptyMessage = !hasRows
+      ? tableInfo
+        ? `Nenhuma coluna encontrada para “${escapeHtml(tableInfo[1])}”. Confira o nome da tabela e se ela existe nesta fase.`
+        : 'A consulta foi executada, mas não encontrou linhas. Confira o nome da tabela e os filtros aplicados.'
+      : '';
+    return `${emptyMessage ? `<div class="empty-result"><span>!</span><p>${emptyMessage}</p></div>` : ''}<div class="query-meta">${set.values.length} linha(s) retornada(s)</div><table class="result-table"><thead><tr>${set.columns.map(value => `<th>${escapeHtml(value)}</th>`).join('')}</tr></thead><tbody>${set.values.slice(0, 100).map(row => `<tr>${row.map(value => `<td>${renderCell(value)}</td>`).join('')}</tr>`).join('')}</tbody></table>`;
+  }).join('');
+}
+
+function queryFeedback(query, result) {
+  const statement = statementForFeedback(query);
+  const rowCount = result.reduce((total, set) => total + set.values.length, 0);
+  if (rowCount > 0) return `CONSULTA EXECUTADA // ${rowCount} linha(s) retornada(s)`;
+  if (/^(CREATE|ALTER|INSERT|UPDATE|DELETE|BEGIN|COMMIT|ROLLBACK)\b/i.test(statement)) {
+    return 'COMANDO EXECUTADO // sem tabela de resultados';
+  }
+  if (/^PRAGMA\s+table_info/i.test(statement)) return 'CONSULTA EXECUTADA // nenhuma coluna encontrada; confira o nome da tabela';
+  return 'CONSULTA EXECUTADA // 0 linhas retornadas; confira tabela e filtros';
 }
 
 function renderCell(value) {
@@ -113,9 +161,11 @@ async function executeSql() {
   try {
     const response = await api('/api/game?action=query', { method: 'POST', body: { phase_id: phaseId, query } });
     milestones = new Set(response.milestones);
+    if (phaseId === 4 && response.tables) renderTableButtons(response.tables);
     render();
-    $('resultArea').innerHTML = readOnlyPreview(response.result || []);
-    $('queryFeedback').textContent = 'OK // consulta registrada e requisitos atualizados';
+    const result = response.result || [];
+    $('resultArea').innerHTML = readOnlyPreview(result, query);
+    $('queryFeedback').textContent = queryFeedback(query, result);
     $('queryFeedback').className = 'query-feedback ok';
   } catch (error) {
     $('resultArea').innerHTML = `<div class="sql-error">${escapeHtml(error.message)}</div>`;

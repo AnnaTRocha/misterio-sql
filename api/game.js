@@ -3,7 +3,7 @@ import { ensureProgress, ensureSchema, sql } from '../server/db.js';
 import { requireUser } from '../server/auth.js';
 import { action, body, fail, method } from '../server/http.js';
 import { argIdentityForUser, assessmentIdForPhase, assessmentSummary, ensureArgFoundation, unlockFinalProtocol } from '../server/arg.js';
-import { allowedStatement, evaluateChallenge, executeArchiveQuery, LESSONS } from '../server/challenges.js';
+import { allowedStatement, evaluateChallenge, executeArchiveQuery, LESSONS, previewInitialQuery } from '../server/challenges.js';
 import { consumeRateLimit } from '../server/rate-limit.js';
 import { CONCEPTS, publicConcept } from '../server/concepts.js';
 import { validationGuideForPhase, resetTestActivity } from '../server/test-tools.js';
@@ -116,8 +116,10 @@ export default async function handler(req, res) {
         const state = await challengeState(user.id, phaseId);
         const progress = await sql().query(`SELECT status FROM progress WHERE user_id=$1 AND phase_id=$2`, [user.id, phaseId]);
         const { answer, ...publicLesson } = LESSONS[phaseId];
+        if (phaseId === 4 && state.tables) publicLesson.tables = state.tables;
         return res.status(200).json({ phase_id: phaseId, lesson: publicLesson,
           concept: phaseId === 3 ? null : publicConcept(phaseId),
+          initial_preview: phaseId === 4 ? await previewInitialQuery(phaseId) : null,
           already_completed: progress[0]?.status === 'completed', ...state });
       } else {
         await ensureProgress(user.id, phaseId);
@@ -157,7 +159,7 @@ export default async function handler(req, res) {
           attempts=attempts+CASE WHEN $1::boolean THEN 0 ELSE 1 END WHERE user_id=$2 AND phase_id=$3`,
           [succeeded, user.id, phaseId]);
         if (!succeeded) return fail(res, 422, checked.lastError || 'Instrução inválida.');
-        return res.status(200).json({ ok: true, result: checked.result, milestones: checked.milestones });
+        return res.status(200).json({ ok: true, result: checked.result, milestones: checked.milestones, tables: checked.tables });
       }
 
       const safe = isSafeReadQuery(cleanQuery(queryText)) && cleanQuery(queryText).split(';').filter(Boolean).length <= 1;
@@ -278,7 +280,7 @@ async function challengeState(userId, phaseId) {
       return { history, milestones: LESSONS[3].objectives.map(([key]) => key), nosql_done, concept_done };
     }
   }
-  return { history, milestones: evaluated.milestones, nosql_done, concept_done };
+  return { history, milestones: evaluated.milestones, tables: evaluated.tables, nosql_done, concept_done };
 }
 
 async function availablePhase(phaseId, user) {

@@ -18,27 +18,43 @@ export async function executeArchiveQuery(query) {
   }
 }
 
+export async function previewInitialQuery(phaseId) {
+  if (Number(phaseId) !== 4) return [];
+  const SQL = await engine;
+  const db = new SQL.Database();
+  try {
+    db.run(seed);
+    return db.exec(LESSONS[4].initial).map(set => ({ columns: set.columns, values: set.values.slice(0, 100) }));
+  } finally {
+    db.close();
+  }
+}
+
 export const LESSONS = {
   3: PHASE_THREE,
   4: {
     title: 'O Padrão Quebrado', code: 'OBSERVATÓRIO // 1987', theme: 'catalog',
-    mission: 'Em três registros, um contato se repete. Reorganize o catálogo sem perder observações e vínculos.',
+    mission: 'O catálogo repete os dados de um observador. Organize os contatos sem apagar os cinco objetos nem as três observações já registradas.',
     answerPrompt: 'Informe o código que encerra a investigação.',
     initial: 'SELECT * FROM catalogo_bruto;', tables: ['catalogo_bruto', 'objetos_celestes'],
     objectives: [
-      ['alter', 'Adicionar origem_objeto_celeste sem remover os objetos cadastrados'],
-      ['observadores', 'Criar observadores com chave primária e campos obrigatórios'],
-      ['unico', 'Impedir telefone duplicado com uma restrição única'],
-      ['relacoes', 'Criar observacoes_catalogo com chaves válidas e vínculo único'],
-      ['migrar_observadores', 'Transferir cada contato uma única vez'],
-      ['migrar_observacoes', 'Representar as três observações originais sem perder os vínculos']
+      ['alter', 'Em objetos_celestes, criar origem_objeto_celeste (TEXT) e preservar os cinco objetos. Não é preciso preencher a coluna.'],
+      ['observadores', 'Criar observadores com id_observador (INTEGER, chave primária), nome_observador (TEXT obrigatório) e telefone_observador (TEXT obrigatório).'],
+      ['unico', 'Impedir telefone repetido em observadores.'],
+      ['relacoes', 'Criar observacoes_catalogo com chave primária, referências obrigatórias a objetos e observadores, nome_observatorio obrigatório e vínculo único por objeto, observador e observatório.'],
+      ['migrar_observadores', 'Copiar de catalogo_bruto cada combinação distinta de nome e telefone; devem resultar dois contatos.'],
+      ['migrar_observacoes', 'Copiar as três linhas de catalogo_bruto, relacionando cada objeto pelo nome e cada contato por nome e telefone.']
     ],
     hints: [
-      'Compare a quantidade de registros antes e depois da alteração estrutural.',
-      'Guarde cada contato uma única vez e use uma chave para localizá-lo.',
-      'Uma restrição pode impedir a repetição de um valor em vários registros.',
-      'Cada vínculo deve apontar para um objeto e um observador existentes.',
-      'Compare os registros organizados com as linhas da fonte.'
+      'Os dados de origem já estão carregados: o catálogo tem 3 registros e a tabela de objetos tem 5. Execute a consulta inicial para vê-los. As tabelas de destino ainda não existem; você vai criá-las e preenchê-las.',
+      'Compare os três registros do catálogo. O mesmo contato aparece mais de uma vez; ele deve ser guardado uma só vez.',
+      'Use ALTER TABLE para acrescentar origem_objeto_celeste como TEXT. Essa etapa muda a estrutura; os cinco objetos devem continuar lá e a nova coluna pode ficar sem valores.',
+      'Crie observadores com id_observador como chave primária INTEGER. Os campos nome_observador e telefone_observador devem ser TEXT e obrigatórios.',
+      'Adicione uma regra UNIQUE para telefone_observador; ela pode ser uma restrição da tabela ou um índice único.',
+      'Crie observacoes_catalogo com id_observacao_catalogo como chave primária, id_objeto_celeste e id_observador obrigatórios e nome_observatorio obrigatório. Faça os dois IDs referenciarem as tabelas correspondentes.',
+      'A combinação id_objeto_celeste + id_observador + nome_observatorio não pode se repetir. Compare as três linhas da origem com o resultado migrado.',
+      'Para copiar contatos sem duplicar, use SELECT DISTINCT sobre nome_observador e telefone_observador. O resultado esperado são 2 linhas.',
+      'Para copiar observações, relacione o catálogo aos objetos pelo nome e aos observadores por nome e telefone. Confira os totais finais: 5 objetos, 2 contatos e 3 observações.'
     ],
     answer: 'NORMALIZACAO'
   },
@@ -122,6 +138,7 @@ export function allowedStatement(phaseId, query) {
 
 export async function evaluateChallenge(phaseId, queries, groupId, nosqlDone = false) {
   const SQL = await engine;
+  // Cada avaliação usa uma cópia em memória; o histórico persistido é filtrado por usuário e fase na API.
   const db = new SQL.Database();
   const milestones = new Set();
   let result = [];
@@ -135,7 +152,8 @@ export async function evaluateChallenge(phaseId, queries, groupId, nosqlDone = f
     for (const query of queries) {
       if (!allowedStatement(phaseId, query)) { lastSucceeded = false; continue; }
       const statementKey = String(query).replace(/--[^\n]*/g, '').replace(/\/\*[\s\S]*?\*\//g, '').trim().replace(/;\s*$/, '');
-      if (phaseId === 4 && appliedPhaseFourStatements.has(statementKey)) {
+      const changesPhaseFourState = phaseId === 4 && /^(?:CREATE\s+TABLE|CREATE\s+(?:UNIQUE\s+)?INDEX|ALTER\s+TABLE|INSERT\b)/i.test(statementKey);
+      if (changesPhaseFourState && appliedPhaseFourStatements.has(statementKey)) {
         result = [];
         lastSucceeded = true;
         lastError = null;
@@ -145,7 +163,7 @@ export async function evaluateChallenge(phaseId, queries, groupId, nosqlDone = f
         result = db.exec(query);
         lastSucceeded = true;
         lastError = null;
-        if (phaseId === 4) appliedPhaseFourStatements.add(statementKey);
+        if (changesPhaseFourState) appliedPhaseFourStatements.add(statementKey);
         checkMilestones(phaseId, query, result, db, groupId).forEach(key => milestones.add(key));
         if (phaseId === 5 && /^BEGIN\b/i.test(query.trim())) { transactionOpen = true; transactionTouched = false; }
         if (phaseId === 5 && transactionOpen && /^(INSERT|UPDATE|DELETE)\b/i.test(query.trim())) transactionTouched = true;
@@ -156,7 +174,14 @@ export async function evaluateChallenge(phaseId, queries, groupId, nosqlDone = f
       } catch (error) { lastSucceeded = false; lastError = error.message; }
     }
     if (phaseId === 9 && nosqlDone) milestones.add('nosql');
-    return { milestones: [...milestones], result: result.map(set => ({ columns: set.columns, values: set.values.slice(0, 100) })), lastSucceeded, lastError };
+    const tables = phaseId === 4 ? phaseFourTableNames(db) : undefined;
+    return {
+      milestones: [...milestones],
+      result: result.map(set => ({ columns: set.columns, values: set.values.slice(0, 100) })),
+      ...(tables ? { tables } : {}),
+      lastSucceeded,
+      lastError
+    };
   } finally {
     db.close();
   }
@@ -169,6 +194,12 @@ function count(db, query) { return Number(db.exec(query)[0]?.values[0]?.[0] || 0
 function sameRows(left, right) {
   const normalize = values => values.map(row => JSON.stringify(row)).sort();
   return JSON.stringify(normalize(left)) === JSON.stringify(normalize(right));
+}
+
+function phaseFourTableNames(db) {
+  const rows = db.exec("SELECT name FROM sqlite_master WHERE type='table'")[0]?.values || [];
+  const existing = new Set(rows.map(([name]) => String(name).toLowerCase()));
+  return [...LESSONS[4].tables, 'observadores', 'observacoes_catalogo'].filter(name => existing.has(name.toLowerCase()));
 }
 
 function hasSingleColumnUniqueIndex(db, table, column) {

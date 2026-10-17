@@ -77,7 +77,7 @@ As Aulas 01 e 02 mantêm a investigação original e as respostas **1987** e **O
 | Aula | Conteúdo dos slides | Investigação |
 | --- | --- | --- |
 | 03 | `JOIN` e `LEFT JOIN` | Relacionar evidências, referências e recursos para identificar a marca registrada |
-| 04 | `ALTER` e normalização | Corrigir o catálogo redundante |
+| 04 | `ALTER` e normalização | Separar contatos de observações e preservar os objetos e vínculos existentes |
 | 05 | DML e transações | Corrigir os símbolos em uma transação |
 | 06 | DQL, filtros, `DISTINCT` e agregações | Separar sinais de 1987 do ruído |
 | 07 | `JOIN` | Relacionar acessos e objetos, achar ausências e setor do aglomerado |
