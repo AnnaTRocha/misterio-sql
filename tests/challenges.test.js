@@ -223,7 +223,14 @@ test('aula 4: não conclui a migração quando faltam observações e protege a 
 test('aula 4: o guia de validação acompanha os objetivos publicados', () => {
   const guide = expectedSqlForPhase(4);
   assert.deepEqual(guide.map(item => item.step), ['4.1', '4.2', '4.3', '4.4', '4.5', '4.6']);
-  assert.deepEqual(guide.map(item => item.objective), LESSONS[4].objectives.map(([, label]) => label));
+  const objectives = LESSONS[4].objectives.map(([, label]) => label);
+  assert.deepEqual(guide.map(item => item.objective), objectives);
+  assert.match(objectives[0], /tabela objetos_celestes.*coluna origem_objeto_celeste/i);
+  assert.match(objectives[1], /tabela observadores com as colunas.*id_observador.*nome_observador.*telefone_observador/i);
+  assert.match(objectives[2], /tabela observadores.*coluna telefone_observador/i);
+  assert.match(objectives[3], /tabela observacoes_catalogo.*coluna id_observacao_catalogo.*chave primária.*chaves estrangeiras/i);
+  assert.match(objectives[4], /tabela observadores.*colunas nome_observador e telefone_observador.*2 registros/i);
+  assert.match(objectives[5], /3 registros.*tabela observacoes_catalogo.*objetos_celestes.*observadores/i);
 });
 
 test('aula 4: o apoio opcional usa um exemplo independente sem comandos resolvidos', () => {

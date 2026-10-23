@@ -66,12 +66,12 @@ export const LESSONS = {
       ]
     },
     objectives: [
-      ['alter', '4.1 // Adicionar origem_objeto_celeste TEXT sem alterar os cinco objetos existentes'],
-      ['observadores', '4.2 // Criar observadores com IDENTITY, nome_observador e telefone_observador obrigatórios'],
-      ['unico', '4.3 // Impedir que telefone_observador se repita em observadores'],
-      ['relacoes', '4.4 // Criar observacoes_catalogo conforme os requisitos estruturados abaixo'],
-      ['migrar_observadores', '4.5 // Copiar cada par distinto de nome e telefone; o resultado deve ter 2 observadores'],
-      ['migrar_observacoes', '4.6 // Copiar as 3 observações relacionando objetos pelo nome e contatos por nome e telefone']
+      ['alter', '4.1 // Na tabela objetos_celestes, adicionar a coluna origem_objeto_celeste (TEXT), sem alterar os cinco registros existentes'],
+      ['observadores', '4.2 // Criar a tabela observadores com as colunas id_observador (INTEGER, chave primária), nome_observador (TEXT obrigatório) e telefone_observador (TEXT obrigatório)'],
+      ['unico', '4.3 // Na tabela observadores, impedir valores repetidos na coluna telefone_observador'],
+      ['relacoes', '4.4 // Na tabela observacoes_catalogo, definir a coluna id_observacao_catalogo como chave primária; tornar obrigatórias as colunas id_objeto_celeste, id_observador e nome_observatorio; criar chaves estrangeiras de id_objeto_celeste para objetos_celestes.id_objeto_celeste e de id_observador para observadores.id_observador; impedir repetição da combinação id_objeto_celeste, id_observador e nome_observatorio'],
+      ['migrar_observadores', '4.5 // Migrar para a tabela observadores os pares distintos de valores das colunas nome_observador e telefone_observador; o resultado deve conter 2 registros'],
+      ['migrar_observacoes', '4.6 // Migrar os 3 registros de origem para a tabela observacoes_catalogo; associar cada objeto pelo nome em objetos_celestes e cada observador pelo nome e telefone em observadores']
     ],
     requirements: {
       title: 'Conferência opcional // organização do catálogo',
