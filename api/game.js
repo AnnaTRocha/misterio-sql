@@ -6,7 +6,7 @@ import { argIdentityForUser, assessmentIdForPhase, assessmentSummary, ensureArgF
 import { allowedStatement, evaluateChallenge, executeArchiveQuery, LESSONS, previewInitialQuery } from '../server/challenges.js';
 import { consumeRateLimit } from '../server/rate-limit.js';
 import { CONCEPTS, publicConcept } from '../server/concepts.js';
-import { validationGuideForPhase, resetTestActivity } from '../server/test-tools.js';
+import { validationGuideForPhase, resetTestActivity, beginStudentRetake, isStudentRetakeActive } from '../server/test-tools.js';
 
 const ACCESS_DIGESTS = {
   1: '744b93f9950fc38dad705556931ea48193b99dcb191cc9bd77097f65fbe2f0b8',
@@ -55,7 +55,7 @@ export default async function handler(req, res) {
     if (!method(req, res, ['POST'])) return;
     const data = body(req);
 
-    const limits = { query: 12, complete: 8, 'concept-answer': 8, 'nosql-answer': 8, 'unlock-final': 5 };
+    const limits = { query: 12, complete: 8, 'concept-answer': 8, 'nosql-answer': 8, 'unlock-final': 5, 'retake-activity': 2 };
     if (limits[op] && !(await consumeRateLimit(user.id, op, limits[op]))) {
       res.setHeader('Retry-After', '60');
       return fail(res, 429, 'Muitas tentativas em pouco tempo. Aguarde um minuto.');
@@ -69,13 +69,16 @@ export default async function handler(req, res) {
 
     if (op === 'nosql-answer') {
       if (!(await availablePhase(9, user))) return fail(res, 403, 'Fase indisponível.');
+      const retakeActive = await isStudentRetakeActive(user.id, 9);
       const answer = normalizeAccessCode(data.answer);
       const correct = answer === 'find';
       await sql().query(`INSERT INTO arg_submissions(user_id,assessment_id,phase_id,answer,correct) VALUES($1,$2,9,$3,$4)`,
         [user.id, assessmentIdForPhase(9), answer, correct]);
       if (!correct) {
         await ensureProgress(user.id, 9);
-        await sql().query(`UPDATE progress SET attempts=attempts+1 WHERE user_id=$1 AND phase_id=9`, [user.id]);
+        if (!retakeActive) {
+          await sql().query(`UPDATE progress SET attempts=attempts+1 WHERE user_id=$1 AND phase_id=9`, [user.id]);
+        }
         return fail(res, 422, CONCEPTS[9].feedback);
       }
       return res.status(200).json({ ok: true, ...(await challengeState(user.id, 9)) });
@@ -84,16 +87,28 @@ export default async function handler(req, res) {
     if (op === 'concept-answer') {
       const phaseId = Number(data.phase_id);
       if (!CONCEPTS[phaseId] || !(await availablePhase(phaseId, user))) return fail(res, 403, 'Fase indisponível.');
+      const retakeActive = await isStudentRetakeActive(user.id, phaseId);
       const answer = String(data.answer || '');
       const correct = answer === CONCEPTS[phaseId].answer;
       await sql().query(`INSERT INTO arg_submissions(user_id,assessment_id,phase_id,answer,correct) VALUES($1,$2,$3,$4,$5)`,
         [user.id, assessmentIdForPhase(phaseId), phaseId, answer, correct]);
       if (!correct) {
         await ensureProgress(user.id, phaseId);
-        await sql().query(`UPDATE progress SET attempts=attempts+1 WHERE user_id=$1 AND phase_id=$2`, [user.id, phaseId]);
+        if (!retakeActive) {
+          await sql().query(`UPDATE progress SET attempts=attempts+1 WHERE user_id=$1 AND phase_id=$2`, [user.id, phaseId]);
+        }
         return fail(res, 422, CONCEPTS[phaseId].feedback);
       }
       return res.status(200).json({ ok: true, ...(phaseId === 9 ? await challengeState(user.id, phaseId) : {}) });
+    }
+
+    if (op === 'retake-activity') {
+      if (user.is_test) return fail(res, 403, 'Ação indisponível para usuário teste.');
+      const phaseId = Number(data.phase_id);
+      if (!(await availablePhase(phaseId, user))) return fail(res, 403, 'Fase indisponível.');
+      const started = await beginStudentRetake(user.id, phaseId);
+      if (!started) return fail(res, 422, 'Só é possível refazer uma atividade já concluída.');
+      return res.status(200).json({ ok: true });
     }
 
     if (op === 'reset-test-activity') {
@@ -135,7 +150,8 @@ export default async function handler(req, res) {
       const milestones = await collectedMilestones(user.id, phaseId);
       const quiz = await sql().query(`SELECT 1 FROM arg_submissions WHERE user_id=$1 AND phase_id=$2 AND correct=TRUE LIMIT 1`, [user.id, phaseId]);
       const progress = await sql().query(`SELECT status FROM progress WHERE user_id=$1 AND phase_id=$2`, [user.id, phaseId]);
-      return res.status(200).json({ phase_id: phase.id, milestones, concept: publicConcept(phaseId), concept_done: Boolean(quiz[0]), already_completed: progress[0]?.status === 'completed' });
+      const retakeActive = await isStudentRetakeActive(user.id, phaseId);
+      return res.status(200).json({ phase_id: phaseId, milestones, concept: publicConcept(phaseId), concept_done: Boolean(quiz[0]), already_completed: progress[0]?.status === 'completed', retake_active: retakeActive });
     }
 
     if (op === 'query') {
@@ -144,6 +160,7 @@ export default async function handler(req, res) {
 
       if (!(await availablePhase(phaseId, user))) return fail(res, 403, 'Fase indisponível.');
       if (!queryText || queryText.length > 5000) return fail(res, 422, 'Consulta inválida.');
+      const retakeActive = await isStudentRetakeActive(user.id, phaseId);
 
       if (phaseId >= 3) {
         if (!allowedStatement(phaseId, queryText)) return fail(res, 422, 'Comando fora do escopo desta aula ou mais de uma instrução por execução.');
@@ -155,9 +172,11 @@ export default async function handler(req, res) {
         await ensureProgress(user.id, phaseId);
         await sql().query(`INSERT INTO student_queries(user_id,phase_id,query_text,success) VALUES($1,$2,$3,$4)`,
           [user.id, phaseId, queryText, succeeded]);
-        await sql().query(`UPDATE progress SET queries_count=queries_count+1,
-          attempts=attempts+CASE WHEN $1::boolean THEN 0 ELSE 1 END WHERE user_id=$2 AND phase_id=$3`,
-          [succeeded, user.id, phaseId]);
+        if (!retakeActive) {
+          await sql().query(`UPDATE progress SET queries_count=queries_count+1,
+            attempts=attempts+CASE WHEN $1::boolean THEN 0 ELSE 1 END WHERE user_id=$2 AND phase_id=$3`,
+            [succeeded, user.id, phaseId]);
+        }
         if (!succeeded) return fail(res, 422, checked.lastError || 'Instrução inválida.');
         return res.status(200).json({ ok: true, result: checked.result, milestones: checked.milestones, tables: checked.tables });
       }
@@ -177,13 +196,15 @@ export default async function handler(req, res) {
          VALUES ($1,$2,$3,$4)`,
         [user.id, phaseId, queryText, executed]
       );
-      await sql().query(
-        `UPDATE progress
-         SET queries_count=queries_count+1,
-             attempts=attempts+CASE WHEN $1::boolean=FALSE THEN 1 ELSE 0 END
-         WHERE user_id=$2 AND phase_id=$3`,
-        [executed, user.id, phaseId]
-      );
+      if (!retakeActive) {
+        await sql().query(
+          `UPDATE progress
+           SET queries_count=queries_count+1,
+               attempts=attempts+CASE WHEN $1::boolean=FALSE THEN 1 ELSE 0 END
+           WHERE user_id=$2 AND phase_id=$3`,
+          [executed, user.id, phaseId]
+        );
+      }
 
       if (!executed) return fail(res, 422, error || 'Consulta de leitura inválida.');
       const milestones = await collectedMilestones(user.id, phaseId);
@@ -199,6 +220,7 @@ export default async function handler(req, res) {
       const phaseId = Number(data.phase_id);
       const phase = await availablePhase(phaseId, user);
       if (!phase) return fail(res, 403, 'Fase indisponível.');
+      const retakeActive = await isStudentRetakeActive(user.id, phaseId);
 
       if (phaseId >= 3) {
         const state = await challengeState(user.id, phaseId);
@@ -206,14 +228,19 @@ export default async function handler(req, res) {
         const missing = lesson.objectives.filter(([key]) => !state.milestones.includes(key));
         if (missing.length) return fail(res, 422, `Ainda faltam ${missing.length} requisito(s).`);
         const previousCompletion = await sql().query(`SELECT 1 FROM progress WHERE user_id=$1 AND phase_id=$2 AND status='completed' LIMIT 1`, [user.id, phaseId]);
-        if (phaseId !== 3 && !previousCompletion[0] && !state.concept_done) return fail(res, 422, 'Conclua a checagem conceitual desta aula.');
-        if (!previousCompletion[0] && normalizeAccessCode(data.answer) !== normalizeAccessCode(lesson.answer)) {
-          await sql().query(`UPDATE progress SET attempts=attempts+1 WHERE user_id=$1 AND phase_id=$2`, [user.id, phaseId]);
+        if (phaseId !== 3 && (!previousCompletion[0] || retakeActive) && !state.concept_done) return fail(res, 422, 'Conclua a checagem conceitual desta aula.');
+        if ((!previousCompletion[0] || retakeActive) && normalizeAccessCode(data.answer) !== normalizeAccessCode(lesson.answer)) {
+          if (!retakeActive) {
+            await sql().query(`UPDATE progress SET attempts=attempts+1 WHERE user_id=$1 AND phase_id=$2`, [user.id, phaseId]);
+          }
           return fail(res, 422, 'Identificação incorreta.');
         }
         await sql().query(`UPDATE progress SET status='completed', completed_at=COALESCE(completed_at,NOW()) WHERE user_id=$1 AND phase_id=$2`, [user.id, phaseId]);
         if (phaseId === 3) {
           await sql().query(`UPDATE phase3_progress SET status='completed', completed_at=COALESCE(completed_at,NOW()) WHERE user_id=$1`, [user.id]);
+        }
+        if (retakeActive) {
+          await sql().query('DELETE FROM activity_retakes WHERE user_id=$1 AND phase_id=$2', [user.id, phaseId]);
         }
         return res.status(200).json({ ok: true, reward: lesson.answer });
       }
@@ -226,7 +253,7 @@ export default async function handler(req, res) {
       }
 
       const previousCompletion = await sql().query(`SELECT 1 FROM progress WHERE user_id=$1 AND phase_id=$2 AND status='completed' LIMIT 1`, [user.id, phaseId]);
-      if (!previousCompletion[0]) {
+      if (!previousCompletion[0] || retakeActive) {
         const quiz = await sql().query(`SELECT 1 FROM arg_submissions WHERE user_id=$1 AND phase_id=$2 AND correct=TRUE LIMIT 1`, [user.id, phaseId]);
         if (!quiz[0]) return fail(res, 422, 'Conclua a pergunta conceitual desta aula.');
       }
@@ -234,7 +261,9 @@ export default async function handler(req, res) {
       const normalized = normalizeAccessCode(data.answer);
       const digest = crypto.createHash('sha256').update(normalized).digest('hex');
       if (digest !== ACCESS_DIGESTS[phaseId]) {
-        await sql().query(`UPDATE progress SET attempts=attempts+1 WHERE user_id=$1 AND phase_id=$2`, [user.id, phaseId]);
+        if (!retakeActive) {
+          await sql().query(`UPDATE progress SET attempts=attempts+1 WHERE user_id=$1 AND phase_id=$2`, [user.id, phaseId]);
+        }
         return fail(res, 422, 'Código de acesso incorreto.');
       }
       await ensureProgress(user.id, phaseId);
@@ -243,6 +272,9 @@ export default async function handler(req, res) {
          WHERE user_id=$1 AND phase_id=$2`,
         [user.id, phaseId]
       );
+      if (retakeActive) {
+        await sql().query('DELETE FROM activity_retakes WHERE user_id=$1 AND phase_id=$2', [user.id, phaseId]);
+      }
 
       return res.status(200).json({ ok: true, reward: phase.reward });
     }
@@ -259,6 +291,7 @@ export default async function handler(req, res) {
 }
 
 async function challengeState(userId, phaseId) {
+  const retake_active = await isStudentRetakeActive(userId, phaseId);
   const records = await sql().query(`SELECT query_text FROM student_queries WHERE user_id=$1 AND phase_id=$2 AND success=TRUE ORDER BY id`, [userId, phaseId]);
   const oldRecords = phaseId === 3
     ? await sql().query(`SELECT query_text FROM phase3_queries WHERE user_id=$1 AND success=TRUE ORDER BY id`, [userId])
@@ -276,11 +309,11 @@ async function challengeState(userId, phaseId) {
   if (phaseId === 3) {
     const completed = await sql().query(`SELECT 1 FROM progress
       WHERE user_id=$1 AND phase_id=3 AND status='completed' LIMIT 1`, [userId]);
-    if (completed[0]) {
-      return { history, milestones: LESSONS[3].objectives.map(([key]) => key), nosql_done, concept_done };
+    if (completed[0] && !retake_active) {
+      return { history, milestones: LESSONS[3].objectives.map(([key]) => key), nosql_done, concept_done, retake_active };
     }
   }
-  return { history, milestones: evaluated.milestones, tables: evaluated.tables, nosql_done, concept_done };
+  return { history, milestones: evaluated.milestones, tables: evaluated.tables, nosql_done, concept_done, retake_active };
 }
 
 async function availablePhase(phaseId, user) {
@@ -304,7 +337,9 @@ async function availablePhase(phaseId, user) {
 
 async function collectedMilestones(userId, phaseId) {
   const progress = await sql().query(`SELECT status FROM progress WHERE user_id=$1 AND phase_id=$2`, [userId, phaseId]);
-  if (progress[0]?.status === 'completed') return PHASE_REQUIREMENTS[phaseId] || [];
+  if (progress[0]?.status === 'completed' && !(await isStudentRetakeActive(userId, phaseId))) {
+    return PHASE_REQUIREMENTS[phaseId] || [];
+  }
   const rows = await sql().query(
       `SELECT query_text
        FROM student_queries

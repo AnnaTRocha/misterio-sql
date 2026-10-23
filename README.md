@@ -72,7 +72,7 @@ TEACHER_INITIAL_PASSWORD=uma-senha-aleatoria-com-12-ou-mais-caracteres
 
 ## Exercícios alinhados aos slides
 
-As Aulas 01 e 02 mantêm a investigação original e as respostas **1987** e **ORION**. Cada aula possui uma checagem conceitual curta, ligada aos slides, além da evidência SQL e do código. As alternativas aparecem como cartões acessíveis. A resposta correta é validada apenas no servidor. Atividades já concluídas permanecem concluídas.
+As Aulas 01 e 02 mantêm a investigação original e as respostas **1987** e **ORION**. Cada aula possui uma checagem conceitual curta, ligada aos slides, além da evidência SQL e do código. As alternativas aparecem como cartões acessíveis. A resposta correta é validada apenas no servidor. Atividades já concluídas permanecem concluídas. O aluno também pode escolher refazer uma fase concluída; isso limpa as consultas e respostas de prática da fase, mantendo a conclusão, a nota e as liberações.
 
 | Aula | Conteúdo dos slides | Investigação |
 | --- | --- | --- |

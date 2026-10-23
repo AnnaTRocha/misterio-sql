@@ -61,7 +61,7 @@ export const LESSONS = {
   5: {
     title: 'A Sexta Estrela', code: 'OBSERVATÓRIO // 1987', theme: 'transaction',
     mission: 'Três inconsistências foram encontradas no arquivo de símbolos. Corrija os dados da cópia de investigação.',
-    answerPrompt: 'Depois das correções, um nome resiste ao ruído. Qual?',
+    answerPrompt: 'Qual é o nome do aglomerado de seis estrelas inserido e confirmado?',
     initial: 'SELECT * FROM simbolos;', tables: ['simbolos'],
     objectives: [
       ['insert', 'Inserir o aglomerado de seis estrelas como confirmado'],
@@ -78,7 +78,7 @@ export const LESSONS = {
     answerPrompt: 'Qual é o código do setor associado aos registros do incidente?',
     initial: 'SELECT * FROM objetos_celestes;', tables: ['objetos_celestes', 'acessos_celestes'],
     objectives: [
-      ['filter', 'Filtrar os objetos de 1987 pelo setor do primeiro registro'],
+      ['filter', 'Filtrar os objetos de 1987 pelo setor indicado no registro ORION'],
       ['distinct', 'Listar setores sem repetição'],
       ['aggregate', 'Contar objetos por ano e ordenar o maior grupo primeiro']
     ],
@@ -132,7 +132,7 @@ export function allowedStatement(phaseId, query) {
   if (/\b(ATTACH|DETACH|VACUUM|LOAD_EXTENSION)\b/i.test(cleaned)) return false;
   if (phaseId === 3) return /^(SELECT|WITH|PRAGMA\s+table_info)/i.test(cleaned) && !/\b(INSERT|UPDATE|DELETE|DROP|ALTER|CREATE|REPLACE)\b/i.test(cleaned);
   if (phaseId === 4) return /^(CREATE\s+TABLE|CREATE\s+(?:UNIQUE\s+)?INDEX|ALTER\s+TABLE\s+objetos_celestes\b|INSERT(?:\s+OR\s+IGNORE)?\s+INTO\s+(?:observadores|observacoes_catalogo)\b|SELECT|PRAGMA\s+(?:table_info|foreign_key_list|index_list|index_info))/i.test(cleaned);
-  if (phaseId === 5) return /^(INSERT|UPDATE|DELETE|SELECT|BEGIN|COMMIT|ROLLBACK|SAVEPOINT)/i.test(cleaned);
+  if (phaseId === 5) return /^(INSERT|UPDATE|DELETE|SELECT|BEGIN|COMMIT|ROLLBACK|SAVEPOINT|PRAGMA\s+table_info\s*\(\s*simbolos\s*\))/i.test(cleaned);
   return /^(SELECT|WITH|PRAGMA\s+table_info)/i.test(cleaned) && !/\b(INSERT|UPDATE|DELETE|DROP|ALTER|CREATE|REPLACE)\b/i.test(cleaned);
 }
 

@@ -34,7 +34,7 @@ const EXPECTED_SQL = {
     { step: '5.5', objective: 'Confirmar transação', sql: 'COMMIT;' }
   ],
   6: [
-    { step: '6.1', objective: 'Filtrar', sql: "SELECT nome FROM objetos_celestes WHERE ano=1987 AND setor='N-04';" },
+    { step: '6.1', objective: 'Filtrar os objetos de 1987 pelo setor indicado no registro ORION', sql: "SELECT nome FROM objetos_celestes WHERE ano=1987 AND setor='N-04';" },
     { step: '6.2', objective: 'Setores distintos', sql: 'SELECT DISTINCT setor FROM objetos_celestes;' },
     { step: '6.3', objective: 'Resumo', sql: 'SELECT ano,COUNT(*) FROM objetos_celestes GROUP BY ano ORDER BY COUNT(*) DESC;' }
   ],
@@ -72,6 +72,47 @@ export function validationGuideForPhase(phaseId, archiveReward) {
   };
 }
 
+export async function isStudentRetakeActive(userId, phaseId) {
+  const rows = await sql().query(
+    'SELECT 1 FROM activity_retakes WHERE user_id=$1 AND phase_id=$2 LIMIT 1',
+    [userId, Number(phaseId)]
+  );
+  return Boolean(rows[0]);
+}
+
+export async function beginStudentRetake(userId, phaseId) {
+  const normalizedPhase = Number(phaseId);
+  if (!Number.isInteger(normalizedPhase) || normalizedPhase < 1 || normalizedPhase > 9) return false;
+
+  const db = sql();
+  const eligibility = await db.query(`
+    SELECT p.status, u.is_test
+    FROM progress p
+    JOIN users u ON u.id=p.user_id
+    WHERE p.user_id=$1 AND p.phase_id=$2
+    LIMIT 1
+  `, [userId, normalizedPhase]);
+  if (eligibility[0]?.status !== 'completed' || eligibility[0]?.is_test) return false;
+
+  const started = await db.query(`
+    INSERT INTO activity_retakes (user_id, phase_id)
+    VALUES ($1, $2)
+    ON CONFLICT (user_id, phase_id) DO NOTHING
+    RETURNING phase_id
+  `, [userId, normalizedPhase]);
+  if (!started[0]) return true;
+
+  await db.query('DELETE FROM student_queries WHERE user_id=$1 AND phase_id=$2', [userId, normalizedPhase]);
+  if (normalizedPhase === 3) {
+    await db.query('DELETE FROM phase3_queries WHERE user_id=$1', [userId]);
+  }
+  await db.query(
+    'DELETE FROM arg_submissions WHERE user_id=$1 AND phase_id=$2',
+    [userId, normalizedPhase]
+  );
+  return true;
+}
+
 export async function resetTestActivity(userId, phaseId) {
   const normalizedPhase = Number(phaseId);
   if (!Number.isInteger(normalizedPhase) || normalizedPhase < 1 || normalizedPhase > 9) return false;
@@ -79,6 +120,7 @@ export async function resetTestActivity(userId, phaseId) {
   const db = sql();
 
   await db.query('DELETE FROM student_queries WHERE user_id=$1 AND phase_id=$2', [userId, normalizedPhase]);
+  await db.query('DELETE FROM activity_retakes WHERE user_id=$1 AND phase_id=$2', [userId, normalizedPhase]);
   await db.query('DELETE FROM progress WHERE user_id=$1 AND phase_id=$2', [userId, normalizedPhase]);
 
   if (normalizedPhase === 3) {
