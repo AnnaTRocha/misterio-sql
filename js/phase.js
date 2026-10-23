@@ -1,6 +1,7 @@
 import { api, escapeHtml, requireSession } from './api-client.js';
 import { sqlToExecute } from './sql-selection.js';
 import { renderValidationGuide } from './validation-guide.js';
+import { confirmInPage } from './confirm-dialog.js';
 
 const phaseId = Number(new URLSearchParams(location.search).get('id'));
 const PHASE_TABLES = {
@@ -226,12 +227,16 @@ function renderRetakeControl() {
   if (retakeActive) {
     return '<p class="concept-confirmed">REFEITURA EM ANDAMENTO // conclusão, nota e liberações anteriores preservadas</p>';
   }
-  return '<div class="retake-option"><p>Você pode praticar novamente. A conclusão, a nota e as fases liberadas serão mantidas.</p><button id="retakeBtn" class="primary-btn" type="button">Refazer atividade</button></div>';
+  return '<div class="retake-option"><p>Você pode praticar novamente. A maior nota, a conclusão e as fases liberadas serão mantidas.</p><button id="retakeBtn" class="primary-btn" type="button">Refazer atividade</button><p id="retakeFeedback" class="retake-feedback" role="alert" aria-live="assertive"></p></div>';
 }
 
 async function startRetake(event) {
   const button = event.currentTarget;
-  if (!confirm('Refazer esta atividade? As consultas e respostas de prática desta fase serão apagadas. A conclusão, a nota e as fases liberadas serão mantidas.')) return;
+  if (!await confirmInPage({
+    title: 'Refazer atividade',
+    message: 'As consultas e respostas de prática desta fase serão apagadas. A maior nota, a conclusão e as fases liberadas serão mantidas.',
+    confirmLabel: 'Apagar e refazer'
+  })) return;
   button.disabled = true;
   try {
     await api('/api/game?action=retake-activity', {
@@ -241,7 +246,7 @@ async function startRetake(event) {
     location.reload();
   } catch (error) {
     button.disabled = false;
-    alert(error.message);
+    document.getElementById('retakeFeedback').textContent = error.message;
   }
 }
 
@@ -409,13 +414,18 @@ async function loadTestTools() {
   try {
     const data = await api(`/api/game?action=test-tools&phase_id=${phaseId}`);
     root.hidden = false;
-    root.innerHTML = renderValidationGuide(data, 'resetTestActivity');
+    root.innerHTML = `${renderValidationGuide(data, 'resetTestActivity')}<p id="testResetFeedback" class="retake-feedback" role="alert" aria-live="assertive"></p>`;
 
     document.getElementById('resetTestActivity').addEventListener('click', async event => {
-      if (!confirm('Refazer esta atividade? Todos os checklists e consultas registradas desta fase serão zerados para este usuário teste.')) return;
+      if (!await confirmInPage({
+        title: 'Refazer atividade de teste',
+        message: 'Os checklists, as consultas e as respostas desta fase serão apagados para este usuário de teste.',
+        confirmLabel: 'Apagar e refazer'
+      })) return;
 
       const button = event.currentTarget;
       button.disabled = true;
+      const originalLabel = button.textContent;
       button.textContent = 'Zerando atividade...';
 
       try {
@@ -426,8 +436,8 @@ async function loadTestTools() {
         location.reload();
       } catch (error) {
         button.disabled = false;
-        button.textContent = 'Refazer atividade';
-        alert(error.message);
+        button.textContent = originalLabel;
+        document.getElementById('testResetFeedback').textContent = error.message;
       }
     });
   } catch (error) {

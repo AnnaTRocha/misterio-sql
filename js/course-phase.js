@@ -1,6 +1,7 @@
 import { api, escapeHtml, requireSession } from './api-client.js';
 import { sqlToExecute } from './sql-selection.js';
 import { renderValidationGuide } from './validation-guide.js';
+import { confirmInPage } from './confirm-dialog.js';
 
 const phaseId = Number(new URLSearchParams(location.search).get('id'));
 const $ = id => document.getElementById(id);
@@ -94,11 +95,23 @@ async function loadTestTools() {
   const data = await api(`/api/game?action=test-tools&phase_id=${phaseId}`);
   const area = $('testTools');
   area.hidden = false;
-  area.innerHTML = renderValidationGuide(data, 'testReset');
+  area.innerHTML = `${renderValidationGuide(data, 'testReset')}<p id="testResetFeedback" class="retake-feedback" role="alert" aria-live="assertive"></p>`;
   $('testReset').addEventListener('click', async () => {
-    if (!confirm('Refazer esta atividade e apagar o progresso desta conta de teste?')) return;
-    await api('/api/game?action=reset-test-activity', { method: 'POST', body: { phase_id: phaseId } });
-    location.reload();
+    if (!await confirmInPage({
+      title: 'Refazer atividade de teste',
+      message: 'O progresso desta conta de teste, as consultas e as respostas desta fase serão apagados.',
+      confirmLabel: 'Apagar e refazer'
+    })) return;
+
+    const button = $('testReset');
+    button.disabled = true;
+    try {
+      await api('/api/game?action=reset-test-activity', { method: 'POST', body: { phase_id: phaseId } });
+      location.reload();
+    } catch (error) {
+      button.disabled = false;
+      $('testResetFeedback').textContent = error.message;
+    }
   });
 }
 
@@ -143,19 +156,23 @@ function renderRetakeControl() {
   if (retakeActive) {
     return '<p class="concept-confirmed">REFEITURA EM ANDAMENTO // conclusão, nota e liberações anteriores preservadas</p>';
   }
-  return '<div class="retake-option"><p>Você pode praticar novamente. A conclusão, a nota e as fases liberadas serão mantidas.</p><button id="retakeBtn" class="primary-btn" type="button">Refazer atividade</button></div>';
+  return '<div class="retake-option"><p>Você pode praticar novamente. A maior nota, a conclusão e as fases liberadas serão mantidas.</p><button id="retakeBtn" class="primary-btn" type="button">Refazer atividade</button><p id="retakeFeedback" class="retake-feedback" role="alert" aria-live="assertive"></p></div>';
 }
 
 async function startRetake(event) {
   const button = event.currentTarget;
-  if (!confirm('Refazer esta atividade? As consultas e respostas de prática desta fase serão apagadas. A conclusão, a nota e as fases liberadas serão mantidas.')) return;
+  if (!await confirmInPage({
+    title: 'Refazer atividade',
+    message: 'As consultas e respostas de prática desta fase serão apagadas. A maior nota, a conclusão e as fases liberadas serão mantidas.',
+    confirmLabel: 'Apagar e refazer'
+  })) return;
   button.disabled = true;
   try {
     await api('/api/game?action=retake-activity', { method: 'POST', body: { phase_id: phaseId } });
     location.reload();
   } catch (error) {
     button.disabled = false;
-    alert(error.message);
+    $('retakeFeedback').textContent = error.message;
   }
 }
 

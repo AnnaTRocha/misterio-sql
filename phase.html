@@ -102,5 +102,17 @@
     <section class="case-finish" id="finishArea"></section>
     <section class="test-tools" id="testTools" hidden></section>
   </main>
+
+  <dialog id="confirmationDialog" class="confirmation-dialog" aria-labelledby="confirmationTitle" aria-describedby="confirmationMessage">
+    <form method="dialog">
+      <span class="dashboard-kicker">CONFIRMAÇÃO</span>
+      <h2 id="confirmationTitle">Refazer atividade</h2>
+      <p id="confirmationMessage"></p>
+      <div class="confirmation-actions">
+        <button class="confirmation-cancel" type="submit" value="cancel">Cancelar</button>
+        <button class="confirmation-accept" id="confirmationAccept" type="submit" value="confirm">Refazer atividade</button>
+      </div>
+    </form>
+  </dialog>
 </body>
 </html>
