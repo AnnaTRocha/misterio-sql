@@ -3,9 +3,13 @@ import { sqlToExecute } from './sql-selection.js';
 import { renderValidationGuide } from './validation-guide.js';
 import { confirmInPage } from './confirm-dialog.js';
 import { renderQueryResultCell } from './query-result-cell.js';
+import { bindSqlHighlight } from './sql-highlight.js';
+import { renderSchema } from './schema-view.js';
+import { renderHint } from './hint-renderer.js';
 
 const phaseId = Number(new URLSearchParams(location.search).get('id'));
 const $ = id => document.getElementById(id);
+const refreshSqlHighlight = bindSqlHighlight($('sqlEditor'), $('sqlHighlight'));
 let ready = false;
 let lesson;
 let milestones = new Set();
@@ -19,8 +23,20 @@ let isTestUser = false;
 function renderTableButtons(tables) {
   $('tableButtons').innerHTML = tables.map(name => `<button class="db-button" data-table="${escapeHtml(name)}" type="button">${escapeHtml(name)}</button>`).join('');
   $('tableButtons').querySelectorAll('[data-table]').forEach(button => button.addEventListener('click', () => {
-    $('sqlEditor').value = `SELECT * FROM ${button.dataset.table};`;
+    setEditorValue(`SELECT * FROM ${button.dataset.table};`);
   }));
+}
+
+function setEditorValue(value) {
+  $('sqlEditor').value = value;
+  refreshSqlHighlight();
+}
+
+function renderObjectiveRequirements(requirements) {
+  if (!requirements) return '';
+  const rows = requirements.rows.map(row => `<tr>${row.map(value => `<td>${escapeHtml(value)}</td>`).join('')}</tr>`).join('');
+  const headers = (requirements.headers || ['Parte', 'Critério']).map(value => `<th>${escapeHtml(value)}</th>`).join('');
+  return `<details class="objective-spec"><summary>${escapeHtml(requirements.title)}</summary><p>${escapeHtml(requirements.intro)}</p><div class="objective-spec-scroll"><table class="result-table objective-spec-table"><thead><tr>${headers}</tr></thead><tbody>${rows}</tbody></table></div><p class="objective-spec-expected">${escapeHtml(requirements.expected)}</p></details>`;
 }
 
 async function init() {
@@ -49,9 +65,9 @@ async function init() {
       : phaseId === 4
         ? 'Os dados de origem já estão carregados. As tabelas de destino ainda não existem: você vai criá-las e migrar os dados. Sua cópia é individual: suas alterações não afetam os demais estudantes.'
         : 'Execute uma instrução por vez. Alterações acontecem apenas na sua cópia de investigação.';
-    $('storyLog').innerHTML = `<p>${escapeHtml(lesson.mission)}</p><p>${scopeText}</p>${phaseId === 4 ? renderWarmup(lesson.warmup) : ''}`;
-    configureWarmup();
-    $('sqlEditor').value = lesson.initial;
+    $('storyLog').innerHTML = `<p>${escapeHtml(lesson.mission)}</p><p>${scopeText}</p><p class="dialect-note">TERMINAL // subconjunto de SQL compatível com PostgreSQL. Use “estrutura” para inspecionar as colunas; PRAGMA é específico do SQLite.</p>${phaseId === 4 ? renderWarmup(lesson.warmup) : ''}`;
+    $('objectiveRequirements').innerHTML = renderObjectiveRequirements(lesson.requirements);
+    setEditorValue(lesson.initial);
     renderTableButtons(lesson.tables);
     render();
     ready = true;
@@ -70,26 +86,10 @@ async function init() {
 
 function renderWarmup(warmup) {
   if (!warmup) return '';
+  const headings = warmup.columns.map(value => `<th>${escapeHtml(value)}</th>`).join('');
   const sourceRows = warmup.source.map(row => `<tr>${row.map(value => `<td>${escapeHtml(String(value))}</td>`).join('')}</tr>`).join('');
-  const steps = warmup.steps.map((step, index) => `
-    <details class="ddl-warmup-step" ${index === 0 ? 'open' : ''}>
-      <summary>${escapeHtml(step.title)}</summary>
-      <p>${escapeHtml(step.text)}</p>
-      ${index === 0 ? `<div class="ddl-warmup-data"><table><thead><tr><th>Código</th><th>Setor</th><th>Umidade</th><th>Horário</th></tr></thead><tbody>${sourceRows}</tbody></table></div>` : ''}
-      <pre><code>${escapeHtml(step.sql)}</code></pre>
-      <p class="ddl-warmup-expected"><strong>O que observar:</strong> ${escapeHtml(step.expected)}</p>
-    </details>`).join('');
-  return `<details class="ddl-warmup"><summary>${escapeHtml(warmup.title)}</summary><p>${escapeHtml(warmup.intro)}</p><p class="ddl-warmup-sequence">Abra uma etapa por vez. Este exemplo é apenas de leitura e não faz parte dos objetivos avaliados.</p>${steps}</details>`;
-}
-
-function configureWarmup() {
-  const steps = [...document.querySelectorAll('.ddl-warmup-step')];
-  steps.forEach(step => step.addEventListener('toggle', () => {
-    if (!step.open) return;
-    for (const other of steps) {
-      if (other !== step) other.open = false;
-    }
-  }));
+  const questions = warmup.questions.map(question => `<li>${escapeHtml(question)}</li>`).join('');
+  return `<details class="ddl-warmup"><summary>${escapeHtml(warmup.title)}</summary><p>${escapeHtml(warmup.intro)}</p><div class="ddl-warmup-data"><table><thead><tr>${headings}</tr></thead><tbody>${sourceRows}</tbody></table></div><p class="ddl-warmup-prompt-title">Observe os dados:</p><ol class="ddl-warmup-prompts">${questions}</ol><p class="ddl-warmup-sequence">Este exemplo não pontua. Use suas observações para elaborar a solução da fase.</p></details>`;
 }
 
 async function loadTestTools() {
@@ -183,25 +183,20 @@ function statementForFeedback(query) {
 
 function readOnlyPreview(result, query = '') {
   const statement = statementForFeedback(query);
-  const returnsRows = /^(SELECT|WITH|PRAGMA)\b/i.test(statement);
-  const tableInfo = statement.match(/^PRAGMA\s+table_info\s*\(\s*["'`]?([\w-]+)["'`]?\s*\)/i);
+  const returnsRows = /^(SELECT|WITH)\b/i.test(statement);
   if (!result.length) {
     const message = returnsRows
-      ? tableInfo
-        ? `Nenhuma coluna encontrada para “${escapeHtml(tableInfo[1])}”. Confira o nome da tabela e se ela existe nesta fase.`
-        : 'A consulta foi executada, mas não retornou linhas. Confira o nome da tabela e os filtros aplicados.'
-      : 'Comando executado. Esta instrução não retorna uma tabela de resultados; consulte os dados com SELECT ou a estrutura com PRAGMA table_info(nome_da_tabela).';
+      ? 'A consulta foi executada, mas não retornou linhas. Confira o nome da tabela e os filtros aplicados.'
+      : 'Comando executado. Esta instrução não retorna uma tabela de resultados; consulte os dados com SELECT ou use o botão estrutura.';
     return `<div class="empty-result"><span>${returnsRows ? '!' : '✓'}</span><p>${message}</p></div>`;
   }
 
   return result.map(set => {
     const hasRows = set.values.length > 0;
     const emptyMessage = !hasRows
-      ? tableInfo
-        ? `Nenhuma coluna encontrada para “${escapeHtml(tableInfo[1])}”. Confira o nome da tabela e se ela existe nesta fase.`
-        : 'A consulta foi executada, mas não encontrou linhas. Confira o nome da tabela e os filtros aplicados.'
+      ? 'A consulta foi executada, mas não encontrou linhas. Confira o nome da tabela e os filtros aplicados.'
       : '';
-    return `${emptyMessage ? `<div class="empty-result"><span>!</span><p>${emptyMessage}</p></div>` : ''}<div class="query-meta">${set.values.length} linha(s) retornada(s)</div><table class="result-table"><thead><tr>${set.columns.map(value => `<th>${escapeHtml(value)}</th>`).join('')}</tr></thead><tbody>${set.values.slice(0, 100).map(row => `<tr>${row.map(value => `<td>${renderQueryResultCell(value, { linkExternal: phaseId === 3 })}</td>`).join('')}</tr>`).join('')}</tbody></table>`;
+    return `${emptyMessage ? `<div class="empty-result"><span>!</span><p>${emptyMessage}</p></div>` : ''}<div class="query-meta">${set.values.length} linha(s) retornada(s)</div><table class="result-table"><thead><tr>${set.columns.map(value => `<th>${escapeHtml(value)}</th>`).join('')}</tr></thead><tbody>${set.values.slice(0, 100).map(row => `<tr>${row.map(value => `<td>${renderQueryResultCell(value, { linkExternal: true })}</td>`).join('')}</tr>`).join('')}</tbody></table>`;
   }).join('');
 }
 
@@ -212,7 +207,6 @@ function queryFeedback(query, result) {
   if (/^(CREATE|ALTER|INSERT|UPDATE|DELETE|BEGIN|COMMIT|ROLLBACK)\b/i.test(statement)) {
     return 'COMANDO EXECUTADO // sem tabela de resultados';
   }
-  if (/^PRAGMA\s+table_info/i.test(statement)) return 'CONSULTA EXECUTADA // nenhuma coluna encontrada; confira o nome da tabela';
   return 'CONSULTA EXECUTADA // 0 linhas retornadas; confira tabela e filtros';
 }
 
@@ -270,13 +264,33 @@ async function complete(event) {
 $('hintBtn').addEventListener('click', () => {
   if (!lesson) return;
   if (hintIndex >= lesson.hints.length) return;
-  $('hintText').textContent = `> ${lesson.hints[hintIndex++]}`;
+  $('hintText').innerHTML = `&gt; ${renderHint(lesson.hints[hintIndex++])}`;
   render();
 });
-$('schemaBtn').addEventListener('click', () => {
-  $('sqlEditor').value = `PRAGMA table_info(${lesson.tables[0]});`;
+$('schemaBtn').addEventListener('click', async () => {
+  const editorText = $('sqlEditor').value;
+  const match = editorText.match(/\b(?:FROM|JOIN|TABLE)\s+([a-z_][a-z0-9_]*)/i);
+  const tables = phaseId === 4 ? [...lesson.tables, 'observadores', 'observacoes_catalogo'] : lesson.tables;
+  const selected = match?.[1]?.toLowerCase();
+  const table = selected && tables.includes(selected) ? selected : tables[0];
+  const button = $('schemaBtn');
+  button.disabled = true;
+  $('queryFeedback').className = 'query-feedback';
+  $('queryFeedback').textContent = `CONSULTANDO ESTRUTURA // ${table}`;
+  try {
+    const data = await api('/api/game?action=schema', { method: 'POST', body: { phase_id: phaseId, table } });
+    $('resultArea').innerHTML = renderSchema(table, data.columns);
+    $('queryFeedback').className = 'query-feedback ok';
+    $('queryFeedback').textContent = `ESTRUTURA // ${table} // ${data.columns.length} coluna(s)`;
+  } catch (error) {
+    $('resultArea').innerHTML = `<div class="sql-error">${escapeHtml(error.message)}</div>`;
+    $('queryFeedback').className = 'query-feedback error';
+    $('queryFeedback').textContent = 'ERRO // estrutura indisponível';
+  } finally {
+    button.disabled = false;
+  }
 });
-$('clearBtn').addEventListener('click', () => { $('sqlEditor').value = ''; });
+$('clearBtn').addEventListener('click', () => { setEditorValue(''); });
 $('runBtn').addEventListener('click', executeSql);
 $('sqlEditor').addEventListener('keydown', event => {
   if ((event.ctrlKey || event.metaKey) && event.key === 'Enter') { event.preventDefault(); executeSql(); }

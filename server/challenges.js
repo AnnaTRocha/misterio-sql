@@ -6,6 +6,7 @@ import { PHASE_THREE, phaseThreeMilestones } from './phase3.js';
 const seed = readFileSync(fileURLToPath(new URL('./curso.sql', import.meta.url)), 'utf8');
 const archiveSeed = readFileSync(fileURLToPath(new URL('./caso.sql', import.meta.url)), 'utf8');
 const engine = initSqlJs();
+const ARCHIVE_TABLES = ['usuarios', 'mensagens', 'arquivos', 'pessoas', 'acessos'];
 
 export async function executeArchiveQuery(query) {
   const SQL = await engine;
@@ -13,6 +14,18 @@ export async function executeArchiveQuery(query) {
   try {
     db.run(archiveSeed);
     return db.exec(query).map(set => ({ columns: set.columns, values: set.values.slice(0, 100) }));
+  } finally {
+    db.close();
+  }
+}
+
+export async function inspectArchiveSchema(table) {
+  if (!ARCHIVE_TABLES.includes(String(table))) throw new Error('Tabela fora do escopo da fase.');
+  const SQL = await engine;
+  const db = new SQL.Database();
+  try {
+    db.run(archiveSeed);
+    return describeTable(db, table);
   } finally {
     db.close();
   }
@@ -38,48 +51,42 @@ export const LESSONS = {
     answerPrompt: 'Informe o código que encerra a investigação.',
     initial: 'SELECT * FROM registros_catalogo_bruto;', tables: ['registros_catalogo_bruto', 'objetos_celestes'],
     warmup: {
-      title: 'Aquecimento opcional // estações meteorológicas',
-      intro: 'Este exemplo usa outras tabelas e outros dados. Ele demonstra a sequência de leitura, estrutura, restrições e migração; não pontua nem altera o arquivo desta fase.',
+      title: 'Apoio opcional // observar dados repetidos',
+      intro: 'Observe este conjunto de medições de outra atividade. Ele ajuda a pensar sobre informações que se repetem e sobre como conferir as relações entre registros. Não contém comandos resolvidos nem altera esta fase.',
+      columns: ['Sensor', 'Setor', 'Umidade', 'Horário'],
       source: [
         ['S-A', 'JARDIM', 61, '14:00'],
         ['S-A', 'JARDIM', 63, '14:15'],
         ['S-B', 'ESTUFA', 55, '14:20']
       ],
-      steps: [
-        {
-          title: '1. Leia os dados e a estrutura',
-          text: 'A tabela de origem repete o código e o setor do sensor. PRAGMA mostra as colunas; SELECT permite comparar as três medições.',
-          sql: 'PRAGMA table_info(medicoes_brutas);\nSELECT * FROM medicoes_brutas;',
-          expected: 'O código S-A aparece duas vezes. Há dois sensores e três medições.'
-        },
-        {
-          title: '2. Crie a tabela da entidade',
-          text: 'Cada sensor deve ter um identificador próprio. A chave primária identifica a linha; NOT NULL impede campos sem valor.',
-          sql: 'CREATE TABLE sensores_demo (\n  id_sensor INTEGER CONSTRAINT pk_sensores_demo PRIMARY KEY,\n  codigo_sensor TEXT NOT NULL,\n  nome_setor TEXT NOT NULL\n);',
-          expected: 'A tabela sensores_demo descreve um sensor por linha.'
-        },
-        {
-          title: '3. Acrescente restrições e crie a tabela relacionada',
-          text: 'O código do sensor não deve se repetir. A tabela de medições usa uma chave estrangeira e impede repetir o mesmo horário para o mesmo sensor.',
-          sql: 'CREATE UNIQUE INDEX ux_sensores_demo_codigo_sensor\n  ON sensores_demo (codigo_sensor);\n\nCREATE TABLE medicoes_demo (\n  id_medicao_demo INTEGER CONSTRAINT pk_medicoes_demo PRIMARY KEY,\n  id_sensor INTEGER NOT NULL,\n  umidade REAL NOT NULL,\n  momento TEXT NOT NULL,\n  CONSTRAINT uq_medicoes_demo_sensor_momento UNIQUE (id_sensor, momento),\n  CONSTRAINT fk_medicoes_demo_id_sensor FOREIGN KEY (id_sensor)\n    REFERENCES sensores_demo (id_sensor)\n);',
-          expected: 'A tabela filha aponta para um sensor existente e mantém a regra de unicidade.'
-        },
-        {
-          title: '4. Migre com SELECT e JOIN',
-          text: 'Copie primeiro cada sensor uma vez. Depois encontre o identificador de cada sensor para copiar as medições correspondentes.',
-          sql: 'INSERT INTO sensores_demo (codigo_sensor, nome_setor)\nSELECT DISTINCT codigo_sensor, nome_setor\nFROM medicoes_brutas;\n\nINSERT INTO medicoes_demo (id_sensor, umidade, momento)\nSELECT s.id_sensor, m.umidade, m.momento\nFROM medicoes_brutas AS m\nJOIN sensores_demo AS s\n  ON s.codigo_sensor = m.codigo_sensor;',
-          expected: 'O destino terá dois sensores e três medições. No desafio, você ainda precisa escolher as chaves que ligam os registros do catálogo.'
-        }
+      questions: [
+        'Que informação aparece em mais de uma medição?',
+        'Quais valores variam entre as medições?',
+        'Que conferências ajudariam a manter cada medição ligada ao sensor correto?'
       ]
     },
     objectives: [
-      ['alter', 'Em objetos_celestes, criar origem_objeto_celeste (TEXT) e preservar os cinco objetos. Não é preciso preencher a coluna.'],
-      ['observadores', 'Criar observadores com id_observador (INTEGER, chave primária), nome_observador (TEXT obrigatório) e telefone_observador (TEXT obrigatório).'],
-      ['unico', 'Impedir telefone repetido em observadores.'],
-      ['relacoes', 'Criar observacoes_catalogo com chave primária, referências obrigatórias a objetos e observadores, nome_observatorio obrigatório e vínculo único por objeto, observador e observatório.'],
-      ['migrar_observadores', 'Copiar de registros_catalogo_bruto cada combinação distinta de nome e telefone; devem resultar dois contatos.'],
-      ['migrar_observacoes', 'Copiar as três linhas de registros_catalogo_bruto, relacionando cada objeto pelo nome e cada contato por nome e telefone.']
+      ['alter', '4.1 // Adicionar origem_objeto_celeste TEXT sem alterar os cinco objetos existentes'],
+      ['observadores', '4.2 // Criar observadores com IDENTITY, nome_observador e telefone_observador obrigatórios'],
+      ['unico', '4.3 // Impedir que telefone_observador se repita em observadores'],
+      ['relacoes', '4.4 // Criar observacoes_catalogo conforme os requisitos estruturados abaixo'],
+      ['migrar_observadores', '4.5 // Copiar cada par distinto de nome e telefone; o resultado deve ter 2 observadores'],
+      ['migrar_observacoes', '4.6 // Copiar as 3 observações relacionando objetos pelo nome e contatos por nome e telefone']
     ],
+    requirements: {
+      title: 'Conferência opcional // organização do catálogo',
+      intro: 'Use estes critérios para revisar o resultado quando precisar. Eles descrevem o que os dados devem garantir, sem indicar os comandos ou a ordem da solução.',
+      headers: ['Parte do caso', 'Condição de sucesso'],
+      rows: [
+        ['Objetos catalogados', 'Preserve os cinco registros existentes e acrescente a informação de origem.'],
+        ['Cadastro de observadores', 'Cada pessoa deve ter um cadastro próprio, com nome e contato informados.'],
+        ['Contatos', 'Um mesmo contato não pode identificar mais de um cadastro.'],
+        ['Observações', 'Cada registro deve corresponder a um objeto e a um observador existentes, além de informar o observatório.'],
+        ['Duplicidade', 'A mesma combinação de objeto, observador e observatório não deve aparecer duas vezes.'],
+        ['Resultado da migração', 'Ao final, devem permanecer 5 objetos e existir 2 observadores e 3 observações.']
+      ],
+      expected: 'Confira também se nenhuma observação ficou sem vínculo válido.'
+    },
     hints: [
       'Os dados de origem já estão carregados: o catálogo tem 3 registros e a tabela de objetos tem 5. Execute a consulta inicial para vê-los. As tabelas de destino ainda não existem; você vai criá-las e preenchê-las.',
       'Compare os três registros do catálogo. O mesmo contato aparece mais de uma vez; ele deve ser guardado uma só vez.',
@@ -97,14 +104,14 @@ export const LESSONS = {
     title: 'A Sexta Estrela', code: 'OBSERVATÓRIO // 1987', theme: 'transaction',
     mission: 'Três inconsistências foram encontradas no arquivo de símbolos. Corrija os dados da cópia de investigação.',
     answerPrompt: 'Qual é o nome do aglomerado de seis estrelas inserido e confirmado?',
-    initial: 'SELECT * FROM simbolos;', tables: ['simbolos'],
+    initial: 'SELECT * FROM simbolos;', tables: ['simbolos', 'fontes_externas'],
     objectives: [
-      ['insert', 'Inserir o aglomerado de seis estrelas como confirmado'],
-      ['update', 'Confirmar o símbolo pendente de seis estrelas'],
-      ['delete', 'Remover somente a marca com quantidade incorreta de estrelas'],
-      ['transaction', 'Agrupar ao menos uma correção entre BEGIN e COMMIT']
+      ['insert', '5.1 // Inserir em simbolos o aglomerado de seis estrelas com status confirmado'],
+      ['update', '5.2 // Alterar para confirmado o registro pendente de seis estrelas'],
+      ['delete', '5.3 // Excluir somente a marca falsa, que tem quantidade incorreta de estrelas'],
+      ['transaction', '5.4 // Executar ao menos uma dessas correções entre BEGIN e COMMIT']
     ],
-    hints: ['Compare as quantidades de estrelas e os estados dos registros.', 'Uma correção adiciona um registro. Outra altera um registro existente.', 'A exclusão deve preservar as duas evidências válidas. Confirme a transação ao final.'],
+    hints: ['Compare as quantidades de estrelas e os estados dos registros.', 'Uma correção adiciona um registro. Outra altera um registro existente.', 'A exclusão deve preservar as duas evidências válidas. Confirme a transação ao final.', 'A tabela fontes_externas aponta para uma ficha do catálogo Messier. Compare o código da fonte com o aglomerado de seis estrelas.'],
     answer: 'PLEIADES'
   },
   6: {
@@ -113,9 +120,9 @@ export const LESSONS = {
     answerPrompt: 'Qual é o código do setor associado aos registros do incidente?',
     initial: 'SELECT * FROM objetos_celestes;', tables: ['objetos_celestes', 'acessos_celestes'],
     objectives: [
-      ['filter', 'Filtrar os objetos de 1987 pelo setor indicado no registro ORION'],
-      ['distinct', 'Listar setores sem repetição'],
-      ['aggregate', 'Contar objetos por ano e ordenar o maior grupo primeiro']
+      ['filter', '6.1 // Filtrar objetos com ano 1987 e o setor associado ao registro ORION'],
+      ['distinct', '6.2 // Listar cada valor de objetos_celestes.setor uma única vez com DISTINCT'],
+      ['aggregate', '6.3 // Contar objetos por ano e ordenar do maior total para o menor']
     ],
     hints: ['Ano e setor precisam ser considerados juntos.', 'Alguns setores se repetem.', 'Um resumo por ano mostra onde os registros se concentram.'],
     answer: 'N-04'
@@ -126,9 +133,9 @@ export const LESSONS = {
     answerPrompt: 'Depois do cruzamento dos acessos e dos objetos, em qual setor está o aglomerado identificado?',
     initial: 'SELECT * FROM acessos_celestes;', tables: ['acessos_celestes', 'objetos_celestes'],
     objectives: [
-      ['inner', 'Relacionar acessos válidos de 1987 aos nomes e setores dos objetos'],
-      ['left', 'Encontrar um objeto sem acesso com LEFT JOIN'],
-      ['group', 'Contar acessos por objeto após o JOIN']
+      ['inner', '7.1 // Unir acessos e objetos por id_objeto_celeste; filtrar ano 1987 e status valido; exibir nome e setor'],
+      ['left', '7.2 // Usar LEFT JOIN para localizar objetos sem id_acesso_celeste correspondente'],
+      ['group', '7.3 // Após o JOIN, contar os acessos de cada objeto agrupados por nome']
     ],
     hints: ['Procure a chave que liga as duas tabelas.', 'Uma das respostas está justamente na ausência de correspondência.', 'Conte os acessos depois de estabelecer a relação.'],
     answer: 'N-06'
@@ -139,9 +146,9 @@ export const LESSONS = {
     answerPrompt: 'Digite a palavra que resume os registros parciais reunidos nesta fase.',
     initial: 'SELECT * FROM investigacoes;', tables: ['investigacoes', 'acessos_celestes'],
     objectives: [
-      ['subquery', 'Selecionar usuários ligados a objetos de 1987 com subconsulta'],
-      ['cte', 'Criar uma CTE que resuma os fragmentos por equipe'],
-      ['window', 'Numerar os registros de cada equipe pela ordem crescente do identificador da investigação, com ROW_NUMBER e PARTITION BY']
+      ['subquery', '8.1 // Usar uma subconsulta em objetos_celestes para filtrar acessos de 1987 e exibir usuario'],
+      ['cte', '8.2 // Com uma CTE, contar linhas de investigacoes para cada equipe'],
+      ['window', '8.3 // Numerar investigacoes dentro de cada equipe pela ordem crescente do identificador id_investigacao, com ROW_NUMBER e PARTITION BY']
     ],
     hints: ['Uma consulta pode alimentar o filtro de outra.', 'Organize uma etapa intermediária antes da consulta principal.', 'Numere as linhas de cada equipe pela ordem crescente do identificador, sem agrupá-las em uma só.'],
     answer: 'FRAGMENTOS'
@@ -152,11 +159,27 @@ export const LESSONS = {
     answerPrompt: 'Qual código identifica o usuário ausente?',
     initial: 'SELECT * FROM sessoes_arg;', tables: ['sessoes_arg', 'dispositivos_arg', 'identidades_arg'],
     objectives: [
-      ['join_three', 'Cruzar sessão, dispositivo e identidade da sua equipe'],
-      ['secret', 'Encontrar o código do usuário oculto nos registros relacionados'],
-      ['nosql', 'Responder a pergunta breve sobre consultas em MongoDB']
+      ['join_three', '9.1 // Em equipe, unir as três tabelas usando o mapa de relações abaixo e o grupo da equipe'],
+      ['secret', '9.2 // Exibir o codigo de identidades_arg na linha ligada pelas duas junções'],
+      ['nosql', '9.3 // Responder à checagem: qual método do MongoDB consulta documentos de uma coleção?']
     ],
-    hints: ['Cada integrante guarda uma parte da relação.', 'A sessão liga dois fragmentos. Outro identificador leva ao terceiro.', 'Compare o código encontrado com os usuários visíveis.'],
+    requirements: {
+      title: 'Apoio opcional // conteúdo dos fragmentos',
+      intro: 'As tabelas guardam partes diferentes do caso. Use a consulta de estrutura e compare os valores para descobrir como se relacionam; as chaves de ligação fazem parte do desafio.',
+      headers: ['Fragmento', 'Informação disponível'],
+      rows: [
+        ['sessoes_arg', 'Sessões e usuários registrados por equipe.'],
+        ['dispositivos_arg', 'Atividade de dispositivos associada às equipes.'],
+        ['identidades_arg', 'Identidades registradas e códigos associados.']
+      ],
+      expected: 'Em grupo, expliquem quais valores conectam os fragmentos e confirmem que a identidade encontrada pertence à equipe.'
+    },
+    hints: [
+      'Cada integrante guarda uma parte da relação.',
+      'A sessão liga dois fragmentos. Outro identificador leva ao terceiro.',
+      'Compare o código encontrado com os usuários visíveis.',
+      { text: 'A checagem conceitual compara consultas SQL e MongoDB. Na documentação, procure o método que lê documentos de uma coleção e compare sua finalidade com SELECT.', link: { label: 'Documentação oficial do MongoDB', url: 'https://www.mongodb.com/docs/manual/reference/method/db.collection.find/' } }
+    ],
     answer: 'US0'
   }
 };
@@ -165,13 +188,17 @@ export function allowedStatement(phaseId, query) {
   const cleaned = String(query || '').replace(/--[^\n]*/g, '').replace(/\/\*[\s\S]*?\*\//g, '').trim();
   if (!cleaned || cleaned.length > 5000 || cleaned.split(';').filter(Boolean).length > 1) return false;
   if (/\b(ATTACH|DETACH|VACUUM|LOAD_EXTENSION)\b/i.test(cleaned)) return false;
-  if (phaseId === 3) return /^(SELECT|WITH|PRAGMA\s+(?:table_info|foreign_key_list))/i.test(cleaned) && !/\b(INSERT|UPDATE|DELETE|DROP|ALTER|CREATE|REPLACE)\b/i.test(cleaned);
-  if (phaseId === 4) return /^(CREATE\s+TABLE|CREATE\s+(?:UNIQUE\s+)?INDEX|ALTER\s+TABLE\s+objetos_celestes\b|INSERT(?:\s+OR\s+IGNORE)?\s+INTO\s+(?:observadores|observacoes_catalogo)\b|SELECT|PRAGMA\s+(?:table_info|foreign_key_list|index_list|index_info))/i.test(cleaned);
-  if (phaseId === 5) return /^(INSERT|UPDATE|DELETE|SELECT|BEGIN|COMMIT|ROLLBACK|SAVEPOINT|PRAGMA\s+table_info\s*\(\s*simbolos\s*\))/i.test(cleaned);
-  return /^(SELECT|WITH|PRAGMA\s+table_info)/i.test(cleaned) && !/\b(INSERT|UPDATE|DELETE|DROP|ALTER|CREATE|REPLACE)\b/i.test(cleaned);
+  if (phaseId === 3) return /^(SELECT|WITH)\b/i.test(cleaned) && !/\b(INSERT|UPDATE|DELETE|DROP|ALTER|CREATE|REPLACE|PRAGMA)\b/i.test(cleaned);
+  if (phaseId === 4) {
+    if (/^CREATE\s+TABLE\s+observadores\b/i.test(cleaned) && !hasIdentityColumnDefinition(cleaned, 'id_observador')) return false;
+    if (/^CREATE\s+TABLE\s+observacoes_catalogo\b/i.test(cleaned) && !hasIdentityColumnDefinition(cleaned, 'id_observacao_catalogo')) return false;
+    return /^(CREATE\s+TABLE|CREATE\s+(?:UNIQUE\s+)?INDEX|ALTER\s+TABLE\s+objetos_celestes\b|INSERT\s+INTO\s+(?:observadores|observacoes_catalogo)\b|SELECT)\b/i.test(cleaned);
+  }
+  if (phaseId === 5) return /^(INSERT|UPDATE|DELETE|SELECT|BEGIN|COMMIT|ROLLBACK|SAVEPOINT)\b/i.test(cleaned);
+  return /^(SELECT|WITH)\b/i.test(cleaned) && !/\b(INSERT|UPDATE|DELETE|DROP|ALTER|CREATE|REPLACE|PRAGMA)\b/i.test(cleaned);
 }
 
-export async function evaluateChallenge(phaseId, queries, groupId, nosqlDone = false) {
+export async function evaluateChallenge(phaseId, queries, groupId, nosqlDone = false, options = {}) {
   const SQL = await engine;
   // Cada avaliação usa uma cópia em memória; o histórico persistido é filtrado por usuário e fase na API.
   const db = new SQL.Database();
@@ -185,7 +212,10 @@ export async function evaluateChallenge(phaseId, queries, groupId, nosqlDone = f
   try {
     db.run(seed);
     for (const query of queries) {
-      if (!allowedStatement(phaseId, query)) { lastSucceeded = false; continue; }
+      const legacyIdentityDdl = phaseId === 4 && isLegacyPhaseFourIdentityDdl(query);
+      const legacyInsert = phaseId === 4 && isLegacyPhaseFourInsert(query);
+      if (isLegacySchemaInspection(query)) continue;
+      if (!allowedStatement(phaseId, query) && !legacyIdentityDdl && !legacyInsert) { lastSucceeded = false; continue; }
       const statementKey = String(query).replace(/--[^\n]*/g, '').replace(/\/\*[\s\S]*?\*\//g, '').trim().replace(/;\s*$/, '');
       const changesPhaseFourState = phaseId === 4 && /^(?:CREATE\s+TABLE|CREATE\s+(?:UNIQUE\s+)?INDEX|ALTER\s+TABLE|INSERT\b)/i.test(statementKey);
       if (changesPhaseFourState && appliedPhaseFourStatements.has(statementKey)) {
@@ -195,7 +225,7 @@ export async function evaluateChallenge(phaseId, queries, groupId, nosqlDone = f
         continue;
       }
       try {
-        result = db.exec(query);
+        result = db.exec(phaseId === 4 ? normalizePostgresIdentityToSqlite(query) : query);
         lastSucceeded = true;
         lastError = null;
         if (changesPhaseFourState) appliedPhaseFourStatements.add(statementKey);
@@ -210,10 +240,12 @@ export async function evaluateChallenge(phaseId, queries, groupId, nosqlDone = f
     }
     if (phaseId === 9 && nosqlDone) milestones.add('nosql');
     const tables = phaseId === 4 ? phaseFourTableNames(db) : undefined;
+    const schema = options.inspectTable ? describeTable(db, options.inspectTable) : undefined;
     return {
       milestones: [...milestones],
       result: result.map(set => ({ columns: set.columns, values: set.values.slice(0, 100) })),
       ...(tables ? { tables } : {}),
+      ...(schema ? { schema } : {}),
       lastSucceeded,
       lastError
     };
@@ -225,6 +257,47 @@ export async function evaluateChallenge(phaseId, queries, groupId, nosqlDone = f
 function rows(result) { return result.flatMap(item => item.values); }
 function includes(result, value) { return rows(result).some(row => row.some(cell => String(cell).toUpperCase() === String(value).toUpperCase())); }
 function tableInfo(db, name) { return db.exec(`PRAGMA table_info(${name})`)[0]?.values || []; }
+function hasIdentityColumnDefinition(query, column) {
+  const safeColumn = column.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  return new RegExp(`\\b${safeColumn}\\s+INTEGER\\s+GENERATED\\s+(?:BY\\s+DEFAULT|ALWAYS)\\s+AS\\s+IDENTITY\\b`, 'i').test(String(query));
+}
+function isLegacyPhaseFourIdentityDdl(query) {
+  const cleaned = String(query || '').replace(/--[^\n]*/g, '').replace(/\/\*[\s\S]*?\*\//g, '').trim();
+  const match = cleaned.match(/^CREATE\s+TABLE\s+(observadores|observacoes_catalogo)\b/i);
+  if (!match) return false;
+  const column = match[1].toLowerCase() === 'observadores' ? 'id_observador' : 'id_observacao_catalogo';
+  return !hasIdentityColumnDefinition(cleaned, column)
+    && new RegExp(`\\b${column}\\s+INTEGER\\b`, 'i').test(cleaned)
+    && /\bPRIMARY\s+KEY\b/i.test(cleaned);
+}
+function isLegacyPhaseFourInsert(query) {
+  const cleaned = String(query || '').replace(/--[^\n]*/g, '').replace(/\/\*[\s\S]*?\*\//g, '').trim();
+  return /^INSERT\s+OR\s+IGNORE\s+INTO\s+(?:observadores|observacoes_catalogo)\b/i.test(cleaned);
+}
+function isLegacySchemaInspection(query) {
+  const cleaned = String(query || '').replace(/--[^\n]*/g, '').replace(/\/\*[\s\S]*?\*\//g, '').trim();
+  return /^PRAGMA\s+(?:table_info|foreign_key_list|index_list|index_info)\s*\(/i.test(cleaned);
+}
+function describeTable(db, name) {
+  const safeName = String(name).replaceAll('"', '""');
+  const columns = db.exec(`PRAGMA table_info("${safeName}")`)[0]?.values || [];
+  const foreignKeys = db.exec(`PRAGMA foreign_key_list("${safeName}")`)[0]?.values || [];
+  return columns.map(([, columnName, type, notNull, , primaryKey]) => {
+    const foreignKey = foreignKeys.find(key => key[3] === columnName);
+    return {
+      name: columnName,
+      type: type || '',
+      nullable: !notNull && !primaryKey,
+      primary_key: primaryKey === 1,
+      foreign_key: foreignKey ? { table: foreignKey[2], column: foreignKey[4] } : null
+    };
+  });
+}
+function normalizePostgresIdentityToSqlite(query) {
+  const statement = String(query);
+  if (!/^\s*CREATE\s+TABLE\b/i.test(statement)) return statement;
+  return statement.replace(/\bGENERATED\s+(?:BY\s+DEFAULT|ALWAYS)\s+AS\s+IDENTITY(?:\s*\([^)]*\))?/gi, '');
+}
 function count(db, query) { return Number(db.exec(query)[0]?.values[0]?.[0] || 0); }
 function sameRows(left, right) {
   const normalize = values => values.map(row => JSON.stringify(row)).sort();

@@ -6,11 +6,12 @@ test('resultado externo mantém a URL inteira visível e clicável', () => {
   const address = 'https://example.test/image.png?name=stars&size=large';
   const cell = renderQueryResultCell(address, { linkExternal: true });
 
-  assert.ok(cell.includes(`>${address.replaceAll('&', '&amp;')}</a>`));
+  assert.ok(cell.includes(`<span>${address.replaceAll('&', '&amp;')}</span><span aria-hidden="true"> ↗</span></a>`));
   assert.ok(cell.includes(`href="${address.replaceAll('&', '&amp;')}"`));
   assert.ok(cell.includes('target="_blank"'));
   assert.ok(cell.includes('rel="noopener noreferrer"'));
   assert.ok(cell.includes('aria-label="Abrir recurso externo em nova aba"'));
+  assert.ok(!cell.includes('title="Abrir recurso externo"'));
 });
 
 test('valores que não são HTTPS são mostrados como texto escapado', () => {

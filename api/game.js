@@ -3,7 +3,7 @@ import { ensureProgress, ensureSchema, sql } from '../server/db.js';
 import { requireUser } from '../server/auth.js';
 import { action, body, fail, method } from '../server/http.js';
 import { argIdentityForUser, assessmentIdForPhase, assessmentSummary, ensureArgFoundation, unlockFinalProtocol } from '../server/arg.js';
-import { allowedStatement, evaluateChallenge, executeArchiveQuery, LESSONS, previewInitialQuery } from '../server/challenges.js';
+import { allowedStatement, evaluateChallenge, executeArchiveQuery, inspectArchiveSchema, LESSONS, previewInitialQuery } from '../server/challenges.js';
 import { consumeRateLimit } from '../server/rate-limit.js';
 import { CONCEPTS, publicConcept } from '../server/concepts.js';
 import { validationGuideForPhase, resetTestActivity, beginStudentRetake, isStudentRetakeActive } from '../server/test-tools.js';
@@ -55,7 +55,7 @@ export default async function handler(req, res) {
     if (!method(req, res, ['POST'])) return;
     const data = body(req);
 
-    const limits = { query: 12, complete: 8, 'concept-answer': 8, 'nosql-answer': 8, 'unlock-final': 5, 'retake-activity': 2 };
+    const limits = { query: 12, schema: 24, complete: 8, 'concept-answer': 8, 'nosql-answer': 8, 'unlock-final': 5, 'retake-activity': 2 };
     if (limits[op] && !(await consumeRateLimit(user.id, op, limits[op]))) {
       res.setHeader('Retry-After', '60');
       return fail(res, 429, 'Muitas tentativas em pouco tempo. Aguarde um minuto.');
@@ -65,6 +65,30 @@ export default async function handler(req, res) {
       const unlocked = await unlockFinalProtocol(user.id, data.protocol);
       if (!unlocked) return fail(res, 422, 'Protocolo inválido ou pontuação insuficiente.');
       return res.status(200).json({ ok: true });
+    }
+
+    if (op === 'schema') {
+      const phaseId = Number(data.phase_id);
+      const table = String(data.table || '').toLowerCase();
+      if (!(await availablePhase(phaseId, user))) return fail(res, 403, 'Fase indisponível.');
+
+      if (phaseId < 3) {
+        if (!['usuarios', 'mensagens', 'arquivos', 'pessoas', 'acessos'].includes(table)) {
+          return fail(res, 422, 'Tabela fora do escopo desta fase.');
+        }
+        return res.status(200).json({ ok: true, table, columns: await inspectArchiveSchema(table) });
+      }
+
+      const tables = phaseId === 4
+        ? [...LESSONS[4].tables, 'observadores', 'observacoes_catalogo']
+        : LESSONS[phaseId]?.tables || [];
+      if (!tables.includes(table)) return fail(res, 422, 'Tabela fora do escopo desta fase.');
+
+      const state = await challengeState(user.id, phaseId);
+      const identity = await argIdentityForUser(user.id);
+      const groupId = user.is_test && phaseId === 9 ? 1 : Number(identity?.group_id || 0);
+      const evaluated = await evaluateChallenge(phaseId, state.history, groupId, state.nosql_done, { inspectTable: table });
+      return res.status(200).json({ ok: true, table, columns: evaluated.schema || [] });
     }
 
     if (op === 'nosql-answer') {
@@ -160,6 +184,9 @@ export default async function handler(req, res) {
 
       if (!(await availablePhase(phaseId, user))) return fail(res, 403, 'Fase indisponível.');
       if (!queryText || queryText.length > 5000) return fail(res, 422, 'Consulta inválida.');
+      if (/^PRAGMA\b/i.test(cleanQuery(queryText))) {
+        return fail(res, 422, 'PRAGMA é específico do SQLite e não faz parte do PostgreSQL. Use o botão estrutura para ver as colunas.');
+      }
       const retakeActive = await isStudentRetakeActive(user.id, phaseId);
 
       if (phaseId >= 3) {
@@ -483,7 +510,7 @@ function cleanQuery(query) {
 }
 
 function isSafeReadQuery(query) {
-  return /^(SELECT|WITH|PRAGMA\s+table_info)/i.test(query) &&
+  return /^(SELECT|WITH)/i.test(query) &&
     !/\b(INSERT|UPDATE|DELETE|DROP|ALTER|CREATE|REPLACE|ATTACH|DETACH|VACUUM)\b/i.test(query);
 }
 

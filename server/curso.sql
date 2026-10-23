@@ -36,6 +36,14 @@ INSERT INTO simbolos VALUES
   (1,'MARCA FALSA',5,'ativo'),
   (2,'SUBARU',6,'pendente');
 
+CREATE TABLE fontes_externas (
+  id_fonte_externa INTEGER CONSTRAINT pk_fontes_externas PRIMARY KEY,
+  codigo_catalogo TEXT NOT NULL,
+  endereco TEXT NOT NULL
+);
+INSERT INTO fontes_externas VALUES
+  (1,'M45','https://science.nasa.gov/mission/hubble/science/explore-the-night-sky/hubble-messier-catalog/messier-45/');
+
 CREATE TABLE acessos_celestes (
   id_acesso_celeste INTEGER CONSTRAINT pk_acessos_celestes PRIMARY KEY,
   usuario TEXT NOT NULL,
