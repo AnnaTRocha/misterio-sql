@@ -14,5 +14,5 @@ export function renderQueryResultCell(value, { linkExternal = false } = {}) {
   }
   if (url.protocol !== 'https:') return escapeHtml(text);
 
-  return `<a class="external-resource-link" href="${escapeHtml(url.href)}" aria-label="Abrir recurso externo em nova aba" title="Abrir recurso externo" target="_blank" rel="noopener noreferrer">${escapeHtml(text)}</a>`;
+  return `<a class="external-resource-link" href="${escapeHtml(url.href)}" aria-label="Abrir recurso externo em nova aba" target="_blank" rel="noopener noreferrer"><span>${escapeHtml(text)}</span><span aria-hidden="true"> ↗</span></a>`;
 }

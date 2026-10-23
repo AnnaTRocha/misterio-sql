@@ -284,38 +284,18 @@ body.crt-page {
   line-height: 1.65;
 }
 
-.ddl-warmup > summary,
-.ddl-warmup-step > summary {
+.ddl-warmup > summary {
   cursor: pointer;
   font: 700 9px var(--crt-mono);
   letter-spacing: .06em;
 }
 
 .ddl-warmup > summary { color: var(--crt-amber); }
-.ddl-warmup-step > summary { color: #a7d1ae; }
 .ddl-warmup > p { margin: 10px 0; }
-.ddl-warmup .ddl-warmup-sequence,
-.ddl-warmup .ddl-warmup-expected { color: var(--crt-amber); }
-
-.ddl-warmup-step {
-  margin-top: 9px;
-  padding-top: 8px;
-  border-top: 1px solid rgba(141,255,173,.13);
-}
-
-.ddl-warmup-step p { margin: 8px 0; }
-
-.ddl-warmup-step pre {
-  max-width: 100%;
-  margin: 8px 0;
-  padding: 9px;
-  overflow-x: auto;
-  border: 1px solid rgba(141,255,173,.12);
-  background: rgba(0,0,0,.35);
-  color: #b7d8bd;
-  font: 9px/1.55 var(--crt-mono);
-  white-space: pre;
-}
+.ddl-warmup .ddl-warmup-sequence { color: var(--crt-amber); }
+.ddl-warmup-prompt-title { color: var(--crt-green-strong); font-weight: 700; }
+.ddl-warmup-prompts { margin: 0 0 10px; padding-left: 23px; }
+.ddl-warmup-prompts li { padding: 3px 0; }
 
 .ddl-warmup-data { overflow-x: auto; }
 .ddl-warmup-data table { width: 100%; border-collapse: collapse; font: 8px var(--crt-mono); }
@@ -412,6 +392,8 @@ body.crt-page {
   line-height: 1.65;
 }
 
+.hint-text .external-resource-link { display: inline-block; margin-top: 8px; }
+
 .hint-btn {
   width: 100%;
   border: 1px solid rgba(255,196,107,.34);
@@ -487,17 +469,48 @@ body.crt-page {
 
 .monitor-actions button:hover { color: var(--crt-green-strong); }
 
-.crt-page #sqlEditor {
+.sql-editor-shell {
+  position: relative;
+  min-height: 250px;
+  background: #050a07;
+}
+
+.sql-highlight {
+  position: absolute;
+  inset: 0;
+  box-sizing: border-box;
   min-height: 250px;
   max-height: 420px;
+  margin: 0;
+  padding: 28px;
+  overflow: hidden;
+  pointer-events: none;
+  color: var(--crt-green-strong);
   background:
     linear-gradient(90deg, rgba(141,255,173,.025) 1px, transparent 1px),
     #050a07;
   background-size: 46px 100%;
-  color: var(--crt-green-strong);
+  font: 14px/1.75 var(--crt-mono);
+  tab-size: 2;
+  text-shadow: none;
+  white-space: pre;
+  overflow-wrap: normal;
+  z-index: 1;
+}
+
+.sql-highlight > code { display: block; font: inherit; }
+
+.crt-page #sqlEditor {
+  box-sizing: border-box;
+  min-height: 250px;
+  max-height: 420px;
+  background: transparent;
+  color: transparent;
+  -webkit-text-fill-color: transparent;
   caret-color: var(--crt-green);
   font: 14px/1.75 var(--crt-mono);
-  text-shadow: 0 0 7px rgba(141,255,173,.16);
+  tab-size: 2;
+  text-shadow: none;
   position: relative;
   z-index: 2;
 }
@@ -505,6 +518,53 @@ body.crt-page {
 .crt-page #sqlEditor::selection {
   background: var(--crt-green);
   color: #051008;
+  -webkit-text-fill-color: #051008;
+}
+
+.sql-token-keyword { color: #8bc5ff; font-weight: 700; }
+.sql-token-type { color: #dfb2ff; }
+.sql-token-function { color: #ffd27d; }
+.sql-token-string { color: #ffc46b; }
+.sql-token-number, .sql-token-literal { color: #ff9a9a; }
+.sql-token-comment { color: #73977b; font-style: italic; }
+.sql-token-identifier { color: #a9e7bd; }
+
+.schema-table td:first-child { color: var(--crt-green-strong); }
+.schema-table td:last-child { color: var(--crt-amber); }
+
+.objective-spec {
+  margin-top: 14px;
+  border: 1px solid var(--crt-line);
+  background: rgba(141,255,173,.025);
+}
+
+.objective-spec summary {
+  padding: 10px;
+  color: var(--crt-green-strong);
+  cursor: pointer;
+  font-size: 10px;
+  line-height: 1.5;
+}
+
+.objective-spec > p {
+  margin: 0 10px 10px;
+  color: var(--crt-muted);
+  font-size: 10px;
+  line-height: 1.6;
+}
+
+.objective-spec-scroll { overflow-x: auto; }
+.objective-spec-table { min-width: 420px; font-size: 9px; }
+.objective-spec-table td { vertical-align: top; line-height: 1.5; }
+.objective-spec-table td:first-child { color: var(--crt-green-strong); white-space: nowrap; }
+.objective-spec-table td:nth-child(2) { color: var(--crt-amber); }
+.objective-spec-expected { padding-top: 8px; border-top: 1px solid var(--crt-line); }
+
+.dialect-note {
+  margin-top: 12px !important;
+  color: var(--crt-muted) !important;
+  font-size: 10px !important;
+  line-height: 1.6 !important;
 }
 
 .query-toolbar {

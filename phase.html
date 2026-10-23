@@ -52,6 +52,7 @@
           <span id="objectiveCounter">00/00</span>
         </div>
         <div class="objective-list" id="objectiveList"></div>
+        <div class="objective-requirements" id="objectiveRequirements"></div>
 
         <div class="db-index">
           <div class="panel-caption">
@@ -81,7 +82,10 @@
           </div>
         </div>
 
-        <textarea id="sqlEditor" spellcheck="false" autocomplete="off" aria-label="Editor SQL"></textarea>
+        <div class="sql-editor-shell">
+          <pre class="sql-highlight" aria-hidden="true"><code id="sqlHighlight"></code></pre>
+          <textarea id="sqlEditor" spellcheck="false" autocomplete="off" aria-label="Editor SQL"></textarea>
+        </div>
 
         <div class="query-toolbar">
           <span id="queryFeedback" class="query-feedback">Selecione um trecho para executar só ele · Ctrl + Enter</span>

@@ -36,6 +36,17 @@ html[data-color-theme="light"] body.crt-page { --crt-bg: #f2f3eb; --crt-panel: #
 html[data-color-theme="light"] .crt-page::before, html[data-color-theme="light"] .crt-page::after, html[data-color-theme="light"] .crt-page .noise { display: none; }
 html[data-color-theme="light"] .crt-page :is(.crt-nav, .mission-panel, .crt-monitor, .dashboard-panel, .case-file, .crt-auth-card, .signal-box, .result-area, .query-history, .case-finish, .concept-form) { background: var(--crt-panel); color: var(--crt-green); box-shadow: none; text-shadow: none; }
 html[data-color-theme="light"] .crt-page :is(.db-button, #sqlEditor, .case-finish input, .result-table th) { background: #eef3e9; color: var(--crt-green-strong); }
+html[data-color-theme="light"] .crt-page #sqlEditor { background: transparent; color: transparent; -webkit-text-fill-color: transparent; }
+html[data-color-theme="light"] .crt-page .sql-highlight { background: #eef3e9; color: var(--crt-green-strong); }
+html[data-color-theme="light"] .crt-page .sql-token-keyword { color: #155da0; }
+html[data-color-theme="light"] .crt-page .sql-token-type { color: #703d91; }
+html[data-color-theme="light"] .crt-page .sql-token-function { color: #89520d; }
+html[data-color-theme="light"] .crt-page .sql-token-string { color: #8d4c00; }
+html[data-color-theme="light"] .crt-page .sql-token-number, html[data-color-theme="light"] .crt-page .sql-token-literal { color: #a12d2b; }
+html[data-color-theme="light"] .crt-page .sql-token-comment { color: #426c4b; }
+html[data-color-theme="light"] .crt-page .sql-token-identifier { color: #174b2a; }
+html[data-color-theme="light"] .crt-page .objective-spec { background: #f5f8f2; }
+html[data-color-theme="light"] .crt-page .objective-spec summary { color: #173b25; }
 html[data-color-theme="light"] .crt-page :is(.story-log p, .case-head p, .case-finish p, .result-table td, .objective-item, .history-line, .history-line code, .monitor-path) { color: #365846; }
 html[data-color-theme="light"] .crt-page .auth-brand { color: var(--crt-green-strong); }
 html[data-color-theme="light"] .crt-page .auth-brand p { color: #365846; }

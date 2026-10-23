@@ -5,11 +5,11 @@ export const PHASE_THREE = {
   initial: 'SELECT * FROM evidencias;',
   tables: ['evidencias', 'referencias', 'recursos'],
   objectives: [
-    ['evidence', 'Examinar as evidências recuperadas'],
-    ['evidence_join', 'Relacionar evidências e referências'],
-    ['resource_join', 'Relacionar referências e recursos'],
-    ['resource_found', 'Localizar o recurso externo recuperado'],
-    ['orphans', 'Identificar evidências sem referência usando LEFT JOIN']
+    ['evidence', '3.1 // Consultar evidencias e localizar o código SEIS-ESTRELAS'],
+    ['evidence_join', '3.2 // Relacionar evidencias e referencias por id_evidencia = evidencia_id'],
+    ['resource_join', '3.3 // Relacionar referencias e recursos por recurso_id = id_recurso'],
+    ['resource_found', '3.4 // Localizar em recursos o endereco cujo status é recuperado'],
+    ['orphans', '3.5 // Usar LEFT JOIN para encontrar a evidência sem referência correspondente']
   ],
   hints: [
     'Comece pelas evidências e observe os códigos encontrados.',
@@ -22,11 +22,11 @@ export const PHASE_THREE = {
 };
 
 export const PHASE_THREE_SQL = [
-  { step: '3.1', objective: 'Examinar as evidências recuperadas', sql: 'SELECT * FROM evidencias;' },
-  { step: '3.2', objective: 'Relacionar evidências e referências', sql: 'SELECT * FROM evidencias e JOIN referencias r ON r.evidencia_id = e.id_evidencia;' },
-  { step: '3.3', objective: 'Relacionar referências e recursos', sql: 'SELECT * FROM referencias r JOIN recursos rc ON rc.id_recurso = r.recurso_id;' },
-  { step: '3.4', objective: 'Localizar o recurso externo recuperado', sql: "SELECT rc.endereco FROM referencias r JOIN recursos rc ON rc.id_recurso = r.recurso_id WHERE rc.status = 'recuperado';" },
-  { step: '3.5', objective: 'Identificar evidências sem referência usando LEFT JOIN', sql: 'SELECT e.codigo FROM evidencias e LEFT JOIN referencias r ON r.evidencia_id = e.id_evidencia WHERE r.id_referencia IS NULL;' }
+  { step: '3.1', objective: '3.1 // Consultar evidencias e localizar o código SEIS-ESTRELAS', sql: 'SELECT * FROM evidencias;' },
+  { step: '3.2', objective: '3.2 // Relacionar evidencias e referencias por id_evidencia = evidencia_id', sql: 'SELECT * FROM evidencias e JOIN referencias r ON r.evidencia_id = e.id_evidencia;' },
+  { step: '3.3', objective: '3.3 // Relacionar referencias e recursos por recurso_id = id_recurso', sql: 'SELECT * FROM referencias r JOIN recursos rc ON rc.id_recurso = r.recurso_id;' },
+  { step: '3.4', objective: '3.4 // Localizar em recursos o endereco cujo status é recuperado', sql: "SELECT rc.endereco FROM referencias r JOIN recursos rc ON rc.id_recurso = r.recurso_id WHERE rc.status = 'recuperado';" },
+  { step: '3.5', objective: '3.5 // Usar LEFT JOIN para encontrar a evidência sem referência correspondente', sql: 'SELECT e.codigo FROM evidencias e LEFT JOIN referencias r ON r.evidencia_id = e.id_evidencia WHERE r.id_referencia IS NULL;' }
 ];
 
 export function phaseThreeMilestones(query, result) {

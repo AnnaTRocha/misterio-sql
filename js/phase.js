@@ -3,6 +3,9 @@ import { sqlToExecute } from './sql-selection.js';
 import { renderValidationGuide } from './validation-guide.js';
 import { confirmInPage } from './confirm-dialog.js';
 import { renderQueryResultCell } from './query-result-cell.js';
+import { bindSqlHighlight } from './sql-highlight.js';
+import { renderSchema } from './schema-view.js';
+import { renderHint } from './hint-renderer.js';
 
 const phaseId = Number(new URLSearchParams(location.search).get('id'));
 const PHASE_TABLES = {
@@ -25,9 +28,9 @@ const PHASES = {
       'Não existe manual. Você só tem tabelas, consultas e um identificador marcado como desconhecido.'
     ],
     objectives: [
-      ['users', '1.1 // Explorar a tabela usuarios'],
-      ['projection', '1.2 // Selecionar colunas específicas em uma consulta'],
-      ['messages', '1.3 // Encontrar as mensagens do usuário desconhecido']
+      ['users', '1.1 // Consultar usuarios e localizar o cadastro do usuário desconhecido'],
+      ['projection', '1.2 // Exibir apenas id_usuario e nome de usuarios'],
+      ['messages', '1.3 // Consultar mensagens cujo remetente_id corresponde ao usuário desconhecido']
     ],
     hints: [
       'A listagem de usuários tem uma entrada fora do padrão.',
@@ -47,12 +50,12 @@ const PHASES = {
       'Resolva as seis etapas na ordem que preferir. O banco só entrega o que sua consulta conseguir provar.'
     ],
     objectives: [
-      ['witness', '2.1 // Encontrar uma testemunha de 20 a 30 anos cujo nome começa com A'],
-      ['missing', '2.2 // Encontrar um acesso sem horário de saída'],
-      ['cities', '2.3 // Listar as cidades sem repetição com DISTINCT'],
-      ['last_access', '2.4 // Ordenar os acessos por data_hora DESC'],
-      ['frequency', '2.5 // Contar os acessos por pessoa'],
-      ['code', '2.6 // Analisar os acessos de 17/09 a 21/09, identificar o usuário e encontrar o código']
+      ['witness', '2.1 // Em pessoas, localizar idade de 20 a 30 anos (inclusive) e nome iniciado por A'],
+      ['missing', '2.2 // Em acessos, localizar hora_saida sem valor (NULL)'],
+      ['cities', '2.3 // Listar pessoas.cidade sem repetição, usando DISTINCT'],
+      ['last_access', '2.4 // Ordenar acessos.data_hora da mais recente para a mais antiga (DESC)'],
+      ['frequency', '2.5 // Contar acessos por pessoa_id com GROUP BY'],
+      ['code', '2.6 // Filtrar acessos.data de 1987-09-17 a 1987-09-21 (inclusive), identificar o usuario_id mais frequente e consultar seu código']
     ],
     hints: [
       '2.1 // A testemunha pertence a uma faixa etária e seu nome começa com uma letra específica.',
@@ -77,6 +80,7 @@ let retakeActive = false;
 let isTestUser = false;
 
 const editor = document.getElementById('sqlEditor');
+const refreshSqlHighlight = bindSqlHighlight(editor, document.getElementById('sqlHighlight'));
 const runBtn = document.getElementById('runBtn');
 const resultArea = document.getElementById('resultArea');
 const feedback = document.getElementById('queryFeedback');
@@ -98,7 +102,8 @@ async function init() {
   document.getElementById('phaseMission').textContent = phase.mission;
   document.getElementById('terminalName').textContent = `/archive/3301/fase_${String(phaseId).padStart(2, '0')}.sql`;
   document.getElementById('storyLog').innerHTML = phase.story.map(item => `<p>${escapeHtml(item)}</p>`).join('');
-  editor.value = phase.initial;
+  document.getElementById('storyLog').insertAdjacentHTML('beforeend', '<p class="dialect-note">TERMINAL // subconjunto de SQL compatível com PostgreSQL. Use “estrutura” para inspecionar as colunas; PRAGMA é específico do SQLite.</p>');
+  setEditorValue(phase.initial);
 
   renderTables();
   renderHints();
@@ -140,7 +145,7 @@ function renderTables() {
 
   document.querySelectorAll('.db-button').forEach(button => {
     button.addEventListener('click', () => {
-      editor.value = `SELECT * FROM ${button.dataset.table};`;
+      setEditorValue(`SELECT * FROM ${button.dataset.table};`);
       editor.focus();
     });
   });
@@ -155,7 +160,7 @@ function renderHints() {
 function revealHint() {
   const phase = PHASES[phaseId];
   if (hintIndex >= phase.hints.length) return;
-  document.getElementById('hintText').textContent = `> ${phase.hints[hintIndex++]}`;
+  document.getElementById('hintText').innerHTML = `&gt; ${renderHint(phase.hints[hintIndex++])}`;
   renderHints();
 }
 
@@ -284,7 +289,7 @@ function isReadOnly(sql) {
     .replace(/\/\*[\s\S]*?\*\//g, '')
     .trim();
 
-  return /^(SELECT|WITH|PRAGMA\s+table_info)/i.test(cleaned) &&
+  return /^(SELECT|WITH)/i.test(cleaned) &&
     !/\b(INSERT|UPDATE|DELETE|DROP|ALTER|CREATE|REPLACE|ATTACH|DETACH|VACUUM)\b/i.test(cleaned);
 }
 
@@ -337,7 +342,7 @@ function renderResults(resultSets) {
     <table class="result-table">
       <thead><tr>${set.columns.map(column => `<th>${escapeHtml(column)}</th>`).join('')}</tr></thead>
       <tbody>${set.values.slice(0, 200).map(row =>
-        `<tr>${row.map(value => `<td>${renderQueryResultCell(value, { linkExternal: phaseId === 3 })}</td>`).join('')}</tr>`
+        `<tr>${row.map(value => `<td>${renderQueryResultCell(value, { linkExternal: true })}</td>`).join('')}</tr>`
       ).join('')}</tbody>
     </table>`).join('');
 }
@@ -386,15 +391,33 @@ async function complete(event) {
   }
 }
 
-function showStructure() {
-  const match = editor.value.match(/\b(?:FROM|JOIN)\s+([a-z_][a-z0-9_]*)/i);
+async function showStructure() {
+  const match = editor.value.match(/\b(?:FROM|JOIN|TABLE)\s+([a-z_][a-z0-9_]*)/i);
   const tables = currentTables();
   const table = match?.[1] && tables.includes(match[1].toLowerCase())
     ? match[1].toLowerCase()
     : tables[0];
+  const button = document.getElementById('schemaBtn');
+  button.disabled = true;
+  feedback.className = 'query-feedback';
+  feedback.textContent = `CONSULTANDO ESTRUTURA // ${table}`;
+  try {
+    const data = await api('/api/game?action=schema', { method: 'POST', body: { phase_id: phaseId, table } });
+    resultArea.innerHTML = renderSchema(table, data.columns);
+    feedback.className = 'query-feedback ok';
+    feedback.textContent = `ESTRUTURA // ${table} // ${data.columns.length} coluna(s)`;
+  } catch (error) {
+    renderError(error.message);
+    feedback.className = 'query-feedback error';
+    feedback.textContent = 'ERRO // estrutura indisponível';
+  } finally {
+    button.disabled = false;
+  }
+}
 
-  editor.value = `PRAGMA table_info(${table});`;
-  editor.focus();
+function setEditorValue(value) {
+  editor.value = value;
+  refreshSqlHighlight();
 }
 
 async function loadTestTools() {
@@ -439,7 +462,7 @@ async function loadTestTools() {
 document.getElementById('hintBtn').addEventListener('click', revealHint);
 document.getElementById('schemaBtn').addEventListener('click', showStructure);
 document.getElementById('clearBtn').addEventListener('click', () => {
-  editor.value = '';
+  setEditorValue('');
   editor.focus();
 });
 runBtn.addEventListener('click', executeSql);
@@ -453,7 +476,7 @@ editor.addEventListener('keydown', event => {
     event.preventDefault();
     const start = editor.selectionStart;
     const end = editor.selectionEnd;
-    editor.value = `${editor.value.slice(0, start)}  ${editor.value.slice(end)}`;
+    setEditorValue(`${editor.value.slice(0, start)}  ${editor.value.slice(end)}`);
     editor.selectionStart = editor.selectionEnd = start + 2;
   }
 });
