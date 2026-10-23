@@ -10,6 +10,9 @@ let milestones = new Set();
 let hintIndex = 0;
 let concept;
 let conceptDone = false;
+let alreadyCompleted = false;
+let retakeActive = false;
+let isTestUser = false;
 
 function renderTableButtons(tables) {
   $('tableButtons').innerHTML = tables.map(name => `<button class="db-button" data-table="${escapeHtml(name)}" type="button">${escapeHtml(name)}</button>`).join('');
@@ -22,12 +25,15 @@ async function init() {
   const user = await requireSession('student');
   if (!user) return;
   $('username').textContent = user.username;
+  isTestUser = Boolean(user.is_test);
   try {
     const start = await api('/api/game?action=start', { method: 'POST', body: { phase_id: phaseId } });
     lesson = start.lesson;
     milestones = new Set(start.milestones);
     concept = start.concept;
-    conceptDone = Boolean(start.concept_done || start.already_completed);
+    alreadyCompleted = Boolean(start.already_completed);
+    retakeActive = Boolean(start.retake_active);
+    conceptDone = Boolean(start.concept_done || (alreadyCompleted && !retakeActive));
     document.body.dataset.theme = lesson.theme;
     document.querySelector('.brand span:last-child').textContent = lesson.code;
     document.title = `${lesson.title} | Mistério SQL`;
@@ -92,7 +98,8 @@ function render() {
       <h2>IDENTIFICAÇÃO</h2>
       <p>${escapeHtml(lesson.answerPrompt)}</p>
       <form id="codeForm"><label for="accessCodeInput">Código de conclusão</label><div class="crt-input-row"><input id="accessCodeInput" placeholder="código de conclusão" autocomplete="off" required><button id="completeBtn" type="submit" ${done < lesson.objectives.length || !conceptDone ? 'disabled' : ''}>Concluir atividade</button></div><div id="verdict" class="verdict" aria-live="polite"></div></form>
-    </section>`;
+    </section>
+    ${renderRetakeControl()}`;
   $('accessCodeInput').value = codeValue;
   if (selectedConcept) {
     const choice = [...document.querySelectorAll('input[name="conceptAnswer"]')].find(input => input.value === selectedConcept);
@@ -103,6 +110,28 @@ function render() {
   $('verdict').className = verdictClass;
   $('codeForm').addEventListener('submit', complete);
   $('conceptForm')?.addEventListener('submit', answerConcept);
+  $('retakeBtn')?.addEventListener('click', startRetake);
+}
+
+function renderRetakeControl() {
+  if (isTestUser || !alreadyCompleted) return '';
+  if (retakeActive) {
+    return '<p class="concept-confirmed">REFEITURA EM ANDAMENTO // conclusão, nota e liberações anteriores preservadas</p>';
+  }
+  return '<div class="retake-option"><p>Você pode praticar novamente. A conclusão, a nota e as fases liberadas serão mantidas.</p><button id="retakeBtn" class="primary-btn" type="button">Refazer atividade</button></div>';
+}
+
+async function startRetake(event) {
+  const button = event.currentTarget;
+  if (!confirm('Refazer esta atividade? As consultas e respostas de prática desta fase serão apagadas. A conclusão, a nota e as fases liberadas serão mantidas.')) return;
+  button.disabled = true;
+  try {
+    await api('/api/game?action=retake-activity', { method: 'POST', body: { phase_id: phaseId } });
+    location.reload();
+  } catch (error) {
+    button.disabled = false;
+    alert(error.message);
+  }
 }
 
 function statementForFeedback(query) {
@@ -193,6 +222,9 @@ async function complete(event) {
   const answer = $('accessCodeInput').value;
   try {
     const result = await api('/api/game?action=complete', { method: 'POST', body: { phase_id: phaseId, answer } });
+    alreadyCompleted = true;
+    retakeActive = false;
+    render();
     $('verdict').textContent = `✓ ATIVIDADE CONCLUÍDA // ${result.reward}`;
     $('verdict').className = 'verdict success';
   } catch (error) {

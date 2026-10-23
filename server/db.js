@@ -66,6 +66,13 @@ export async function ensureSchema() {
       created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
     )`);
 
+    await db.query(`CREATE TABLE IF NOT EXISTS activity_retakes (
+      user_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      phase_id INTEGER NOT NULL REFERENCES phases(id) ON DELETE CASCADE,
+      started_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      PRIMARY KEY (user_id, phase_id)
+    )`);
+
     await db.query(`CREATE TABLE IF NOT EXISTS phase3_progress (
       user_id BIGINT PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
       status VARCHAR(20) NOT NULL DEFAULT 'not_started',

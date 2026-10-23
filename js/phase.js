@@ -70,6 +70,9 @@ let milestones = new Set();
 let querySequence = 0;
 let conceptDone = false;
 let concept;
+let alreadyCompleted = false;
+let retakeActive = false;
+let isTestUser = false;
 
 const editor = document.getElementById('sqlEditor');
 const runBtn = document.getElementById('runBtn');
@@ -85,6 +88,7 @@ async function init() {
   if (!phase) return location.replace('/dashboard.html');
 
   document.getElementById('username').textContent = user.username;
+  isTestUser = Boolean(user.is_test);
   document.body.dataset.theme = phase.theme || 'archive';
   document.title = `${phase.title} | Mistério SQL`;
   document.getElementById('phaseLabel').textContent = `${phase.code} // FASE ${String(phaseId).padStart(2, '0')}`;
@@ -105,7 +109,9 @@ async function init() {
       body: { phase_id: phaseId }
     });
     milestones = new Set(start.milestones || []);
-    conceptDone = Boolean(start.concept_done || start.already_completed);
+    alreadyCompleted = Boolean(start.already_completed);
+    retakeActive = Boolean(start.retake_active);
+    conceptDone = Boolean(start.concept_done || (alreadyCompleted && !retakeActive));
     concept = start.concept;
     renderObjectives();
     renderFinish();
@@ -197,9 +203,11 @@ function renderFinish() {
         <button id="completeBtn" class="primary-btn" type="submit" disabled>Validar código</button>
       </div>
       <div id="verdict" class="verdict" aria-live="polite"></div>
-    </form>`;
+    </form>
+    ${renderRetakeControl()}`;
 
   document.getElementById('codeForm').addEventListener('submit', complete);
+  document.getElementById('retakeBtn')?.addEventListener('click', startRetake);
   document.getElementById('conceptForm')?.addEventListener('submit', async event => {
     event.preventDefault();
     const selected = new FormData(event.currentTarget).get('conceptAnswer');
@@ -211,6 +219,30 @@ function renderFinish() {
     } catch (error) { feedback.textContent = error.message; }
   });
   updateCompletion();
+}
+
+function renderRetakeControl() {
+  if (isTestUser || !alreadyCompleted) return '';
+  if (retakeActive) {
+    return '<p class="concept-confirmed">REFEITURA EM ANDAMENTO // conclusão, nota e liberações anteriores preservadas</p>';
+  }
+  return '<div class="retake-option"><p>Você pode praticar novamente. A conclusão, a nota e as fases liberadas serão mantidas.</p><button id="retakeBtn" class="primary-btn" type="button">Refazer atividade</button></div>';
+}
+
+async function startRetake(event) {
+  const button = event.currentTarget;
+  if (!confirm('Refazer esta atividade? As consultas e respostas de prática desta fase serão apagadas. A conclusão, a nota e as fases liberadas serão mantidas.')) return;
+  button.disabled = true;
+  try {
+    await api('/api/game?action=retake-activity', {
+      method: 'POST',
+      body: { phase_id: phaseId }
+    });
+    location.reload();
+  } catch (error) {
+    button.disabled = false;
+    alert(error.message);
+  }
 }
 
 function updateCompletion() {
@@ -331,8 +363,8 @@ function renderError(message) {
 
 async function complete(event) {
   event.preventDefault();
-  const verdict = document.getElementById('verdict');
-  const button = document.getElementById('completeBtn');
+  let verdict = document.getElementById('verdict');
+  let button = document.getElementById('completeBtn');
 
   try {
     button.disabled = true;
@@ -344,6 +376,10 @@ async function complete(event) {
       }
     });
 
+    alreadyCompleted = true;
+    retakeActive = false;
+    renderFinish();
+    verdict = document.getElementById('verdict');
     verdict.className = 'verdict success';
     verdict.textContent = phaseId === 1
       ? `✓ ACCESS GRANTED // código ${data.reward} confirmado // Fase 02 pronta para liberação`

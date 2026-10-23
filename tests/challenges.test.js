@@ -170,6 +170,23 @@ test('aula 4: o guia de validação acompanha os objetivos publicados', () => {
   assert.deepEqual(guide.map(item => item.objective), LESSONS[4].objectives.map(([, label]) => label));
 });
 
+test('aula 5 e aula 6: perguntas finais e objetivo do filtro usam referências claras', () => {
+  assert.match(LESSONS[5].answerPrompt, /aglomerado de seis estrelas inserido e confirmado/i);
+  assert.doesNotMatch(LESSONS[5].answerPrompt, /PLEIADES/i);
+  assert.match(LESSONS[6].objectives[0][1], /registro ORION/i);
+  assert.doesNotMatch(LESSONS[6].objectives[0][1], /primeiro registro/i);
+});
+
+test('aula 5: a consulta de estrutura funciona sem liberar outros PRAGMA', async () => {
+  assert.equal(allowedStatement(5, 'PRAGMA table_info(simbolos);'), true);
+  assert.equal(allowedStatement(5, 'PRAGMA table_info(usuarios);'), false);
+  assert.equal(allowedStatement(5, 'PRAGMA foreign_keys = OFF;'), false);
+
+  const structure = await evaluateChallenge(5, ['PRAGMA table_info(simbolos)'], 1);
+  assert.equal(structure.lastSucceeded, true);
+  assert.ok(structure.result[0]?.values.length > 0);
+});
+
 test('restrições e pistas não são aceitas por presença de palavras', async () => {
   const empty = await evaluateChallenge(3, ['SELECT * FROM evidencias WHERE 1=0'], 1);
   assert.deepEqual(empty.milestones, []);
