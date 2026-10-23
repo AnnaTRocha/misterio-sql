@@ -1,6 +1,6 @@
 export const CONCEPTS = {
   1: {
-    prompt: 'Em mensagens, remetente_id aponta para usuarios.id. Que papel ele cumpre?',
+    prompt: 'Em mensagens, remetente_id aponta para usuarios.id_usuario. Que papel ele cumpre?',
     options: [
       ['indice', 'Um índice que ordena os remetentes.'],
       ['chave_estrangeira', 'Uma chave estrangeira que relaciona as tabelas.'],

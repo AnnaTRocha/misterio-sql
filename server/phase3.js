@@ -23,10 +23,10 @@ export const PHASE_THREE = {
 
 export const PHASE_THREE_SQL = [
   { step: '3.1', objective: 'Examinar as evidências recuperadas', sql: 'SELECT * FROM evidencias;' },
-  { step: '3.2', objective: 'Relacionar evidências e referências', sql: 'SELECT * FROM evidencias e JOIN referencias r ON r.evidencia_id = e.evidencia_id;' },
-  { step: '3.3', objective: 'Relacionar referências e recursos', sql: 'SELECT * FROM referencias r JOIN recursos rc ON rc.recurso_id = r.recurso_id;' },
-  { step: '3.4', objective: 'Localizar o recurso externo recuperado', sql: "SELECT rc.endereco FROM referencias r JOIN recursos rc ON rc.recurso_id = r.recurso_id WHERE rc.status = 'recuperado';" },
-  { step: '3.5', objective: 'Identificar evidências sem referência usando LEFT JOIN', sql: 'SELECT e.codigo FROM evidencias e LEFT JOIN referencias r ON r.evidencia_id = e.evidencia_id WHERE r.referencia_id IS NULL;' }
+  { step: '3.2', objective: 'Relacionar evidências e referências', sql: 'SELECT * FROM evidencias e JOIN referencias r ON r.evidencia_id = e.id_evidencia;' },
+  { step: '3.3', objective: 'Relacionar referências e recursos', sql: 'SELECT * FROM referencias r JOIN recursos rc ON rc.id_recurso = r.recurso_id;' },
+  { step: '3.4', objective: 'Localizar o recurso externo recuperado', sql: "SELECT rc.endereco FROM referencias r JOIN recursos rc ON rc.id_recurso = r.recurso_id WHERE rc.status = 'recuperado';" },
+  { step: '3.5', objective: 'Identificar evidências sem referência usando LEFT JOIN', sql: 'SELECT e.codigo FROM evidencias e LEFT JOIN referencias r ON r.evidencia_id = e.id_evidencia WHERE r.id_referencia IS NULL;' }
 ];
 
 export function phaseThreeMilestones(query, result) {
@@ -42,14 +42,15 @@ export function phaseThreeMilestones(query, result) {
   const uses = name => aliases.has(name);
   const column = (table, name) => `${aliases.get(table)}\\s*\\.\\s*${name}`;
   const relation = (left, right) => new RegExp(`(?:${left}\\s*=\\s*${right}|${right}\\s*=\\s*${left})`, 'i').test(structure);
-  const evidenceRelation = uses('evidencias') && uses('referencias') && relation(column('evidencias', 'evidencia_id'), column('referencias', 'evidencia_id'));
-  const resourceRelation = uses('referencias') && uses('recursos') && relation(column('referencias', 'recurso_id'), column('recursos', 'recurso_id'));
+  const evidenceRelation = uses('evidencias') && uses('referencias') && relation(column('evidencias', 'id_evidencia'), column('referencias', 'evidencia_id'));
+  const resourceRelation = uses('referencias') && uses('recursos') && relation(column('referencias', 'recurso_id'), column('recursos', 'id_recurso'));
   const leftEvidenceJoin = /\bLEFT\s+(?:OUTER\s+)?JOIN\s+referencias\b/i.test(structure);
   const found = [];
   if (uses('evidencias') && has('SEIS-ESTRELAS')) found.push('evidence');
   if (evidenceRelation && rows.length > 0) found.push('evidence_join');
   if (resourceRelation && rows.length > 0) found.push('resource_join');
   if (uses('recursos') && rows.length === 1 && cells.some(value => value.startsWith('https://'))) found.push('resource_found');
-  if (evidenceRelation && leftEvidenceJoin && rows.length === 1 && (has('FRAGMENTO-D') || has(4))) found.push('orphans');
+  if (evidenceRelation && leftEvidenceJoin && /\bWHERE\s+(?:\w+\s*\.\s*)?(?:id_referencia|evidencia_id)\s+IS\s+NULL\b/i.test(structure)
+    && rows.length === 1 && (has('FRAGMENTO-D') || has(4))) found.push('orphans');
   return found;
 }

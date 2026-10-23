@@ -165,7 +165,7 @@ export function allowedStatement(phaseId, query) {
   const cleaned = String(query || '').replace(/--[^\n]*/g, '').replace(/\/\*[\s\S]*?\*\//g, '').trim();
   if (!cleaned || cleaned.length > 5000 || cleaned.split(';').filter(Boolean).length > 1) return false;
   if (/\b(ATTACH|DETACH|VACUUM|LOAD_EXTENSION)\b/i.test(cleaned)) return false;
-  if (phaseId === 3) return /^(SELECT|WITH|PRAGMA\s+table_info)/i.test(cleaned) && !/\b(INSERT|UPDATE|DELETE|DROP|ALTER|CREATE|REPLACE)\b/i.test(cleaned);
+  if (phaseId === 3) return /^(SELECT|WITH|PRAGMA\s+(?:table_info|foreign_key_list))/i.test(cleaned) && !/\b(INSERT|UPDATE|DELETE|DROP|ALTER|CREATE|REPLACE)\b/i.test(cleaned);
   if (phaseId === 4) return /^(CREATE\s+TABLE|CREATE\s+(?:UNIQUE\s+)?INDEX|ALTER\s+TABLE\s+objetos_celestes\b|INSERT(?:\s+OR\s+IGNORE)?\s+INTO\s+(?:observadores|observacoes_catalogo)\b|SELECT|PRAGMA\s+(?:table_info|foreign_key_list|index_list|index_info))/i.test(cleaned);
   if (phaseId === 5) return /^(INSERT|UPDATE|DELETE|SELECT|BEGIN|COMMIT|ROLLBACK|SAVEPOINT|PRAGMA\s+table_info\s*\(\s*simbolos\s*\))/i.test(cleaned);
   return /^(SELECT|WITH|PRAGMA\s+table_info)/i.test(cleaned) && !/\b(INSERT|UPDATE|DELETE|DROP|ALTER|CREATE|REPLACE)\b/i.test(cleaned);

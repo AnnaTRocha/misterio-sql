@@ -2,6 +2,7 @@ import { api, escapeHtml, requireSession } from './api-client.js';
 import { sqlToExecute } from './sql-selection.js';
 import { renderValidationGuide } from './validation-guide.js';
 import { confirmInPage } from './confirm-dialog.js';
+import { renderQueryResultCell } from './query-result-cell.js';
 
 const phaseId = Number(new URLSearchParams(location.search).get('id'));
 const PHASE_TABLES = {
@@ -336,20 +337,9 @@ function renderResults(resultSets) {
     <table class="result-table">
       <thead><tr>${set.columns.map(column => `<th>${escapeHtml(column)}</th>`).join('')}</tr></thead>
       <tbody>${set.values.slice(0, 200).map(row =>
-        `<tr>${row.map(value => `<td>${renderCell(value)}</td>`).join('')}</tr>`
+        `<tr>${row.map(value => `<td>${renderQueryResultCell(value, { linkExternal: phaseId === 3 })}</td>`).join('')}</tr>`
       ).join('')}</tbody>
     </table>`).join('');
-}
-
-function renderCell(value) {
-  if (value == null) return 'NULL';
-
-  const text = String(value);
-  if (phaseId === 3 && /^https:\/\//i.test(text)) {
-    return `<a class="external-resource-link" href="${escapeHtml(text)}" target="_blank" rel="noopener noreferrer">[ abrir recurso externo ]</a>`;
-  }
-
-  return escapeHtml(text);
 }
 
 function addHistory(query, ok) {

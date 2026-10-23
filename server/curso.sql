@@ -27,7 +27,7 @@ INSERT INTO registros_catalogo_bruto VALUES
   (3,'SIRIUS','NOAH','4802','SUL');
 
 CREATE TABLE simbolos (
-  id INTEGER PRIMARY KEY,
+  id_simbolo INTEGER CONSTRAINT pk_simbolos PRIMARY KEY,
   nome TEXT NOT NULL,
   estrelas INTEGER NOT NULL,
   status TEXT NOT NULL
@@ -80,12 +80,12 @@ INSERT INTO dispositivos_arg VALUES (1,'us2','S-81','D-17'),(2,'us5','S-42','D-0
 INSERT INTO identidades_arg VALUES (1,'us3','D-17',0),(2,'us6','D-09',0);
 
 -- Fase 3: evidências preservadas da investigação O Aglomerado.
-CREATE TABLE evidencias (evidencia_id INTEGER PRIMARY KEY, codigo TEXT NOT NULL, descricao TEXT NOT NULL);
-CREATE TABLE recursos (recurso_id INTEGER PRIMARY KEY, tipo TEXT NOT NULL, endereco TEXT, status TEXT NOT NULL);
+CREATE TABLE evidencias (id_evidencia INTEGER CONSTRAINT pk_evidencias PRIMARY KEY, codigo TEXT NOT NULL, descricao TEXT NOT NULL);
+CREATE TABLE recursos (id_recurso INTEGER CONSTRAINT pk_recursos PRIMARY KEY, tipo TEXT NOT NULL, endereco TEXT, status TEXT NOT NULL);
 CREATE TABLE referencias (
-  referencia_id INTEGER PRIMARY KEY,
-  evidencia_id INTEGER NOT NULL REFERENCES evidencias(evidencia_id),
-  recurso_id INTEGER REFERENCES recursos(recurso_id)
+  id_referencia INTEGER CONSTRAINT pk_referencias PRIMARY KEY,
+  evidencia_id INTEGER NOT NULL CONSTRAINT fk_referencias_evidencia_id REFERENCES evidencias(id_evidencia),
+  recurso_id INTEGER CONSTRAINT fk_referencias_recurso_id REFERENCES recursos(id_recurso)
 );
 INSERT INTO evidencias VALUES
   (1,'ORION-1987','A resposta anterior não era um destino. Classificação associada: constelação.'),

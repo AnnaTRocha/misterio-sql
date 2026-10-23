@@ -6,7 +6,7 @@ import { LESSONS } from './challenges.js';
 const EXPECTED_SQL = {
   1: [
     { step: '1.1', objective: 'Explorar a tabela de usuários', sql: 'SELECT * FROM usuarios;' },
-    { step: '1.2', objective: 'Selecionar colunas específicas', sql: 'SELECT id, nome FROM usuarios;' },
+    { step: '1.2', objective: 'Selecionar colunas específicas', sql: 'SELECT id_usuario, nome FROM usuarios;' },
     { step: '1.3', objective: 'Encontrar as mensagens do usuário desconhecido', sql: 'SELECT * FROM mensagens WHERE remetente_id = 3;' }
   ],
   2: [
@@ -15,7 +15,7 @@ const EXPECTED_SQL = {
     { step: '2.3', objective: 'Listar cidades sem repetição', sql: 'SELECT DISTINCT cidade FROM pessoas;' },
     { step: '2.4', objective: 'Ordenar os acessos do mais recente', sql: 'SELECT * FROM acessos ORDER BY data_hora DESC;' },
     { step: '2.5', objective: 'Contar acessos por pessoa', sql: 'SELECT pessoa_id, COUNT(*) AS acessos FROM acessos GROUP BY pessoa_id ORDER BY acessos DESC;' },
-    { step: '2.6', objective: 'Contar os acessos no período e revelar o código do usuário', sql: "SELECT a.usuario_id, u.nome, u.codigo, COUNT(*) AS acessos FROM acessos a JOIN usuarios u ON u.id = a.usuario_id WHERE a.data BETWEEN '1987-09-17' AND '1987-09-21' GROUP BY a.usuario_id, u.nome, u.codigo ORDER BY acessos DESC;" }
+    { step: '2.6', objective: 'Contar os acessos no período e revelar o código do usuário', sql: "SELECT a.usuario_id, u.nome, u.codigo, COUNT(*) AS acessos FROM acessos a JOIN usuarios u ON u.id_usuario = a.usuario_id WHERE a.data BETWEEN '1987-09-17' AND '1987-09-21' GROUP BY a.usuario_id, u.nome, u.codigo ORDER BY acessos DESC;" }
   ],
   3: PHASE_THREE_SQL,
   4: [
@@ -28,7 +28,7 @@ const EXPECTED_SQL = {
   ],
   5: [
     { step: '5.1', objective: 'Iniciar transação', sql: 'BEGIN;' },
-    { step: '5.2', objective: 'Inserir registro', sql: "INSERT INTO simbolos VALUES(3,'PLEIADES',6,'confirmado');" },
+    { step: '5.2', objective: 'Inserir registro', sql: "INSERT INTO simbolos (nome, estrelas, status) VALUES('PLEIADES',6,'confirmado');" },
     { step: '5.3', objective: 'Corrigir registro', sql: "UPDATE simbolos SET status='confirmado' WHERE nome='SUBARU';" },
     { step: '5.4', objective: 'Remover pista falsa', sql: "DELETE FROM simbolos WHERE nome='MARCA FALSA';" },
     { step: '5.5', objective: 'Confirmar transação', sql: 'COMMIT;' }

@@ -2,6 +2,7 @@ import { api, escapeHtml, requireSession } from './api-client.js';
 import { sqlToExecute } from './sql-selection.js';
 import { renderValidationGuide } from './validation-guide.js';
 import { confirmInPage } from './confirm-dialog.js';
+import { renderQueryResultCell } from './query-result-cell.js';
 
 const phaseId = Number(new URLSearchParams(location.search).get('id'));
 const $ = id => document.getElementById(id);
@@ -200,7 +201,7 @@ function readOnlyPreview(result, query = '') {
         ? `Nenhuma coluna encontrada para “${escapeHtml(tableInfo[1])}”. Confira o nome da tabela e se ela existe nesta fase.`
         : 'A consulta foi executada, mas não encontrou linhas. Confira o nome da tabela e os filtros aplicados.'
       : '';
-    return `${emptyMessage ? `<div class="empty-result"><span>!</span><p>${emptyMessage}</p></div>` : ''}<div class="query-meta">${set.values.length} linha(s) retornada(s)</div><table class="result-table"><thead><tr>${set.columns.map(value => `<th>${escapeHtml(value)}</th>`).join('')}</tr></thead><tbody>${set.values.slice(0, 100).map(row => `<tr>${row.map(value => `<td>${renderCell(value)}</td>`).join('')}</tr>`).join('')}</tbody></table>`;
+    return `${emptyMessage ? `<div class="empty-result"><span>!</span><p>${emptyMessage}</p></div>` : ''}<div class="query-meta">${set.values.length} linha(s) retornada(s)</div><table class="result-table"><thead><tr>${set.columns.map(value => `<th>${escapeHtml(value)}</th>`).join('')}</tr></thead><tbody>${set.values.slice(0, 100).map(row => `<tr>${row.map(value => `<td>${renderQueryResultCell(value, { linkExternal: phaseId === 3 })}</td>`).join('')}</tr>`).join('')}</tbody></table>`;
   }).join('');
 }
 
@@ -213,15 +214,6 @@ function queryFeedback(query, result) {
   }
   if (/^PRAGMA\s+table_info/i.test(statement)) return 'CONSULTA EXECUTADA // nenhuma coluna encontrada; confira o nome da tabela';
   return 'CONSULTA EXECUTADA // 0 linhas retornadas; confira tabela e filtros';
-}
-
-function renderCell(value) {
-  if (value == null) return 'NULL';
-  const text = String(value);
-  if (phaseId === 3 && /^https:\/\//i.test(text)) {
-    return `<a class="external-resource-link" href="${escapeHtml(text)}" target="_blank" rel="noopener noreferrer">[ abrir recurso externo ]</a>`;
-  }
-  return escapeHtml(text);
 }
 
 async function executeSql() {

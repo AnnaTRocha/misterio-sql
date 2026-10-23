@@ -593,6 +593,7 @@ body.crt-page {
   font-weight: 700;
   text-decoration: none;
   border-bottom: 1px dashed rgba(255,196,107,.45);
+  overflow-wrap: anywhere;
 }
 
 .crt-page .external-resource-link:hover {

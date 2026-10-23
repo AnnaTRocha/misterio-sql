@@ -1,7 +1,7 @@
 PRAGMA foreign_keys = ON;
 
 CREATE TABLE usuarios (
-  id INTEGER PRIMARY KEY,
+  id_usuario INTEGER CONSTRAINT pk_usuarios PRIMARY KEY,
   usuario TEXT NOT NULL,
   nome TEXT,
   codigo TEXT,
@@ -9,13 +9,13 @@ CREATE TABLE usuarios (
   ativo INTEGER NOT NULL DEFAULT 1
 );
 CREATE TABLE pessoas (
-  id INTEGER PRIMARY KEY,
+  id_pessoa INTEGER CONSTRAINT pk_pessoas PRIMARY KEY,
   nome TEXT NOT NULL,
   idade INTEGER NOT NULL,
   cidade TEXT NOT NULL
 );
 CREATE TABLE acessos (
-  id INTEGER PRIMARY KEY,
+  id_acesso INTEGER CONSTRAINT pk_acessos PRIMARY KEY,
   pessoa_id INTEGER,
   usuario_id INTEGER,
   data TEXT NOT NULL,
@@ -24,26 +24,26 @@ CREATE TABLE acessos (
   sala TEXT NOT NULL,
   hora_entrada TEXT NOT NULL,
   hora_saida TEXT,
-  FOREIGN KEY (pessoa_id) REFERENCES pessoas(id),
-  FOREIGN KEY (usuario_id) REFERENCES usuarios(id)
+  CONSTRAINT fk_acessos_pessoa_id FOREIGN KEY (pessoa_id) REFERENCES pessoas(id_pessoa),
+  CONSTRAINT fk_acessos_usuario_id FOREIGN KEY (usuario_id) REFERENCES usuarios(id_usuario)
 );
 CREATE TABLE mensagens (
-  id INTEGER PRIMARY KEY,
+  id_mensagem INTEGER CONSTRAINT pk_mensagens PRIMARY KEY,
   remetente_id INTEGER,
   destinatario TEXT NOT NULL,
   mensagem TEXT NOT NULL,
   data_hora TEXT NOT NULL,
-  FOREIGN KEY (remetente_id) REFERENCES usuarios(id)
+  CONSTRAINT fk_mensagens_remetente_id FOREIGN KEY (remetente_id) REFERENCES usuarios(id_usuario)
 );
 CREATE TABLE arquivos (
-  id INTEGER PRIMARY KEY,
+  id_arquivo INTEGER CONSTRAINT pk_arquivos PRIMARY KEY,
   nome TEXT NOT NULL,
   caminho TEXT NOT NULL,
   status TEXT NOT NULL,
   observacao TEXT
 );
 
-INSERT INTO pessoas (id,nome,idade,cidade) VALUES
+INSERT INTO pessoas (id_pessoa,nome,idade,cidade) VALUES
 (1,'Ana Souza',24,'Orleans'),
 (2,'Bruno Martins',31,'Tubarão'),
 (3,'Desconhecido',29,'Criciúma'),
@@ -85,7 +85,7 @@ INSERT INTO pessoas (id,nome,idade,cidade) VALUES
 (39,'Renato Rezende',29,'Criciúma'),
 (40,'Silvia Batista',43,'Braço do Norte');
 
-INSERT INTO usuarios (id,usuario,nome,codigo,nivel,ativo) VALUES
+INSERT INTO usuarios (id_usuario,usuario,nome,codigo,nivel,ativo) VALUES
 (1,'ana01','Ana Souza',NULL,'comum',1),
 (2,'bruno02','Bruno Martins',NULL,'comum',1),
 (3,'desconhecido',NULL,NULL,'restrito',1),
@@ -127,7 +127,7 @@ INSERT INTO usuarios (id,usuario,nome,codigo,nivel,ativo) VALUES
 (39,'renato39','Renato Rezende',NULL,'comum',1),
 (40,'silvia40','Silvia Batista',NULL,'comum',1);
 
-INSERT INTO acessos (id,pessoa_id,usuario_id,data,data_hora,terminal,sala,hora_entrada,hora_saida) VALUES
+INSERT INTO acessos (id_acesso,pessoa_id,usuario_id,data,data_hora,terminal,sala,hora_entrada,hora_saida) VALUES
 (10,37,37,'1987-09-02','1987-09-02 20:05','LAB-02','B12','20:05','21:00'),
 (17,37,37,'1987-09-04','1987-09-04 21:15','LAB-02','B12','21:15','22:10'),
 (24,37,37,'1987-09-06','1987-09-06 22:10','LAB-02','B12','22:10','23:05'),
@@ -175,7 +175,7 @@ INSERT INTO acessos (id,pessoa_id,usuario_id,data,data_hora,terminal,sala,hora_e
 (146,35,35,'1987-09-09','1987-09-09 15:07','LAB-02','A03','15:07','15:52'),
 (193,12,NULL,'1987-09-21','1987-09-21 03:31','LAB-04','C09','03:31','03:33');
 
-INSERT INTO mensagens (id,remetente_id,destinatario,mensagem,data_hora) VALUES
+INSERT INTO mensagens (id_mensagem,remetente_id,destinatario,mensagem,data_hora) VALUES
 (1,NULL,'todos','Sistema restaurado parcialmente. Alguns índices permanecem corrompidos.','1987-09-16 23:58'),
 (2,3,'operador','Você encontrou a porta.','1987-09-17 00:03'),
 (3,14,'manutencao','O terminal LAB-02 voltou a responder após a queda.','1987-09-17 08:44'),
@@ -183,7 +183,7 @@ INSERT INTO mensagens (id,remetente_id,destinatario,mensagem,data_hora) VALUES
 (5,22,'arquivo','Não confie na ordem em que os registros aparecem.','1987-09-18 04:10'),
 (6,NULL,'todos','A verdade não foi apagada. Foi organizada.','1987-09-21 03:32');
 
-INSERT INTO arquivos (id,nome,caminho,status,observacao) VALUES
+INSERT INTO arquivos (id_arquivo,nome,caminho,status,observacao) VALUES
 (1,'readme.sys','/sistema/readme.sys','legivel','A verdade não foi apagada. Foi organizada.'),
 (2,'usuarios.idx','/indices/usuarios.idx','legivel','Índice de identidades recuperado parcialmente.'),
 (3,'acessos.log','/logs/acessos.log','legivel','Registros de entrada e saída do período.'),

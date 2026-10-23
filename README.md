@@ -28,7 +28,7 @@ Senha: valor definido em TEACHER_INITIAL_PASSWORD
 
 Um servidor antigo da UNIBAVE voltou a responder. O estudante explora `usuarios`, `mensagens`, `arquivos`, `pessoas` e `acessos` usando `SELECT`, `FROM` e seleção de colunas.
 
-O usuário `id = 3` aparece como **desconhecido**. Ao consultar as mensagens enviadas por ele, o estudante encontra:
+O usuário `id_usuario = 3` aparece como **desconhecido**. Ao consultar as mensagens enviadas por ele, o estudante encontra:
 
 - “Você encontrou a porta.”
 - “Agora procure por 1987.”
@@ -44,7 +44,7 @@ A segunda missão investiga um incidente ocorrido em **17/09/1987** e possui sei
 3. **Cidades:** `SELECT DISTINCT cidade FROM pessoas;` retorna Orleans, Tubarão, Criciúma e Braço do Norte.
 4. **Último acesso:** `ORDER BY data_hora DESC` revela o registro 193, usuário NULL, em 21/09/1987 às 03:31 no terminal LAB-04.
 5. **Maior frequência:** `COUNT(*)`, `GROUP BY pessoa_id` e `ORDER BY` mostram a pessoa 37 com 18 acessos.
-6. **Código:** entre 17 e 21/09, o usuário 37 possui 12 acessos. `SELECT * FROM usuarios WHERE id = 37;` revela **Augusto Vieira** e o código **ORION**.
+6. **Código:** entre 17 e 21/09, o usuário 37 possui 12 acessos. `SELECT * FROM usuarios WHERE id_usuario = 37;` revela **Augusto Vieira** e o código **ORION**.
 
 O código **ORION** encerra a Fase 2.
 

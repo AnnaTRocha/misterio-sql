@@ -8,15 +8,15 @@ import { expectedSqlForPhase } from '../server/test-tools.js';
 const solutions = {
   3: [
     'SELECT * FROM evidencias',
-    'SELECT * FROM evidencias e JOIN referencias r ON r.evidencia_id=e.evidencia_id',
-    'SELECT * FROM referencias r JOIN recursos rc ON rc.recurso_id=r.recurso_id',
-    "SELECT rc.endereco FROM referencias r JOIN recursos rc ON rc.recurso_id=r.recurso_id WHERE rc.status='recuperado'",
-    'SELECT * FROM evidencias e LEFT JOIN referencias r ON r.evidencia_id=e.evidencia_id WHERE r.referencia_id IS NULL'
+    'SELECT * FROM evidencias e JOIN referencias r ON r.evidencia_id=e.id_evidencia',
+    'SELECT * FROM referencias r JOIN recursos rc ON rc.id_recurso=r.recurso_id',
+    "SELECT rc.endereco FROM referencias r JOIN recursos rc ON rc.id_recurso=r.recurso_id WHERE rc.status='recuperado'",
+    'SELECT * FROM evidencias e LEFT JOIN referencias r ON r.evidencia_id=e.id_evidencia WHERE r.id_referencia IS NULL'
   ],
   4: expectedSqlForPhase(4).map(item => item.sql),
   5: [
     'BEGIN',
-    "INSERT INTO simbolos VALUES(3,'PLEIADES',6,'confirmado')",
+    "INSERT INTO simbolos (nome,estrelas,status) VALUES('PLEIADES',6,'confirmado')",
     "UPDATE simbolos SET status='confirmado' WHERE nome='SUBARU'",
     "DELETE FROM simbolos WHERE nome='MARCA FALSA'",
     'COMMIT'
@@ -50,33 +50,77 @@ test('aula 3: cada consulta de referência conclui o objetivo correspondente', a
   }
 });
 
-test('aula 3: as chaves das três tabelas têm nomes distintos e claros', async () => {
+test('aula 3: as PKs usam id_ e as FKs apontam para as chaves correspondentes', async () => {
   for (const [table, expected] of [
-    ['evidencias', ['evidencia_id', 'codigo', 'descricao']],
-    ['referencias', ['referencia_id', 'evidencia_id', 'recurso_id']],
-    ['recursos', ['recurso_id', 'tipo', 'endereco', 'status']]
+    ['evidencias', ['id_evidencia', 'codigo', 'descricao']],
+    ['referencias', ['id_referencia', 'evidencia_id', 'recurso_id']],
+    ['recursos', ['id_recurso', 'tipo', 'endereco', 'status']]
   ]) {
     const result = await evaluateChallenge(3, [`PRAGMA table_info(${table})`], 1);
     assert.deepEqual(result.result[0].values.map(row => row[1]), expected);
+    assert.deepEqual(result.result[0].values.filter(row => row[5] === 1).map(row => row[1]), [expected[0]]);
   }
+
+  const foreignKeys = await evaluateChallenge(3, ['PRAGMA foreign_key_list(referencias)'], 1);
+  assert.deepEqual(new Set(foreignKeys.result[0].values.map(row => `${row[2]}.${row[3]}=${row[4]}`)), new Set([
+    'evidencias.evidencia_id=id_evidencia',
+    'recursos.recurso_id=id_recurso'
+  ]));
+
+  const legacyPrimaryKey = await evaluateChallenge(3, ['SELECT evidencia_id FROM evidencias'], 1);
+  assert.equal(legacyPrimaryKey.lastSucceeded, false);
+});
+
+test('aulas 1, 2 e 5: as chaves primárias seguem id_<singular>', async () => {
+  for (const [table, key] of [
+    ['usuarios', 'id_usuario'],
+    ['pessoas', 'id_pessoa'],
+    ['acessos', 'id_acesso'],
+    ['mensagens', 'id_mensagem'],
+    ['arquivos', 'id_arquivo']
+  ]) {
+    const result = await executeArchiveQuery(`PRAGMA table_info(${table})`);
+    const columns = result[0].values;
+    assert.deepEqual(columns.filter(row => row[5] === 1).map(row => row[1]), [key]);
+    assert.ok(!columns.some(row => row[1] === 'id'));
+  }
+
+  const accessForeignKeys = await executeArchiveQuery('PRAGMA foreign_key_list(acessos)');
+  assert.deepEqual(new Set(accessForeignKeys[0].values.map(row => `${row[2]}.${row[3]}=${row[4]}`)), new Set([
+    'pessoas.pessoa_id=id_pessoa',
+    'usuarios.usuario_id=id_usuario'
+  ]));
+  const messageForeignKeys = await executeArchiveQuery('PRAGMA foreign_key_list(mensagens)');
+  assert.deepEqual(messageForeignKeys[0].values.map(row => `${row[2]}.${row[3]}=${row[4]}`), [
+    'usuarios.remetente_id=id_usuario'
+  ]);
+
+  const userProjection = await executeArchiveQuery(expectedSqlForPhase(1)[1].sql);
+  assert.deepEqual(userProjection[0].columns, ['id_usuario', 'nome']);
+  await assert.rejects(executeArchiveQuery('SELECT id, nome FROM usuarios'));
+
+  const symbols = await evaluateChallenge(5, ['PRAGMA table_info(simbolos)'], 1);
+  const symbolColumns = symbols.result[0].values;
+  assert.deepEqual(symbolColumns.filter(row => row[5] === 1).map(row => row[1]), ['id_simbolo']);
+  assert.ok(!symbolColumns.some(row => row[1] === 'id'));
 });
 
 test('aula 3: aceita aliases, ordem invertida, projeções e filtros equivalentes', async () => {
   const queries = [
     "select codigo from evidencias where codigo = 'SEIS-ESTRELAS'",
-    "SELECT e.codigo FROM referencias AS r INNER JOIN evidencias AS e ON e.evidencia_id = r.evidencia_id WHERE e.codigo = 'SEIS-ESTRELAS'",
-    "SELECT rc.endereco FROM recursos AS rc INNER JOIN referencias AS r ON r.recurso_id = rc.recurso_id WHERE rc.status = 'recuperado'",
-    "SELECT endereco FROM recursos WHERE recurso_id = 7",
-    'SELECT e.codigo FROM evidencias AS e LEFT OUTER JOIN referencias AS r ON e.evidencia_id = r.evidencia_id WHERE r.evidencia_id IS NULL'
+    "SELECT e.codigo FROM referencias AS r INNER JOIN evidencias AS e ON e.id_evidencia = r.evidencia_id WHERE e.codigo = 'SEIS-ESTRELAS'",
+    "SELECT rc.endereco FROM recursos AS rc INNER JOIN referencias AS r ON rc.id_recurso = r.recurso_id WHERE rc.status = 'recuperado'",
+    "SELECT endereco FROM recursos WHERE id_recurso = 7",
+    'SELECT e.codigo FROM evidencias AS e LEFT OUTER JOIN referencias AS r ON e.id_evidencia = r.evidencia_id WHERE r.evidencia_id IS NULL'
   ];
   const result = await evaluateChallenge(3, queries, 1);
   assert.deepEqual(new Set(result.milestones), new Set(LESSONS[3].objectives.map(([key]) => key)));
   const withoutAliases = await evaluateChallenge(3, [
-    'SELECT evidencias.codigo FROM evidencias JOIN referencias ON (evidencias.evidencia_id) = (referencias.evidencia_id)'
+    'SELECT evidencias.codigo FROM evidencias JOIN referencias ON (evidencias.id_evidencia) = (referencias.evidencia_id)'
   ], 1);
   assert.ok(withoutAliases.milestones.includes('evidence_join'));
   const commaJoin = await evaluateChallenge(3, [
-    'SELECT e.codigo FROM evidencias e, referencias r WHERE e.evidencia_id = r.evidencia_id'
+    'SELECT e.codigo FROM evidencias e, referencias r WHERE e.id_evidencia = r.evidencia_id'
   ], 1);
   assert.ok(commaJoin.milestones.includes('evidence_join'));
 });
@@ -84,11 +128,11 @@ test('aula 3: aceita aliases, ordem invertida, projeções e filtros equivalente
 test('aula 3: relações incorretas ou resultados não isolados não completam objetivos', async () => {
   const oldColumn = await evaluateChallenge(3, ['SELECT * FROM evidencias JOIN referencias r ON r.id = evidencia_id'], 1);
   assert.equal(oldColumn.lastSucceeded, false);
-  const wrongJoin = await evaluateChallenge(3, ['SELECT * FROM evidencias e JOIN referencias r ON e.evidencia_id = r.referencia_id'], 1);
+  const wrongJoin = await evaluateChallenge(3, ['SELECT * FROM evidencias e JOIN referencias r ON e.id_evidencia = r.id_referencia'], 1);
   assert.ok(!wrongJoin.milestones.includes('evidence_join'));
   const unfilteredResources = await evaluateChallenge(3, ['SELECT * FROM recursos'], 1);
   assert.ok(!unfilteredResources.milestones.includes('resource_found'));
-  const allEvidences = await evaluateChallenge(3, ['SELECT * FROM evidencias e LEFT JOIN referencias r ON e.evidencia_id = r.evidencia_id'], 1);
+  const allEvidences = await evaluateChallenge(3, ['SELECT * FROM evidencias e LEFT JOIN referencias r ON e.id_evidencia = r.evidencia_id'], 1);
   assert.ok(!allEvidences.milestones.includes('orphans'));
 });
 
@@ -301,9 +345,10 @@ test('etapa 2.6 usa uma consulta e mantém válidas as consultas antigas', async
   const combined = guide.at(-1).sql;
   assert.deepEqual(new Set(queryMilestones(2, combined, await executeArchiveQuery(combined))), new Set(['window', 'identify', 'code']));
   const oldCount = "SELECT usuario_id, COUNT(*) AS acessos FROM acessos WHERE data BETWEEN '1987-09-17' AND '1987-09-21' GROUP BY usuario_id ORDER BY acessos DESC;";
-  const oldUser = 'SELECT * FROM usuarios WHERE id = 37;';
+  const oldUser = 'SELECT * FROM usuarios WHERE id_usuario = 37;';
   assert.ok(queryMilestones(2, oldCount, await executeArchiveQuery(oldCount)).includes('window'));
   assert.ok(queryMilestones(2, oldUser, await executeArchiveQuery(oldUser)).includes('identify'));
+  await assert.rejects(executeArchiveQuery('SELECT * FROM usuarios WHERE id = 37;'));
 });
 
 test('consulta vazia não valida descoberta só por conter palavras-chave', async () => {

@@ -448,8 +448,8 @@ export function queryMilestones(phaseId, query, result = []) {
       /\bFROM\s+usuarios\b/i.test(cleaned) &&
       /\bWHERE\b/i.test(cleaned) &&
       (
-        /\b(?:\w+\.)?id\s*=\s*37\b/i.test(cleaned) ||
-        /\b37\s*=\s*(?:\w+\.)?id\b/i.test(cleaned)
+        /\b(?:\w+\.)?id_usuario\s*=\s*37\b/i.test(cleaned) ||
+        /\b37\s*=\s*(?:\w+\.)?id_usuario\b/i.test(cleaned)
       )
     ) if (has('ORION')) found.push('identify');
 
