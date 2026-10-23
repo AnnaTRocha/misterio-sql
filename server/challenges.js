@@ -36,14 +36,49 @@ export const LESSONS = {
     title: 'O Padrão Quebrado', code: 'OBSERVATÓRIO // 1987', theme: 'catalog',
     mission: 'O catálogo repete os dados de um observador. Organize os contatos sem apagar os cinco objetos nem as três observações já registradas.',
     answerPrompt: 'Informe o código que encerra a investigação.',
-    initial: 'SELECT * FROM catalogo_bruto;', tables: ['catalogo_bruto', 'objetos_celestes'],
+    initial: 'SELECT * FROM registros_catalogo_bruto;', tables: ['registros_catalogo_bruto', 'objetos_celestes'],
+    warmup: {
+      title: 'Aquecimento opcional // estações meteorológicas',
+      intro: 'Este exemplo usa outras tabelas e outros dados. Ele demonstra a sequência de leitura, estrutura, restrições e migração; não pontua nem altera o arquivo desta fase.',
+      source: [
+        ['S-A', 'JARDIM', 61, '14:00'],
+        ['S-A', 'JARDIM', 63, '14:15'],
+        ['S-B', 'ESTUFA', 55, '14:20']
+      ],
+      steps: [
+        {
+          title: '1. Leia os dados e a estrutura',
+          text: 'A tabela de origem repete o código e o setor do sensor. PRAGMA mostra as colunas; SELECT permite comparar as três medições.',
+          sql: 'PRAGMA table_info(medicoes_brutas);\nSELECT * FROM medicoes_brutas;',
+          expected: 'O código S-A aparece duas vezes. Há dois sensores e três medições.'
+        },
+        {
+          title: '2. Crie a tabela da entidade',
+          text: 'Cada sensor deve ter um identificador próprio. A chave primária identifica a linha; NOT NULL impede campos sem valor.',
+          sql: 'CREATE TABLE sensores_demo (\n  id_sensor INTEGER CONSTRAINT pk_sensores_demo PRIMARY KEY,\n  codigo_sensor TEXT NOT NULL,\n  nome_setor TEXT NOT NULL\n);',
+          expected: 'A tabela sensores_demo descreve um sensor por linha.'
+        },
+        {
+          title: '3. Acrescente restrições e crie a tabela relacionada',
+          text: 'O código do sensor não deve se repetir. A tabela de medições usa uma chave estrangeira e impede repetir o mesmo horário para o mesmo sensor.',
+          sql: 'CREATE UNIQUE INDEX ux_sensores_demo_codigo_sensor\n  ON sensores_demo (codigo_sensor);\n\nCREATE TABLE medicoes_demo (\n  id_medicao_demo INTEGER CONSTRAINT pk_medicoes_demo PRIMARY KEY,\n  id_sensor INTEGER NOT NULL,\n  umidade REAL NOT NULL,\n  momento TEXT NOT NULL,\n  CONSTRAINT uq_medicoes_demo_sensor_momento UNIQUE (id_sensor, momento),\n  CONSTRAINT fk_medicoes_demo_id_sensor FOREIGN KEY (id_sensor)\n    REFERENCES sensores_demo (id_sensor)\n);',
+          expected: 'A tabela filha aponta para um sensor existente e mantém a regra de unicidade.'
+        },
+        {
+          title: '4. Migre com SELECT e JOIN',
+          text: 'Copie primeiro cada sensor uma vez. Depois encontre o identificador de cada sensor para copiar as medições correspondentes.',
+          sql: 'INSERT INTO sensores_demo (codigo_sensor, nome_setor)\nSELECT DISTINCT codigo_sensor, nome_setor\nFROM medicoes_brutas;\n\nINSERT INTO medicoes_demo (id_sensor, umidade, momento)\nSELECT s.id_sensor, m.umidade, m.momento\nFROM medicoes_brutas AS m\nJOIN sensores_demo AS s\n  ON s.codigo_sensor = m.codigo_sensor;',
+          expected: 'O destino terá dois sensores e três medições. No desafio, você ainda precisa escolher as chaves que ligam os registros do catálogo.'
+        }
+      ]
+    },
     objectives: [
       ['alter', 'Em objetos_celestes, criar origem_objeto_celeste (TEXT) e preservar os cinco objetos. Não é preciso preencher a coluna.'],
       ['observadores', 'Criar observadores com id_observador (INTEGER, chave primária), nome_observador (TEXT obrigatório) e telefone_observador (TEXT obrigatório).'],
       ['unico', 'Impedir telefone repetido em observadores.'],
       ['relacoes', 'Criar observacoes_catalogo com chave primária, referências obrigatórias a objetos e observadores, nome_observatorio obrigatório e vínculo único por objeto, observador e observatório.'],
-      ['migrar_observadores', 'Copiar de catalogo_bruto cada combinação distinta de nome e telefone; devem resultar dois contatos.'],
-      ['migrar_observacoes', 'Copiar as três linhas de catalogo_bruto, relacionando cada objeto pelo nome e cada contato por nome e telefone.']
+      ['migrar_observadores', 'Copiar de registros_catalogo_bruto cada combinação distinta de nome e telefone; devem resultar dois contatos.'],
+      ['migrar_observacoes', 'Copiar as três linhas de registros_catalogo_bruto, relacionando cada objeto pelo nome e cada contato por nome e telefone.']
     ],
     hints: [
       'Os dados de origem já estão carregados: o catálogo tem 3 registros e a tabela de objetos tem 5. Execute a consulta inicial para vê-los. As tabelas de destino ainda não existem; você vai criá-las e preenchê-las.',
@@ -101,14 +136,14 @@ export const LESSONS = {
   8: {
     title: 'O Sétimo Rastro', code: 'INTERCEPTAÇÃO // NÓ', theme: 'analysis',
     mission: 'Os fragmentos das equipes parecem isolados. Um padrão de repetição pode revelar a ordem dos acontecimentos.',
-    answerPrompt: 'Os rastros isolados agora podem ser lidos em conjunto. Como você identifica o que foi reunido?',
+    answerPrompt: 'Digite a palavra que resume os registros parciais reunidos nesta fase.',
     initial: 'SELECT * FROM investigacoes;', tables: ['investigacoes', 'acessos_celestes'],
     objectives: [
       ['subquery', 'Selecionar usuários ligados a objetos de 1987 com subconsulta'],
       ['cte', 'Criar uma CTE que resuma os fragmentos por equipe'],
-      ['window', 'Numerar registros dentro de cada equipe com ROW_NUMBER e PARTITION BY']
+      ['window', 'Numerar os registros de cada equipe pela ordem crescente do identificador da investigação, com ROW_NUMBER e PARTITION BY']
     ],
-    hints: ['Uma consulta pode alimentar o filtro de outra.', 'Organize uma etapa intermediária antes da consulta principal.', 'Numere as linhas dentro de cada equipe sem agrupá-las em uma só.'],
+    hints: ['Uma consulta pode alimentar o filtro de outra.', 'Organize uma etapa intermediária antes da consulta principal.', 'Numere as linhas de cada equipe pela ordem crescente do identificador, sem agrupá-las em uma só.'],
     answer: 'FRAGMENTOS'
   },
   9: {
@@ -196,6 +231,47 @@ function sameRows(left, right) {
   return JSON.stringify(normalize(left)) === JSON.stringify(normalize(right));
 }
 
+function hasExactValues(result, expected) {
+  if (result.length !== 1 || result[0].values.length !== expected.length) return false;
+  const set = result[0];
+  return set.columns.some((_, index) => sameRows(
+    set.values.map(row => [row[index]]),
+    expected.map(value => [value])
+  ));
+}
+
+function hasExactPairs(result, expected, { secondDescending = false } = {}) {
+  if (result.length !== 1 || result[0].values.length !== expected.length) return false;
+  const { columns, values } = result[0];
+  for (let first = 0; first < columns.length; first++) {
+    for (let second = first + 1; second < columns.length; second++) {
+      for (const [left, right] of [[first, second], [second, first]]) {
+        const pairs = values.map(row => [row[left], row[right]]);
+        if (!sameRows(pairs, expected)) continue;
+        if (!secondDescending || pairs.every((pair, index) => index === 0 || Number(pairs[index - 1][1]) >= Number(pair[1]))) {
+          return true;
+        }
+      }
+    }
+  }
+  return false;
+}
+
+function hasExactTriples(result, expected) {
+  if (result.length !== 1 || result[0].values.length !== expected.length) return false;
+  const { columns, values } = result[0];
+  for (let first = 0; first < columns.length; first++) {
+    for (let second = 0; second < columns.length; second++) {
+      if (second === first) continue;
+      for (let third = 0; third < columns.length; third++) {
+        if (third === first || third === second) continue;
+        if (sameRows(values.map(row => [row[first], row[second], row[third]]), expected)) return true;
+      }
+    }
+  }
+  return false;
+}
+
 function phaseFourTableNames(db) {
   const rows = db.exec("SELECT name FROM sqlite_master WHERE type='table'")[0]?.values || [];
   const existing = new Set(rows.map(([name]) => String(name).toLowerCase()));
@@ -267,14 +343,14 @@ function checkMilestones(id, query, result, db, groupId) {
     if (observationSchema) found.push('relacoes');
 
     if (observerSchema) {
-      const source = db.exec(`SELECT DISTINCT nome_observador,telefone_observador FROM catalogo_bruto ORDER BY nome_observador,telefone_observador`)[0]?.values || [];
+      const source = db.exec(`SELECT DISTINCT nome_observador,telefone_observador FROM registros_catalogo_bruto ORDER BY nome_observador,telefone_observador`)[0]?.values || [];
       const migrated = db.exec(`SELECT nome_observador,telefone_observador FROM observadores ORDER BY nome_observador,telefone_observador`)[0]?.values || [];
       if (source.length === 2 && sameRows(source, migrated)) found.push('migrar_observadores');
     }
 
     if (observationSchema && hasSingleColumnUniqueIndex(db, 'observadores', 'telefone_observador')) {
       const source = db.exec(`SELECT o.id_objeto_celeste,ob.id_observador,c.nome_observatorio
-        FROM catalogo_bruto c
+        FROM registros_catalogo_bruto c
         JOIN objetos_celestes o ON o.nome=c.nome_objeto_celeste
         JOIN observadores ob ON ob.nome_observador=c.nome_observador AND ob.telefone_observador=c.telefone_observador`)[0]?.values || [];
       const migrated = db.exec(`SELECT id_objeto_celeste,id_observador,nome_observatorio FROM observacoes_catalogo`)[0]?.values || [];
@@ -286,17 +362,26 @@ function checkMilestones(id, query, result, db, groupId) {
     if (count(db,"SELECT COUNT(*) FROM simbolos WHERE nome='SUBARU' AND status='confirmado'") === 1) found.push('update');
     if (count(db,"SELECT COUNT(*) FROM simbolos WHERE nome='MARCA FALSA'") === 0 && count(db,'SELECT COUNT(*) FROM simbolos') === 2) found.push('delete');
   } else if (id === 6) {
-    if (/FROM\s+OBJETOS_CELESTES/.test(q) && /WHERE/.test(q) && /ANO/.test(q) && /SETOR/.test(q) && includes(result,'ORION')) found.push('filter');
-    if (/SELECT\s+DISTINCT\s+SETOR/.test(q) && includes(result,'N-04') && includes(result,'N-06')) found.push('distinct');
-    if (/COUNT\s*\(/.test(q) && /GROUP\s+BY/.test(q) && /ORDER\s+BY/.test(q) && includes(result,1987) && includes(result,3)) found.push('aggregate');
+    if (/FROM\s+OBJETOS_CELESTES/.test(q) && /\bWHERE\b/.test(q) && /\bANO\b/.test(q) && /\bSETOR\b/.test(q)
+      && hasExactValues(result, ['ORION', 'ORION-B'])) found.push('filter');
+    if (/SELECT\s+DISTINCT\b/.test(q) && /\bSETOR\b/.test(q) && /FROM\s+OBJETOS_CELESTES/.test(q)
+      && hasExactValues(result, ['N-04', 'N-06', 'S-02'])) found.push('distinct');
+    if (/COUNT\s*\(/.test(q) && /GROUP\s+BY/.test(q) && /\bANO\b/.test(q) && /FROM\s+OBJETOS_CELESTES/.test(q)
+      && /ORDER\s+BY/.test(q) && hasExactPairs(result, [[1987, 3], [1986, 1], [1988, 1]], { secondDescending: true })) found.push('aggregate');
   } else if (id === 7) {
-    if (/JOIN\s+OBJETOS_CELESTES/.test(q) && /FROM\s+ACESSOS_CELESTES/.test(q) && /WHERE/.test(q) && includes(result,'PLEIADES') && includes(result,'N-06')) found.push('inner');
-    if (/LEFT\s+JOIN\s+ACESSOS_CELESTES/.test(q) && /FROM\s+OBJETOS_CELESTES/.test(q) && /IS\s+NULL/.test(q) && includes(result,'ORION-B')) found.push('left');
-    if (/JOIN/.test(q) && /COUNT\s*\(/.test(q) && /GROUP\s+BY/.test(q) && includes(result,'PLEIADES') && includes(result,4)) found.push('group');
+    if (/JOIN\s+OBJETOS_CELESTES/.test(q) && /FROM\s+ACESSOS_CELESTES/.test(q) && /\bWHERE\b/.test(q)
+      && hasExactPairs(result, [['ORION', 'N-04'], ['PLEIADES', 'N-06'], ['ORION', 'N-04'], ['PLEIADES', 'N-06'], ['PLEIADES', 'N-06'], ['PLEIADES', 'N-06']])) found.push('inner');
+    if (/LEFT\s+(?:OUTER\s+)?JOIN\s+ACESSOS_CELESTES/.test(q) && /FROM\s+OBJETOS_CELESTES/.test(q) && /IS\s+NULL/.test(q)
+      && hasExactValues(result, ['ORION-B'])) found.push('left');
+    if (/JOIN\s+OBJETOS_CELESTES/.test(q) && /FROM\s+ACESSOS_CELESTES/.test(q) && /COUNT\s*\(/.test(q) && /GROUP\s+BY/.test(q)
+      && hasExactPairs(result, [['ORION', 2], ['ALDEBARAN', 1], ['PLEIADES', 4], ['SIRIUS', 1]])) found.push('group');
   } else if (id === 8) {
-    if (/(IN\s*\(\s*SELECT|EXISTS\s*\(\s*SELECT)/.test(q) && /ACESSOS_CELESTES/.test(q) && includes(result,'us1')) found.push('subquery');
-    if (/^WITH\s+/.test(q) && /INVESTIGACOES/.test(q) && /GROUP\s+BY/.test(q) && includes(result,1) && includes(result,3)) found.push('cte');
-    if (/ROW_NUMBER\s*\(\s*\)\s*OVER/.test(q) && /PARTITION\s+BY/.test(q) && /INVESTIGACOES/.test(q) && rows(result).length >= 6) found.push('window');
+    if (/(IN\s*\(\s*SELECT|EXISTS\s*\(\s*SELECT)/.test(q) && /ACESSOS_CELESTES/.test(q)
+      && hasExactValues(result, ['us1', 'us2', 'us4', 'us5', 'us1', 'us4'])) found.push('subquery');
+    if (/^\s*WITH\s+/.test(q) && /INVESTIGACOES/.test(q) && /COUNT\s*\(/.test(q) && /GROUP\s+BY/.test(q)
+      && hasExactPairs(result, [[1, 3], [2, 3]])) found.push('cte');
+    if (/ROW_NUMBER\s*\(\s*\)\s*OVER/.test(q) && /PARTITION\s+BY/.test(q) && /INVESTIGACOES/.test(q)
+      && hasExactTriples(result, [[1, 'us1', 1], [1, 'us2', 2], [1, 'us3', 3], [2, 'us4', 1], [2, 'us5', 2], [2, 'us6', 3]])) found.push('window');
   } else if (id === 9) {
     const three = ['SESSOES_ARG','DISPOSITIVOS_ARG','IDENTIDADES_ARG'].every(t => q.includes(t)) && (q.match(/\bJOIN\b/g)||[]).length >= 2;
     const aliases = groupId === 1 ? ['us1','us2','us3'] : ['us4','us5','us6'];

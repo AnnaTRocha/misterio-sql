@@ -210,3 +210,35 @@ Comando executado em 16/10/2026: `npm test` (`node --test tests/*.test.js`). Res
 `docs/plano-fases.md` registra a proposta narrativa inicial; a matriz Canva confirma os desalinhamentos de Aula 02/Fase 02 e Aula 03/Fase 03. A implementação atual preserva o progresso, mantém os cinco exercícios aprovados, usa respostas próprias em 03/05/07 e alinha o plano às nove apresentações. A organização posterior à Aula 09, a inspeção visual das apresentações, as regras de prêmio e o acesso a PDFs continuam pendentes.
 
 **Estado do escopo:** código e plano alinhado às nove aulas alterados localmente; nenhuma alteração foi publicada no Canva ou no banco online. Testes não foram executados.
+
+## Atualização da revisão: issues #1 e #6 (2026-10-23)
+
+O repositório foi atualizado de `origin/main` antes desta alteração. As duas issues abertas foram tratadas no código local:
+
+- **Issue #1 — resultados das Aulas 06–08:** os marcos das Fases 06–08 agora exigem o conjunto completo esperado. A Fase 06 também confere que a contagem esteja em ordem decrescente; a Fase 07 passou a conferir todas as relações e contagens; a Fase 08 confere os usuários, os totais por equipe e a numeração de cada registro. Testes cobrem resultados incompletos/extras, ordenação errada e formas equivalentes com aliases, `EXISTS`, `USING` e projeções reordenadas.
+- **Issue #6 — ponte para DDL:** a Fase 04 ganhou um exemplo opcional, em quatro etapas, sobre sensores e medições. Ele mostra leitura da origem, criação de entidade, restrições/chave estrangeira e migração com `DISTINCT` e `JOIN`. As tabelas e os valores do exemplo são diferentes dos dados avaliados e não concedem objetivos.
+
+### Coesão, enunciados e esquema
+
+- A sequência narrativa continua legível: `ORION` abre o arco astronômico, `SUBARU` e `PLEIADES` são respostas distintas, e a Fase 07 termina em `N-06`. Os nove códigos finais continuam únicos: `1987`, `ORION`, `SUBARU`, `NORMALIZACAO`, `PLEIADES`, `N-04`, `N-06`, `FRAGMENTOS` e `US0`.
+- O enunciado conceitual da Fase 06 agora trata de filtrar linhas antes do agrupamento, sem mencionar contagem de acessos válidos que não fazia parte do objetivo SQL daquela fase. A resposta final da Fase 08 foi ligada aos registros parciais, e o objetivo de janela explicita a ordem crescente do identificador para que o resultado de `ROW_NUMBER` não dependa de uma escolha implícita.
+- Nas fases incluídas nas issues, as tabelas usam nomes plurais em `snake_case`; o catálogo da Fase 04 passou a `registros_catalogo_bruto`, e a chave da Fase 08 passou a `id_investigacao`. Fases fora do escopo ainda têm diferenças de convenção, como `simbolos.id`, as tabelas do ARG sem chave primária explícita e chaves `evidencia_id`/`recurso_id` da Fase 03. A revisão não alterou essas fases.
+- As checagens conceituais não repetem a mesma pergunta. A Fase 03 continua sem questão conceitual, enquanto a Fase 09 testa apenas o método MongoDB `find`; essas diferenças permanecem visíveis para o planejamento.
+
+### Cobertura curricular e pendências
+
+Esta avaliação usa a matriz textual das apresentações Canva registrada acima. Ela não confirma imagens, diagramas, notas do apresentador ou materiais inseridos somente como imagem.
+
+| Aula | Cobertura atual | Ponto pendente |
+|---|---|---|
+| 01 | Fase 01 usa SELECT e apresenta chaves na questão conceitual. | O texto da aula enfatiza dados, ER e instalação; confirmar que SELECT/FROM/projeção sejam ensinados antes de cobrar. |
+| 02 | Fase 02 cobra filtros, `NULL`, `DISTINCT`, ordenação, agregação e JOIN. | Desalinhamento alto: a apresentação é de normalização e anomalias. |
+| 03 | Fase 03 avalia SELECT/JOIN/LEFT JOIN. | Desalinhamento alto: a apresentação ensina DDL. Rever pré-requisito ou objetivo para próximas turmas. |
+| 04 | Fase 04 pratica ALTER, criação e integridade de tabelas, além de migração. | DROP, TRUNCATE e RENAME da apresentação não são objetivos desta fase; esclarecer se ficam fora da avaliação. |
+| 05 | Fase 05 pratica INSERT, UPDATE, DELETE e BEGIN/COMMIT. | SAVEPOINT e ROLLBACK não são avaliados. |
+| 06 | Fase 06 pratica filtros, `DISTINCT`, COUNT, GROUP BY e ordenação. | LIKE e aliases não aparecem como objetivos; decidir se são pré-requisitos ou apenas conteúdo complementar. |
+| 07 | Fase 07 pratica INNER JOIN, LEFT JOIN e contagem após o JOIN. | RIGHT, FULL, CROSS e SELF JOIN não são cobrados. |
+| 08 | Fase 08 pratica subconsulta, CTE e ROW_NUMBER por partição. | ANY/ALL, RANK e subconsultas em FROM/SELECT não estão cobertos. |
+| 09 | Fase 09 combina JOIN relacional e a questão conceitual `find`. | Cobertura de MongoDB é pequena para uma atividade de 40%; falta uma tarefa verificável com dados ou comandos MongoDB. |
+
+**Resultado dos testes locais:** `npm test` passou (4 arquivos de teste) e `npm run build` concluiu. A validação da versão publicada será feita após o push; fases online continuam sujeitas às liberações da conta utilizada.

@@ -14,14 +14,14 @@ INSERT INTO objetos_celestes VALUES
   (4,'SIRIUS','estrela',1988,'S-02'),
   (5,'ORION-B','constelacao',1987,'N-04');
 
-CREATE TABLE catalogo_bruto (
-  id_registro_catalogo INTEGER CONSTRAINT pk_catalogo_bruto PRIMARY KEY,
+CREATE TABLE registros_catalogo_bruto (
+  id_registro_catalogo INTEGER CONSTRAINT pk_registros_catalogo_bruto PRIMARY KEY,
   nome_objeto_celeste TEXT NOT NULL,
   nome_observador TEXT NOT NULL,
   telefone_observador TEXT NOT NULL,
   nome_observatorio TEXT NOT NULL
 );
-INSERT INTO catalogo_bruto VALUES
+INSERT INTO registros_catalogo_bruto VALUES
   (1,'ORION','LIA','4801','NORTE'),
   (2,'PLEIADES','LIA','4801','NORTE'),
   (3,'SIRIUS','NOAH','4802','SUL');
@@ -56,7 +56,7 @@ INSERT INTO acessos_celestes VALUES
   (8,'us4',3,1987,'valido');
 
 CREATE TABLE investigacoes (
-  id INTEGER PRIMARY KEY,
+  id_investigacao INTEGER CONSTRAINT pk_investigacoes PRIMARY KEY,
   equipe INTEGER NOT NULL,
   apelido TEXT NOT NULL,
   sessao TEXT NOT NULL,

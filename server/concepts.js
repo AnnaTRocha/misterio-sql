@@ -40,7 +40,7 @@ export const CONCEPTS = {
     feedback: 'Procure o comando que volta ao estado anterior à transação.'
   },
   6: {
-    prompt: 'Você quer contar acessos por ano, mas considerar apenas registros válidos. Onde filtra as linhas antes do GROUP BY?',
+    prompt: 'Em uma consulta agrupada por ano, qual cláusula filtra as linhas antes do GROUP BY?',
     options: [
       ['order', 'ORDER BY status.'],
       ['where', 'WHERE status = ...'],

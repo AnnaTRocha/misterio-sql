@@ -34,7 +34,7 @@ const solutions = {
   8: [
     'SELECT usuario FROM acessos_celestes WHERE id_objeto_celeste IN (SELECT id_objeto_celeste FROM objetos_celestes WHERE ano=1987)',
     'WITH equipes AS (SELECT equipe,COUNT(*) AS total FROM investigacoes GROUP BY equipe) SELECT * FROM equipes',
-    'SELECT equipe,apelido,ROW_NUMBER() OVER(PARTITION BY equipe ORDER BY id) FROM investigacoes'
+    'SELECT equipe,apelido,ROW_NUMBER() OVER(PARTITION BY equipe ORDER BY id_investigacao) FROM investigacoes'
   ],
   9: [
     'SELECT s.grupo,s.usuario,d.usuario,i.usuario,i.codigo FROM sessoes_arg s JOIN dispositivos_arg d ON s.sessao=d.sessao AND s.grupo=d.grupo JOIN identidades_arg i ON d.dispositivo=i.dispositivo AND d.grupo=i.grupo WHERE s.grupo=1'
@@ -119,10 +119,10 @@ test('aula 4: aceita sintaxes equivalentes que preservam os dados e as relaçõe
       nome_observatorio TEXT NOT NULL,
       UNIQUE (nome_observatorio, id_observador, id_objeto_celeste)
     )`,
-    'INSERT OR IGNORE INTO observadores (telefone_observador, nome_observador) SELECT telefone_observador, nome_observador FROM catalogo_bruto GROUP BY telefone_observador, nome_observador',
+    'INSERT OR IGNORE INTO observadores (telefone_observador, nome_observador) SELECT telefone_observador, nome_observador FROM registros_catalogo_bruto GROUP BY telefone_observador, nome_observador',
     `INSERT OR IGNORE INTO observacoes_catalogo (nome_observatorio, id_objeto_celeste, id_observador)
       SELECT c.nome_observatorio, o.id_objeto_celeste, ob.id_observador
-      FROM catalogo_bruto c
+      FROM registros_catalogo_bruto c
       INNER JOIN objetos_celestes o ON o.nome = c.nome_objeto_celeste
       INNER JOIN observadores ob ON ob.telefone_observador = c.telefone_observador
         AND ob.nome_observador = c.nome_observador`
@@ -160,8 +160,8 @@ test('aula 4: não conclui a migração quando faltam observações e protege a 
   const result = await evaluateChallenge(4, queries, 1);
   assert.ok(result.milestones.includes('migrar_observadores'));
   assert.ok(!result.milestones.includes('migrar_observacoes'));
-  assert.equal(allowedStatement(4, "INSERT INTO catalogo_bruto VALUES (4,'VEGA','LIA','4801','NORTE')"), false);
-  assert.equal(allowedStatement(4, 'DELETE FROM catalogo_bruto'), false);
+  assert.equal(allowedStatement(4, "INSERT INTO registros_catalogo_bruto VALUES (4,'VEGA','LIA','4801','NORTE')"), false);
+  assert.equal(allowedStatement(4, 'DELETE FROM registros_catalogo_bruto'), false);
 });
 
 test('aula 4: o guia de validação acompanha os objetivos publicados', () => {
@@ -170,11 +170,95 @@ test('aula 4: o guia de validação acompanha os objetivos publicados', () => {
   assert.deepEqual(guide.map(item => item.objective), LESSONS[4].objectives.map(([, label]) => label));
 });
 
+test('aula 4: aquecimento opcional separa etapas e usa um exemplo independente', () => {
+  const warmup = LESSONS[4].warmup;
+  assert.equal(warmup.steps.length, 4);
+  assert.deepEqual(warmup.source, [
+    ['S-A', 'JARDIM', 61, '14:00'],
+    ['S-A', 'JARDIM', 63, '14:15'],
+    ['S-B', 'ESTUFA', 55, '14:20']
+  ]);
+  const example = JSON.stringify(warmup);
+  for (const name of ['registros_catalogo_bruto', 'objetos_celestes', 'observadores', 'observacoes_catalogo']) {
+    assert.ok(!example.includes(name), `o aquecimento não deve repetir ${name}`);
+  }
+  for (const keyword of ['PRAGMA table_info', 'CREATE TABLE', 'CREATE UNIQUE INDEX', 'FOREIGN KEY', 'INSERT INTO', 'JOIN']) {
+    assert.ok(example.includes(keyword), `o aquecimento deve cobrir ${keyword}`);
+  }
+});
+
+test('aulas 4 e 8: o esquema usa nomes plurais e chaves identificáveis', async () => {
+  assert.deepEqual(LESSONS[4].tables, ['registros_catalogo_bruto', 'objetos_celestes']);
+  const rawCatalog = await evaluateChallenge(4, ['PRAGMA table_info(registros_catalogo_bruto)'], 1);
+  assert.deepEqual(rawCatalog.result[0].values.map(row => row[1]), [
+    'id_registro_catalogo', 'nome_objeto_celeste', 'nome_observador', 'telefone_observador', 'nome_observatorio'
+  ]);
+  const oldCatalog = await evaluateChallenge(4, ['SELECT * FROM catalogo_bruto'], 1);
+  assert.equal(oldCatalog.lastSucceeded, false);
+
+  const investigations = await evaluateChallenge(8, ['PRAGMA table_info(investigacoes)'], 1);
+  assert.equal(investigations.result[0].values[0][1], 'id_investigacao');
+});
+
+test('aulas 6 a 8: os marcos exigem resultados completos, não apenas palavras ou quantidades', async () => {
+  const cases = [
+    [6, "SELECT nome FROM objetos_celestes WHERE ano=1987 OR setor='N-04'", 'filter'],
+    [6, "SELECT DISTINCT setor FROM objetos_celestes UNION ALL SELECT 'FALSO'", 'distinct'],
+    [6, 'SELECT ano,COUNT(*) FROM objetos_celestes GROUP BY ano ORDER BY ano', 'aggregate'],
+    [7, 'SELECT o.nome,o.setor FROM acessos_celestes a JOIN objetos_celestes o ON a.id_objeto_celeste=o.id_objeto_celeste', 'inner'],
+    [7, 'SELECT o.nome FROM objetos_celestes o LEFT JOIN acessos_celestes a ON a.id_objeto_celeste=o.id_objeto_celeste WHERE a.id_acesso_celeste IS NULL OR o.nome=\'ORION\'', 'left'],
+    [7, 'SELECT o.nome,COUNT(*) FROM acessos_celestes a JOIN objetos_celestes o ON a.id_objeto_celeste=o.id_objeto_celeste GROUP BY o.nome HAVING COUNT(*) > 1', 'group'],
+    [8, 'SELECT usuario FROM acessos_celestes WHERE id_objeto_celeste IN (SELECT id_objeto_celeste FROM objetos_celestes)', 'subquery'],
+    [8, 'WITH equipes AS (SELECT equipe,COUNT(*) AS total FROM investigacoes GROUP BY equipe) SELECT equipe,total FROM equipes UNION ALL SELECT 3,3', 'cte'],
+    [8, 'SELECT equipe,apelido,ROW_NUMBER() OVER(ORDER BY id_investigacao) FROM investigacoes', 'window'],
+    [8, 'SELECT equipe,apelido,ROW_NUMBER() OVER(PARTITION BY equipe ORDER BY id_investigacao DESC) FROM investigacoes', 'window']
+  ];
+
+  for (const [phase, query, objective] of cases) {
+    const result = await evaluateChallenge(phase, [query], 1);
+    assert.ok(!result.milestones.includes(objective), `Fase ${phase}: ${objective} aceitou ${query}`);
+  }
+});
+
+test('aulas 6 a 8: aceita aliases, equivalências de filtro e projeções reordenadas com resultados iguais', async () => {
+  const queries = {
+    6: [
+      "SELECT o.nome AS objeto FROM objetos_celestes AS o WHERE o.ano BETWEEN 1987 AND 1987 AND o.setor IN ('N-04') ORDER BY objeto",
+      'SELECT DISTINCT o.setor AS setor_observado FROM objetos_celestes AS o',
+      'SELECT COUNT(id_objeto_celeste) AS total, ano AS ano_relatorio FROM objetos_celestes GROUP BY ano_relatorio ORDER BY total DESC, ano_relatorio'
+    ],
+    7: [
+      "SELECT o.setor AS setor_atual,o.nome AS objeto FROM acessos_celestes AS a INNER JOIN objetos_celestes AS o USING (id_objeto_celeste) WHERE a.status='valido' AND a.ano BETWEEN 1987 AND 1987",
+      'SELECT o.* FROM objetos_celestes AS o LEFT OUTER JOIN acessos_celestes AS a ON a.id_objeto_celeste=o.id_objeto_celeste WHERE a.id_acesso_celeste IS NULL',
+      'SELECT COUNT(a.id_acesso_celeste) AS total,o.nome AS objeto FROM acessos_celestes AS a JOIN objetos_celestes AS o USING (id_objeto_celeste) GROUP BY o.nome'
+    ],
+    8: [
+      'SELECT a.* FROM acessos_celestes AS a WHERE EXISTS (SELECT 1 FROM objetos_celestes AS o WHERE o.id_objeto_celeste=a.id_objeto_celeste AND o.ano=1987)',
+      'WITH resumo AS (SELECT equipe AS equipe_nome,COUNT(*) AS total FROM investigacoes GROUP BY equipe_nome) SELECT total,equipe_nome FROM resumo ORDER BY equipe_nome',
+      'SELECT ROW_NUMBER() OVER(PARTITION BY equipe ORDER BY id_investigacao) AS posicao,apelido AS pessoa,equipe AS grupo FROM investigacoes'
+    ]
+  };
+
+  for (const [phaseText, phaseQueries] of Object.entries(queries)) {
+    const phase = Number(phaseText);
+    const result = await evaluateChallenge(phase, phaseQueries, 1);
+    assert.deepEqual(new Set(result.milestones), new Set(LESSONS[phase].objectives.map(([key]) => key)));
+  }
+});
+
+test('aula 8: a pergunta final aponta para o tema dos registros parciais', () => {
+  assert.match(LESSONS[8].answerPrompt, /registros parciais reunidos/i);
+  assert.equal(LESSONS[8].answer, 'FRAGMENTOS');
+  assert.match(LESSONS[8].objectives[2][1], /ordem crescente do identificador/i);
+});
+
 test('aula 5 e aula 6: perguntas finais e objetivo do filtro usam referências claras', () => {
   assert.match(LESSONS[5].answerPrompt, /aglomerado de seis estrelas inserido e confirmado/i);
   assert.doesNotMatch(LESSONS[5].answerPrompt, /PLEIADES/i);
   assert.match(LESSONS[6].objectives[0][1], /registro ORION/i);
   assert.doesNotMatch(LESSONS[6].objectives[0][1], /primeiro registro/i);
+  assert.match(CONCEPTS[6].prompt, /agrupada por ano/i);
+  assert.doesNotMatch(CONCEPTS[6].prompt, /acessos válidos/i);
 });
 
 test('aula 5: a consulta de estrutura funciona sem liberar outros PRAGMA', async () => {

@@ -47,7 +47,8 @@ async function init() {
       : phaseId === 4
         ? 'Os dados de origem já estão carregados. As tabelas de destino ainda não existem: você vai criá-las e migrar os dados. Sua cópia é individual: suas alterações não afetam os demais estudantes.'
         : 'Execute uma instrução por vez. Alterações acontecem apenas na sua cópia de investigação.';
-    $('storyLog').innerHTML = `<p>${escapeHtml(lesson.mission)}</p><p>${scopeText}</p>`;
+    $('storyLog').innerHTML = `<p>${escapeHtml(lesson.mission)}</p><p>${scopeText}</p>${phaseId === 4 ? renderWarmup(lesson.warmup) : ''}`;
+    configureWarmup();
     $('sqlEditor').value = lesson.initial;
     renderTableButtons(lesson.tables);
     render();
@@ -63,6 +64,30 @@ async function init() {
   } catch (error) {
     $('queryFeedback').textContent = `FALHA // ${error.message}`;
   }
+}
+
+function renderWarmup(warmup) {
+  if (!warmup) return '';
+  const sourceRows = warmup.source.map(row => `<tr>${row.map(value => `<td>${escapeHtml(String(value))}</td>`).join('')}</tr>`).join('');
+  const steps = warmup.steps.map((step, index) => `
+    <details class="ddl-warmup-step" ${index === 0 ? 'open' : ''}>
+      <summary>${escapeHtml(step.title)}</summary>
+      <p>${escapeHtml(step.text)}</p>
+      ${index === 0 ? `<div class="ddl-warmup-data"><table><thead><tr><th>Código</th><th>Setor</th><th>Umidade</th><th>Horário</th></tr></thead><tbody>${sourceRows}</tbody></table></div>` : ''}
+      <pre><code>${escapeHtml(step.sql)}</code></pre>
+      <p class="ddl-warmup-expected"><strong>O que observar:</strong> ${escapeHtml(step.expected)}</p>
+    </details>`).join('');
+  return `<details class="ddl-warmup"><summary>${escapeHtml(warmup.title)}</summary><p>${escapeHtml(warmup.intro)}</p><p class="ddl-warmup-sequence">Abra uma etapa por vez. Este exemplo é apenas de leitura e não faz parte dos objetivos avaliados.</p>${steps}</details>`;
+}
+
+function configureWarmup() {
+  const steps = [...document.querySelectorAll('.ddl-warmup-step')];
+  steps.forEach(step => step.addEventListener('toggle', () => {
+    if (!step.open) return;
+    for (const other of steps) {
+      if (other !== step) other.open = false;
+    }
+  }));
 }
 
 async function loadTestTools() {
