@@ -6,6 +6,7 @@ import { renderQueryResultCell } from './query-result-cell.js';
 import { bindSqlHighlight } from './sql-highlight.js';
 import { renderSchema } from './schema-view.js';
 import { renderHint } from './hint-renderer.js';
+import { createEvidenceNotebook } from './evidence-notebook.js';
 
 const phaseId = Number(new URLSearchParams(location.search).get('id'));
 const PHASE_TABLES = {
@@ -19,7 +20,6 @@ function currentTables() {
 
 const PHASES = {
   1: {
-    code: 'ARQUIVO 3301',
     title: 'O Primeiro Acesso',
     mission: 'Um servidor antigo da UNIBAVE voltou a responder. Explore as tabelas, encontre o usuário desconhecido e descubra o código escondido nas mensagens.',
     story: [
@@ -41,7 +41,6 @@ const PHASES = {
     initial: 'SELECT * FROM usuarios;'
   },
   2: {
-    code: 'INCIDENTE // ECO',
     title: 'O Registro Interrompido',
     mission: 'Reconstrua um acesso irregular. Os relatórios estão fragmentados e a sequência precisa ser confirmada por consultas.',
     story: [
@@ -78,6 +77,7 @@ let concept;
 let alreadyCompleted = false;
 let retakeActive = false;
 let isTestUser = false;
+let evidenceNotebook;
 
 const editor = document.getElementById('sqlEditor');
 const refreshSqlHighlight = bindSqlHighlight(editor, document.getElementById('sqlHighlight'));
@@ -94,15 +94,22 @@ async function init() {
   if (!phase) return location.replace('/dashboard.html');
 
   document.getElementById('username').textContent = user.username;
+  evidenceNotebook = createEvidenceNotebook({
+    phaseId,
+    username: user.username,
+    root: document.getElementById('evidenceNotebook'),
+    countElement: document.getElementById('evidenceCount'),
+    listElement: document.getElementById('evidenceList')
+  });
   isTestUser = Boolean(user.is_test);
   document.body.dataset.theme = phase.theme || 'archive';
   document.title = `${phase.title} | Mistério SQL`;
-  document.getElementById('phaseLabel').textContent = `${phase.code} // FASE ${String(phaseId).padStart(2, '0')}`;
+  document.getElementById('phaseLabel').textContent = `FASE ${String(phaseId).padStart(2, '0')}`;
   setTitle(phase.title);
   document.getElementById('phaseMission').textContent = phase.mission;
   document.getElementById('terminalName').textContent = `/archive/3301/fase_${String(phaseId).padStart(2, '0')}.sql`;
   document.getElementById('storyLog').innerHTML = phase.story.map(item => `<p>${escapeHtml(item)}</p>`).join('');
-  document.getElementById('storyLog').insertAdjacentHTML('beforeend', '<p class="dialect-note">TERMINAL // subconjunto de SQL compatível com PostgreSQL. Use “estrutura” para inspecionar as colunas; PRAGMA é específico do SQLite.</p>');
+  document.getElementById('storyLog').insertAdjacentHTML('beforeend', '<p class="dialect-note">Consultas no padrão PostgreSQL. Use “estrutura” para ver as colunas.</p>');
   setEditorValue(phase.initial);
 
   renderTables();
@@ -160,11 +167,16 @@ function renderHints() {
 function revealHint() {
   const phase = PHASES[phaseId];
   if (hintIndex >= phase.hints.length) return;
-  document.getElementById('hintText').innerHTML = `&gt; ${renderHint(phase.hints[hintIndex++])}`;
+  const hintText = document.getElementById('hintText');
+  hintText.classList.remove('hint-reveal');
+  void hintText.offsetWidth;
+  hintText.classList.add('hint-reveal');
+  hintText.innerHTML = renderHint(phase.hints[hintIndex]);
+  hintIndex += 1;
   renderHints();
 }
 
-function renderObjectives() {
+function renderObjectives(newlyCompleted = new Set()) {
   const phase = PHASES[phaseId];
   const done = phase.objectives.filter(([key]) => milestones.has(key)).length;
 
@@ -173,14 +185,14 @@ function renderObjectives() {
 
   document.getElementById('objectiveList').innerHTML = phase.objectives.map(([key, label]) => {
     const complete = milestones.has(key);
-    return `<div class="objective-item ${complete ? 'done' : ''}">
+    return `<div class="objective-item ${complete ? 'done' : ''} ${newlyCompleted.has(key) ? 'just-completed' : ''}">
       <span class="check">${complete ? '✓' : '·'}</span>
-      <span>${escapeHtml(label)}</span>
+      <span>${escapeHtml(label.replace(/^(\d+\.\d+)\s*\/\/\s*/, '$1 · '))}</span>
     </div>`;
   }).join('');
 
   const percent = Math.round((done / phase.objectives.length) * 100);
-  document.getElementById('progressText').textContent = `${percent}% DECODIFICADO`;
+  document.getElementById('progressText').textContent = `${percent}%`;
   document.getElementById('progressBar').style.width = `${percent}%`;
   updateCompletion();
 }
@@ -195,7 +207,6 @@ function renderFinish() {
   };
 
   area.innerHTML = `
-    <span class="dashboard-kicker">PROTOCOLO FINAL</span>
     <h2>${title}</h2>
     <p id="completionHint">${descriptions[phaseId] || ''}</p>
     ${conceptDone ? '<p class="concept-confirmed">✓ CONCEITO VALIDADO</p>' : concept ? `<form id="conceptForm" class="concept-form">
@@ -231,7 +242,7 @@ function renderFinish() {
 function renderRetakeControl() {
   if (isTestUser || !alreadyCompleted) return '';
   if (retakeActive) {
-    return '<p class="concept-confirmed">REFEITURA EM ANDAMENTO // conclusão, nota e liberações anteriores preservadas</p>';
+    return '<p class="concept-confirmed">Nova tentativa em andamento. Sua maior nota e as fases liberadas estão preservadas.</p>';
   }
   return '<div class="retake-option"><p>Você pode praticar novamente. A maior nota, a conclusão e as fases liberadas serão mantidas.</p><button id="retakeBtn" class="primary-btn" type="button">Refazer atividade</button><p id="retakeFeedback" class="retake-feedback" role="alert" aria-live="assertive"></p></div>';
 }
@@ -280,7 +291,7 @@ async function loadDatabase() {
   ready = true;
   runBtn.disabled = false;
   feedback.className = 'query-feedback ok';
-  feedback.textContent = 'CONEXÃO ESTABELECIDA // arquivo 3301 montado';
+  feedback.textContent = 'Arquivo 3301 conectado.';
 }
 
 function isReadOnly(sql) {
@@ -304,7 +315,7 @@ async function executeSql() {
 
   runBtn.disabled = true;
   feedback.className = 'query-feedback';
-  feedback.textContent = 'EXECUTANDO // lendo setores do arquivo...';
+  feedback.textContent = 'Executando consulta…';
 
   try {
     const log = await api('/api/game?action=query', {
@@ -312,28 +323,29 @@ async function executeSql() {
       body: { phase_id: phaseId, query }
     });
     const resultSets = log.result || [];
-
+    const previousMilestones = milestones;
     milestones = new Set(log.milestones || []);
-    renderObjectives();
-    renderResults(resultSets);
+    const newlyCompleted = new Set([...milestones].filter(key => !previousMilestones.has(key)));
+    renderObjectives(newlyCompleted);
+    renderResults(resultSets, query);
     addHistory(query, true);
 
-    const rows = resultSets.reduce((count, set) => count + set.values.length, 0);
     feedback.className = 'query-feedback ok';
-    feedback.textContent = `OK // ${rows} linha(s) retornada(s) // investigação atualizada`;
+    feedback.textContent = 'Consulta executada.';
   } catch (error) {
     addHistory(query, false);
     renderError(`Erro SQL: ${error.message}`);
     feedback.className = 'query-feedback error';
-    feedback.textContent = 'ERRO // comando rejeitado';
+    feedback.textContent = 'Comando rejeitado.';
   } finally {
     runBtn.disabled = !ready;
   }
 }
 
-function renderResults(resultSets) {
+function renderResults(resultSets, query) {
   if (!resultSets.length) {
     resultArea.innerHTML = '<div class="empty-result"><span>∅</span><p>Nenhum registro encontrado. O vazio também é uma evidência.</p></div>';
+    animateResultArea();
     return;
   }
 
@@ -345,6 +357,14 @@ function renderResults(resultSets) {
         `<tr>${row.map(value => `<td>${renderQueryResultCell(value, { linkExternal: true })}</td>`).join('')}</tr>`
       ).join('')}</tbody>
     </table>`).join('');
+  evidenceNotebook?.attachSaveButton(resultArea, query, resultSets);
+  animateResultArea();
+}
+
+function animateResultArea() {
+  resultArea.classList.remove('result-arrive');
+  void resultArea.offsetWidth;
+  resultArea.classList.add('result-arrive');
 }
 
 function addHistory(query, ok) {
@@ -359,6 +379,7 @@ function addHistory(query, ok) {
 
 function renderError(message) {
   resultArea.innerHTML = `<div class="sql-error">${escapeHtml(message)}</div>`;
+  animateResultArea();
 }
 
 async function complete(event) {
@@ -382,8 +403,8 @@ async function complete(event) {
     verdict = document.getElementById('verdict');
     verdict.className = 'verdict success';
     verdict.textContent = phaseId === 1
-      ? `✓ ACCESS GRANTED // código ${data.reward} confirmado // Fase 02 pronta para liberação`
-      : `✓ ARQUIVO 3301 DECODIFICADO // código ${data.reward} confirmado`;
+      ? `Código ${data.reward} confirmado. Fase 02 liberada.`
+      : `Arquivo 3301 decodificado. Código ${data.reward} confirmado.`;
   } catch (error) {
     verdict.className = 'verdict failure';
     verdict.textContent = `✕ ${error.message}`;
@@ -400,16 +421,17 @@ async function showStructure() {
   const button = document.getElementById('schemaBtn');
   button.disabled = true;
   feedback.className = 'query-feedback';
-  feedback.textContent = `CONSULTANDO ESTRUTURA // ${table}`;
+  feedback.textContent = `Consultando ${table}…`;
   try {
     const data = await api('/api/game?action=schema', { method: 'POST', body: { phase_id: phaseId, table } });
     resultArea.innerHTML = renderSchema(table, data.columns);
+    animateResultArea();
     feedback.className = 'query-feedback ok';
-    feedback.textContent = `ESTRUTURA // ${table} // ${data.columns.length} coluna(s)`;
+    feedback.textContent = `Estrutura de ${table} carregada.`;
   } catch (error) {
     renderError(error.message);
     feedback.className = 'query-feedback error';
-    feedback.textContent = 'ERRO // estrutura indisponível';
+    feedback.textContent = 'Estrutura indisponível.';
   } finally {
     button.disabled = false;
   }
@@ -455,7 +477,7 @@ async function loadTestTools() {
     });
   } catch (error) {
     root.hidden = false;
-    root.innerHTML = `<div class="sql-error">FALHA // ${escapeHtml(error.message)}</div>`;
+    root.innerHTML = `<div class="sql-error">${escapeHtml(error.message)}</div>`;
   }
 }
 

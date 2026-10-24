@@ -12,5 +12,5 @@ export function renderSchema(table, columns) {
     return `<tr><td>${escapeHtml(column.name)}</td><td>${escapeHtml(column.type || '—')}</td><td>${column.nullable ? 'Sim' : 'Não'}</td><td>${escapeHtml(keys.join(' · ') || '—')}</td></tr>`;
   }).join('');
 
-  return `<div class="query-meta">ESTRUTURA // ${escapeHtml(table)} // metadados da tabela</div><table class="result-table schema-table"><thead><tr><th>Coluna</th><th>Tipo</th><th>Aceita NULL</th><th>Chave</th></tr></thead><tbody>${rows}</tbody></table>`;
+  return `<div class="query-meta">Estrutura de ${escapeHtml(table)}</div><table class="result-table schema-table"><thead><tr><th>Coluna</th><th>Tipo</th><th>Aceita NULL</th><th>Chave</th></tr></thead><tbody>${rows}</tbody></table>`;
 }

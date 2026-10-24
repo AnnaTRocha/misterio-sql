@@ -46,13 +46,13 @@ export async function previewInitialQuery(phaseId) {
 export const LESSONS = {
   3: PHASE_THREE,
   4: {
-    title: 'O Padrão Quebrado', code: 'OBSERVATÓRIO // 1987', theme: 'catalog',
+    title: 'O Padrão Quebrado', theme: 'catalog',
     mission: 'O catálogo repete os dados de um observador. Organize os contatos sem apagar os cinco objetos nem as três observações já registradas.',
     answerPrompt: 'Informe o código que encerra a investigação.',
     initial: 'SELECT * FROM registros_catalogo_bruto;', tables: ['registros_catalogo_bruto', 'objetos_celestes'],
     warmup: {
-      title: 'Apoio opcional // observar dados repetidos',
-      intro: 'Observe este conjunto de medições de outra atividade. Ele ajuda a pensar sobre informações que se repetem e sobre como conferir as relações entre registros. Não contém comandos resolvidos nem altera esta fase.',
+      title: 'Exemplo: medições de sensores',
+      intro: 'Compare as medições e observe quais dados se repetem e quais variam.',
       columns: ['Sensor', 'Setor', 'Umidade', 'Horário'],
       source: [
         ['S-A', 'JARDIM', 61, '14:00'],
@@ -74,7 +74,7 @@ export const LESSONS = {
       ['migrar_observacoes', '4.6 // Migrar os 3 registros de origem para a tabela observacoes_catalogo; associar cada objeto pelo nome em objetos_celestes e cada observador pelo nome e telefone em observadores']
     ],
     requirements: {
-      title: 'Conferência opcional // organização do catálogo',
+      title: 'Critérios para revisar o catálogo',
       intro: 'Use estes critérios para revisar o resultado quando precisar. Eles descrevem o que os dados devem garantir, sem indicar os comandos ou a ordem da solução.',
       headers: ['Parte do caso', 'Condição de sucesso'],
       rows: [
@@ -101,7 +101,7 @@ export const LESSONS = {
     answer: 'NORMALIZACAO'
   },
   5: {
-    title: 'A Sexta Estrela', code: 'OBSERVATÓRIO // 1987', theme: 'transaction',
+    title: 'A Sexta Estrela', theme: 'transaction',
     mission: 'Três inconsistências foram encontradas no arquivo de símbolos. Corrija os dados da cópia de investigação.',
     answerPrompt: 'Qual é o nome do aglomerado de seis estrelas inserido e confirmado?',
     initial: 'SELECT * FROM simbolos;', tables: ['simbolos', 'fontes_externas'],
@@ -115,7 +115,7 @@ export const LESSONS = {
     answer: 'PLEIADES'
   },
   6: {
-    title: 'Eco no Setor Norte', code: 'INTERCEPTAÇÃO // NÓ', theme: 'scanner',
+    title: 'Eco no Setor Norte', theme: 'scanner',
     mission: 'Há sinais de anos diferentes. Encontre o conjunto que corresponde ao incidente e resuma o arquivo.',
     answerPrompt: 'Qual é o código do setor associado aos registros do incidente?',
     initial: 'SELECT * FROM objetos_celestes;', tables: ['objetos_celestes', 'acessos_celestes'],
@@ -128,7 +128,7 @@ export const LESSONS = {
     answer: 'N-04'
   },
   7: {
-    title: 'Linhas Cruzadas', code: 'INTERCEPTAÇÃO // NÓ', theme: 'relations',
+    title: 'Linhas Cruzadas', theme: 'relations',
     mission: 'Os acessos guardam números, enquanto os objetos guardam nomes. Reúna as duas perspectivas.',
     answerPrompt: 'Depois do cruzamento dos acessos e dos objetos, em qual setor está o aglomerado identificado?',
     initial: 'SELECT * FROM acessos_celestes;', tables: ['acessos_celestes', 'objetos_celestes'],
@@ -141,7 +141,7 @@ export const LESSONS = {
     answer: 'N-06'
   },
   8: {
-    title: 'O Sétimo Rastro', code: 'INTERCEPTAÇÃO // NÓ', theme: 'analysis',
+    title: 'O Sétimo Rastro', theme: 'analysis',
     mission: 'Os fragmentos das equipes parecem isolados. Um padrão de repetição pode revelar a ordem dos acontecimentos.',
     answerPrompt: 'Digite a palavra que resume os registros parciais reunidos nesta fase.',
     initial: 'SELECT * FROM investigacoes;', tables: ['investigacoes', 'acessos_celestes'],
@@ -154,7 +154,7 @@ export const LESSONS = {
     answer: 'FRAGMENTOS'
   },
   9: {
-    title: 'Última Transmissão', code: 'OPERAÇÃO // 3301', theme: 'nosql',
+    title: 'Última Transmissão', theme: 'nosql',
     mission: 'Três registros da sua equipe apontam para uma identidade que não aparece no diretório.',
     answerPrompt: 'Qual código identifica o usuário ausente?',
     initial: 'SELECT * FROM sessoes_arg;', tables: ['sessoes_arg', 'dispositivos_arg', 'identidades_arg'],
@@ -164,7 +164,7 @@ export const LESSONS = {
       ['nosql', '9.3 // Responder à checagem: qual método do MongoDB consulta documentos de uma coleção?']
     ],
     requirements: {
-      title: 'Apoio opcional // conteúdo dos fragmentos',
+      title: 'Mapa dos dados',
       intro: 'As tabelas guardam partes diferentes do caso. Use a consulta de estrutura e compare os valores para descobrir como se relacionam; as chaves de ligação fazem parte do desafio.',
       headers: ['Fragmento', 'Informação disponível'],
       rows: [

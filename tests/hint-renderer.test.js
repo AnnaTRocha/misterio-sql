@@ -17,3 +17,7 @@ test('pista externa mantém link HTTPS seguro e com nome acessível', () => {
   assert.ok(html.includes('target="_blank"'));
   assert.ok(!renderHint({ text: 'Pista', link: { label: 'Inseguro', url: 'javascript:alert(1)' } }).includes('<a '));
 });
+
+test('pistas mantêm a referência do objetivo sem o separador visual duplicado', () => {
+  assert.equal(renderHint('4.2 // Verifique a estrutura.'), '4.2 · Verifique a estrutura.');
+});

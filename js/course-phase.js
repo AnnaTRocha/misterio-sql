@@ -6,6 +6,8 @@ import { renderQueryResultCell } from './query-result-cell.js';
 import { bindSqlHighlight } from './sql-highlight.js';
 import { renderSchema } from './schema-view.js';
 import { renderHint } from './hint-renderer.js';
+import { createEvidenceNotebook } from './evidence-notebook.js';
+import { initTeamBoard } from './team-board.js';
 
 const phaseId = Number(new URLSearchParams(location.search).get('id'));
 const $ = id => document.getElementById(id);
@@ -19,6 +21,7 @@ let conceptDone = false;
 let alreadyCompleted = false;
 let retakeActive = false;
 let isTestUser = false;
+let evidenceNotebook;
 
 function renderTableButtons(tables) {
   $('tableButtons').innerHTML = tables.map(name => `<button class="db-button" data-table="${escapeHtml(name)}" type="button">${escapeHtml(name)}</button>`).join('');
@@ -43,6 +46,13 @@ async function init() {
   const user = await requireSession('student');
   if (!user) return;
   $('username').textContent = user.username;
+  evidenceNotebook = createEvidenceNotebook({
+    phaseId,
+    username: user.username,
+    root: $('evidenceNotebook'),
+    countElement: $('evidenceCount'),
+    listElement: $('evidenceList')
+  });
   isTestUser = Boolean(user.is_test);
   try {
     const start = await api('/api/game?action=start', { method: 'POST', body: { phase_id: phaseId } });
@@ -53,9 +63,8 @@ async function init() {
     retakeActive = Boolean(start.retake_active);
     conceptDone = Boolean(start.concept_done || (alreadyCompleted && !retakeActive));
     document.body.dataset.theme = lesson.theme;
-    document.querySelector('.brand span:last-child').textContent = lesson.code;
     document.title = `${lesson.title} | Mistério SQL`;
-    $('phaseLabel').textContent = `${lesson.code} // FASE ${String(phaseId).padStart(2, '0')}`;
+    $('phaseLabel').textContent = `FASE ${String(phaseId).padStart(2, '0')}`;
     $('phaseTitle').textContent = lesson.title;
     $('phaseTitle').dataset.text = lesson.title;
     $('phaseMission').textContent = lesson.mission;
@@ -63,9 +72,11 @@ async function init() {
     const scopeText = phaseId === 3
       ? 'Execute uma consulta por vez para relacionar as pistas.'
       : phaseId === 4
-        ? 'Os dados de origem já estão carregados. As tabelas de destino ainda não existem: você vai criá-las e migrar os dados. Sua cópia é individual: suas alterações não afetam os demais estudantes.'
-        : 'Execute uma instrução por vez. Alterações acontecem apenas na sua cópia de investigação.';
-    $('storyLog').innerHTML = `<p>${escapeHtml(lesson.mission)}</p><p>${scopeText}</p><p class="dialect-note">TERMINAL // subconjunto de SQL compatível com PostgreSQL. Use “estrutura” para inspecionar as colunas; PRAGMA é específico do SQLite.</p>${phaseId === 4 ? renderWarmup(lesson.warmup) : ''}`;
+        ? 'Dados de origem carregados. Crie as tabelas de destino e migre os registros na sua cópia.'
+        : phaseId === 9
+          ? 'Use consultas para relacionar as pistas. O quadro compartilha observações com sua equipe.'
+          : 'Execute uma instrução por vez. As alterações ficam na sua cópia de investigação.';
+    $('storyLog').innerHTML = `<p>${escapeHtml(scopeText)}</p><p class="dialect-note">Consultas no padrão PostgreSQL. Use “estrutura” para ver as colunas.</p>${phaseId === 4 ? renderWarmup(lesson.warmup) : ''}`;
     $('objectiveRequirements').innerHTML = renderObjectiveRequirements(lesson.requirements);
     setEditorValue(lesson.initial);
     renderTableButtons(lesson.tables);
@@ -74,13 +85,14 @@ async function init() {
     $('runBtn').disabled = false;
     if (phaseId === 4 && start.initial_preview?.length) {
       $('resultArea').innerHTML = readOnlyPreview(start.initial_preview, lesson.initial);
-      $('queryFeedback').textContent = 'PRÉVIA DA ORIGEM // os dados iniciais estão carregados na sua cópia isolada';
+      $('queryFeedback').textContent = 'Prévia dos dados de origem.';
     } else {
-      $('queryFeedback').textContent = 'CONEXÃO ESTABELECIDA // cópia isolada carregada';
+      $('queryFeedback').textContent = 'Cópia de investigação conectada.';
     }
     if (user.is_test) await loadTestTools();
+    if (phaseId === 9) await initTeamBoard(phaseId);
   } catch (error) {
-    $('queryFeedback').textContent = `FALHA // ${error.message}`;
+    $('queryFeedback').textContent = `Falha ao carregar a fase: ${error.message}`;
   }
 }
 
@@ -89,7 +101,7 @@ function renderWarmup(warmup) {
   const headings = warmup.columns.map(value => `<th>${escapeHtml(value)}</th>`).join('');
   const sourceRows = warmup.source.map(row => `<tr>${row.map(value => `<td>${escapeHtml(String(value))}</td>`).join('')}</tr>`).join('');
   const questions = warmup.questions.map(question => `<li>${escapeHtml(question)}</li>`).join('');
-  return `<details class="ddl-warmup"><summary>${escapeHtml(warmup.title)}</summary><p>${escapeHtml(warmup.intro)}</p><div class="ddl-warmup-data"><table><thead><tr>${headings}</tr></thead><tbody>${sourceRows}</tbody></table></div><p class="ddl-warmup-prompt-title">Observe os dados:</p><ol class="ddl-warmup-prompts">${questions}</ol><p class="ddl-warmup-sequence">Este exemplo não pontua. Use suas observações para elaborar a solução da fase.</p></details>`;
+  return `<details class="ddl-warmup"><summary>${escapeHtml(warmup.title)}</summary><p>${escapeHtml(warmup.intro)}</p><div class="ddl-warmup-data"><table><thead><tr>${headings}</tr></thead><tbody>${sourceRows}</tbody></table></div><p class="ddl-warmup-prompt-title">Observe os dados:</p><ol class="ddl-warmup-prompts">${questions}</ol><p class="ddl-warmup-sequence">O exemplo não altera os dados desta fase.</p></details>`;
 }
 
 async function loadTestTools() {
@@ -116,7 +128,7 @@ async function loadTestTools() {
   });
 }
 
-function render() {
+function render(newlyCompleted = new Set()) {
   const codeValue = $('accessCodeInput')?.value || '';
   const selectedConcept = document.querySelector('input[name="conceptAnswer"]:checked')?.value;
   const conceptFeedback = $('conceptFeedback')?.textContent || '';
@@ -124,16 +136,15 @@ function render() {
   const verdictClass = $('verdict')?.className || 'verdict';
   const done = lesson.objectives.filter(([key]) => milestones.has(key)).length;
   $('objectiveCounter').textContent = `${String(done).padStart(2, '0')}/${String(lesson.objectives.length).padStart(2, '0')}`;
-  $('objectiveList').innerHTML = lesson.objectives.map(([key, label]) => `<div class="objective-item ${milestones.has(key) ? 'done' : ''}"><span class="check">${milestones.has(key) ? '✓' : '·'}</span><span>${escapeHtml(label)}</span></div>`).join('');
+  $('objectiveList').innerHTML = lesson.objectives.map(([key, label]) => `<div class="objective-item ${milestones.has(key) ? 'done' : ''} ${newlyCompleted.has(key) ? 'just-completed' : ''}"><span class="check">${milestones.has(key) ? '✓' : '·'}</span><span>${escapeHtml(label.replace(/^(\d+\.\d+)\s*\/\/\s*/, '$1 · '))}</span></div>`).join('');
   const pct = Math.round(done / lesson.objectives.length * 100);
-  $('progressText').textContent = `${pct}% DECODIFICADO`;
+  $('progressText').textContent = `${pct}%`;
   $('progressBar').style.width = `${pct}%`;
   $('hintCounter').textContent = `${hintIndex}/${lesson.hints.length}`;
   $('hintBtn').disabled = hintIndex >= lesson.hints.length;
   $('finishArea').innerHTML = `
     ${concept ? `<section class="concept-check"><span class="classified">CHECAGEM CONCEITUAL</span>${conceptDone ? '<p class="concept-confirmed">✓ CONCEITO VALIDADO</p>' : `<form id="conceptForm" class="concept-form"><fieldset><legend>${escapeHtml(concept.prompt)}</legend><div class="concept-options">${concept.options.map(([value, label]) => `<label class="concept-option"><input type="radio" name="conceptAnswer" value="${escapeHtml(value)}" required><span>${escapeHtml(label)}</span></label>`).join('')}</div></fieldset><button type="submit">Validar conceito</button><p id="conceptFeedback" class="concept-feedback" role="status" aria-live="polite"></p></form>`}</section>` : ''}
     <section class="final-identification">
-      <span class="dashboard-kicker">RESPOSTA FINAL</span>
       <h2>IDENTIFICAÇÃO</h2>
       <p>${escapeHtml(lesson.answerPrompt)}</p>
       <form id="codeForm"><label for="accessCodeInput">Código de conclusão</label><div class="crt-input-row"><input id="accessCodeInput" placeholder="código de conclusão" autocomplete="off" required><button id="completeBtn" type="submit" ${done < lesson.objectives.length || !conceptDone ? 'disabled' : ''}>Concluir atividade</button></div><div id="verdict" class="verdict" aria-live="polite"></div></form>
@@ -155,7 +166,7 @@ function render() {
 function renderRetakeControl() {
   if (isTestUser || !alreadyCompleted) return '';
   if (retakeActive) {
-    return '<p class="concept-confirmed">REFEITURA EM ANDAMENTO // conclusão, nota e liberações anteriores preservadas</p>';
+    return '<p class="concept-confirmed">Nova tentativa em andamento. Sua maior nota e as fases liberadas estão preservadas.</p>';
   }
   return '<div class="retake-option"><p>Você pode praticar novamente. A maior nota, a conclusão e as fases liberadas serão mantidas.</p><button id="retakeBtn" class="primary-btn" type="button">Refazer atividade</button><p id="retakeFeedback" class="retake-feedback" role="alert" aria-live="assertive"></p></div>';
 }
@@ -200,14 +211,19 @@ function readOnlyPreview(result, query = '') {
   }).join('');
 }
 
-function queryFeedback(query, result) {
+function queryFeedback(query) {
   const statement = statementForFeedback(query);
-  const rowCount = result.reduce((total, set) => total + set.values.length, 0);
-  if (rowCount > 0) return `CONSULTA EXECUTADA // ${rowCount} linha(s) retornada(s)`;
   if (/^(CREATE|ALTER|INSERT|UPDATE|DELETE|BEGIN|COMMIT|ROLLBACK)\b/i.test(statement)) {
-    return 'COMANDO EXECUTADO // sem tabela de resultados';
+    return 'Comando executado sem tabela de resultados.';
   }
-  return 'CONSULTA EXECUTADA // 0 linhas retornadas; confira tabela e filtros';
+  return 'Consulta executada.';
+}
+
+function animateResultArea() {
+  const area = $('resultArea');
+  area.classList.remove('result-arrive');
+  void area.offsetWidth;
+  area.classList.add('result-arrive');
 }
 
 async function executeSql() {
@@ -217,16 +233,21 @@ async function executeSql() {
   $('runBtn').disabled = true;
   try {
     const response = await api('/api/game?action=query', { method: 'POST', body: { phase_id: phaseId, query } });
+    const previousMilestones = milestones;
     milestones = new Set(response.milestones);
+    const newlyCompleted = new Set([...milestones].filter(key => !previousMilestones.has(key)));
     if (phaseId === 4 && response.tables) renderTableButtons(response.tables);
-    render();
+    render(newlyCompleted);
     const result = response.result || [];
     $('resultArea').innerHTML = readOnlyPreview(result, query);
-    $('queryFeedback').textContent = queryFeedback(query, result);
+    evidenceNotebook?.attachSaveButton($('resultArea'), query, result);
+    animateResultArea();
+    $('queryFeedback').textContent = queryFeedback(query);
     $('queryFeedback').className = 'query-feedback ok';
   } catch (error) {
     $('resultArea').innerHTML = `<div class="sql-error">${escapeHtml(error.message)}</div>`;
-    $('queryFeedback').textContent = 'ERRO // instrução rejeitada';
+    animateResultArea();
+    $('queryFeedback').textContent = 'Instrução rejeitada.';
     $('queryFeedback').className = 'query-feedback error';
   } finally {
     $('runBtn').disabled = false;
@@ -253,7 +274,7 @@ async function complete(event) {
     alreadyCompleted = true;
     retakeActive = false;
     render();
-    $('verdict').textContent = `✓ ATIVIDADE CONCLUÍDA // ${result.reward}`;
+    $('verdict').textContent = `Atividade concluída. Código ${result.reward}.`;
     $('verdict').className = 'verdict success';
   } catch (error) {
     $('verdict').textContent = error.message;
@@ -264,7 +285,12 @@ async function complete(event) {
 $('hintBtn').addEventListener('click', () => {
   if (!lesson) return;
   if (hintIndex >= lesson.hints.length) return;
-  $('hintText').innerHTML = `&gt; ${renderHint(lesson.hints[hintIndex++])}`;
+  const hintText = $('hintText');
+  hintText.classList.remove('hint-reveal');
+  void hintText.offsetWidth;
+  hintText.classList.add('hint-reveal');
+  hintText.innerHTML = renderHint(lesson.hints[hintIndex]);
+  hintIndex += 1;
   render();
 });
 $('schemaBtn').addEventListener('click', async () => {
@@ -276,16 +302,18 @@ $('schemaBtn').addEventListener('click', async () => {
   const button = $('schemaBtn');
   button.disabled = true;
   $('queryFeedback').className = 'query-feedback';
-  $('queryFeedback').textContent = `CONSULTANDO ESTRUTURA // ${table}`;
+  $('queryFeedback').textContent = `Consultando ${table}…`;
   try {
     const data = await api('/api/game?action=schema', { method: 'POST', body: { phase_id: phaseId, table } });
     $('resultArea').innerHTML = renderSchema(table, data.columns);
+    animateResultArea();
     $('queryFeedback').className = 'query-feedback ok';
-    $('queryFeedback').textContent = `ESTRUTURA // ${table} // ${data.columns.length} coluna(s)`;
+    $('queryFeedback').textContent = `${data.columns.length} coluna(s) em ${table}.`;
   } catch (error) {
     $('resultArea').innerHTML = `<div class="sql-error">${escapeHtml(error.message)}</div>`;
+    animateResultArea();
     $('queryFeedback').className = 'query-feedback error';
-    $('queryFeedback').textContent = 'ERRO // estrutura indisponível';
+    $('queryFeedback').textContent = 'Estrutura indisponível.';
   } finally {
     button.disabled = false;
   }

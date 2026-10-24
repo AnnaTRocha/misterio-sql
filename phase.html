@@ -18,7 +18,7 @@
   <header class="crt-nav">
     <a class="brand" href="dashboard.html">
       <span class="brand-mark">SQL</span>
-      <span>ARQUIVO // 3301</span>
+      <span>ARQUIVO 3301</span>
     </a>
     <div class="nav-user">
       <span class="system-state">sessão ativa</span>
@@ -30,13 +30,13 @@
   <main class="crt-shell">
     <section class="case-head">
       <div>
-        <span class="eyebrow" id="phaseLabel">PROTOCOLO // FASE</span>
+        <span class="eyebrow" id="phaseLabel">FASE</span>
         <h1 id="phaseTitle" class="glitch" data-text="CARREGANDO">CARREGANDO</h1>
         <p id="phaseMission">Estabelecendo conexão com o arquivo...</p>
       </div>
       <div class="signal-box">
-        <span>integridade da investigação</span>
-        <strong id="progressText">0% DECODIFICADO</strong>
+        <span>Progresso</span>
+        <strong id="progressText">0%</strong>
         <div class="signal-meter"><i id="progressBar"></i></div>
       </div>
     </section>
@@ -54,17 +54,30 @@
         <div class="objective-list" id="objectiveList"></div>
         <div class="objective-requirements" id="objectiveRequirements"></div>
 
+        <section class="team-board" id="teamBoard" hidden aria-labelledby="teamBoardHeading">
+          <div class="team-board-heading">
+            <h2 id="teamBoardHeading">Quadro da equipe</h2>
+            <p id="teamBoardTitle">Equipe de investigação</p>
+          </div>
+          <form id="teamEvidenceForm" class="team-evidence-form">
+            <label for="teamEvidenceNote">Observação</label>
+            <textarea id="teamEvidenceNote" maxlength="360" required rows="3" placeholder="O que sua equipe encontrou?"></textarea>
+            <button id="teamEvidenceSubmit" type="submit">Registrar</button>
+            <p id="teamBoardFeedback" role="status" aria-live="polite"></p>
+          </form>
+          <ol id="teamEvidenceList" class="team-evidence-list" aria-live="polite"></ol>
+        </section>
+
         <div class="db-index">
           <div class="panel-caption">
-            <span>ARQUIVOS DISPONÍVEIS</span>
-            <span>DB://CASO</span>
+            <span>Tabelas disponíveis</span>
           </div>
           <div class="db-buttons" id="tableButtons"></div>
         </div>
 
         <div class="hint-zone">
           <div class="panel-caption">
-            <span>CANAL DE AJUDA</span>
+            <span>Pistas</span>
             <span id="hintCounter">0/0</span>
           </div>
           <div class="hint-text" id="hintText">Nenhuma pista solicitada.</div>
@@ -100,6 +113,11 @@
         </div>
 
         <div class="query-history" id="queryHistory" aria-label="Histórico de consultas"></div>
+        <details class="evidence-notebook" id="evidenceNotebook">
+          <summary><span>Caderno de evidências</span><small id="evidenceCount">0 salvas</small></summary>
+          <p>As evidências salvas ficam neste navegador.</p>
+          <ol id="evidenceList" class="evidence-list"></ol>
+        </details>
       </section>
     </section>
 

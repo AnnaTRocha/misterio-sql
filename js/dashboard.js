@@ -27,13 +27,13 @@ async function load() {
     const percent = phases.length ? Math.round((completed / phases.length) * 100) : 0;
 
     const identityText = identity
-      ? `${escapeHtml(identity.alias)} // ${escapeHtml(user.is_test ? 'USUÁRIO TESTE' : (identity.group_code || 'SEM GRUPO'))}`
+      ? `${escapeHtml(identity.alias)} · ${escapeHtml(user.is_test ? 'USUÁRIO TESTE' : (identity.group_code || 'SEM GRUPO'))}`
       : 'IDENTIDADE PENDENTE';
     const score = Number(assessment?.score || 0);
     document.getElementById('summary').innerHTML = `
       <strong>${String(completed).padStart(2, '0')} / ${String(phases.length).padStart(2, '0')}</strong>
-      <span>fases concluídas // ${percent}% da investigação decodificada</span>
-      <span class="arg-identity">${identityText} // PONTUAÇÃO ${formatScore(score)}%</span>
+      <span>fases concluídas</span>
+      <span class="arg-identity">${identityText} · pontuação ${formatScore(score)}%</span>
       <div><i style="width:${percent}%"></i></div>`;
 
     document.getElementById('phases').innerHTML = phases.map(phase => {
@@ -66,7 +66,7 @@ async function load() {
       }
 
       return `<article class="case-file theme-${meta.theme} ${locked ? 'locked' : ''}" data-index="${String(phase.id).padStart(2, '0')}">
-        <span class="phase-number">ARQUIVO_${String(phase.id).padStart(2, '0')} // ${done ? 'DECODIFICADO' : started ? 'ABERTO' : 'NÃO LIDO'}</span>
+        <span class="phase-number">ARQUIVO ${String(phase.id).padStart(2, '0')} · ${done ? 'DECODIFICADO' : started ? 'ABERTO' : 'NÃO LIDO'}</span>
         <h2>Fase ${String(phase.id).padStart(2, '0')} · ${escapeHtml(phase.title)}</h2>
         <p>${escapeHtml(phase.description)}</p>
         <div class="case-state">${action}</div>
@@ -90,7 +90,7 @@ async function load() {
     });
   } catch (error) {
     document.getElementById('phases').innerHTML =
-      `<div class="form-message error">FALHA AO INDEXAR ARQUIVOS // ${escapeHtml(error.message)}</div>`;
+      `<div class="form-message error">Falha ao carregar os arquivos: ${escapeHtml(error.message)}</div>`;
   }
 }
 

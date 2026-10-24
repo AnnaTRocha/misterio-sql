@@ -1,8 +1,9 @@
 import { escapeHtml } from './api-client.js';
 
 export function renderHint(hint) {
-  if (typeof hint === 'string') return escapeHtml(hint);
-  const text = escapeHtml(hint?.text || 'Pista indisponível.');
+  const formatText = value => escapeHtml(String(value || '').replace(/^(\d+\.\d+)\s*\/\/\s*/, '$1 · '));
+  if (typeof hint === 'string') return formatText(hint);
+  const text = formatText(hint?.text || 'Pista indisponível.');
   const link = hint?.link;
   if (!link?.url || !link?.label) return text;
   try {

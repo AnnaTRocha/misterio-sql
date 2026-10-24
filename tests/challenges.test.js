@@ -233,7 +233,7 @@ test('aula 4: o guia de validação acompanha os objetivos publicados', () => {
   assert.match(objectives[5], /3 registros.*tabela observacoes_catalogo.*objetos_celestes.*observadores/i);
 });
 
-test('aula 4: o apoio opcional usa um exemplo independente sem comandos resolvidos', () => {
+test('aula 4: o exemplo de medições é independente e não contém comandos SQL', () => {
   const warmup = LESSONS[4].warmup;
   assert.equal(warmup.questions.length, 3);
   assert.deepEqual(warmup.columns, ['Sensor', 'Setor', 'Umidade', 'Horário']);
@@ -246,9 +246,9 @@ test('aula 4: o apoio opcional usa um exemplo independente sem comandos resolvid
   for (const name of ['registros_catalogo_bruto', 'objetos_celestes', 'observadores', 'observacoes_catalogo']) {
     assert.ok(!example.includes(name), `o aquecimento não deve repetir ${name}`);
   }
-  assert.match(warmup.title, /apoio opcional/i);
+  assert.match(warmup.title, /exemplo.*medições/i);
+  assert.match(warmup.intro, /compare as medições/i);
   assert.doesNotMatch(example, /\b(SELECT|CREATE TABLE|CREATE INDEX|INSERT INTO|UPDATE|DELETE|JOIN|IDENTITY|PRIMARY KEY|FOREIGN KEY|NOT NULL|UNIQUE)\b/i);
-  assert.match(example, /não contém comandos resolvidos/i);
 });
 
 test('os quadros expansíveis ajudam a conferir resultados sem revelar a sequência ou as chaves da solução', () => {

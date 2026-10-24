@@ -78,6 +78,17 @@ async function initializeFoundation() {
     message TEXT
   )`);
 
+  await db.query(`CREATE TABLE IF NOT EXISTS arg_team_evidence (
+    id BIGSERIAL PRIMARY KEY,
+    group_id INTEGER NOT NULL REFERENCES arg_groups(id),
+    is_test BOOLEAN NOT NULL DEFAULT FALSE,
+    user_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    note VARCHAR(360) NOT NULL,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+  )`);
+  await db.query(`CREATE INDEX IF NOT EXISTS arg_team_evidence_group_recent_idx
+    ON arg_team_evidence(group_id, is_test, created_at DESC)`);
+
   await db.query(`CREATE TABLE IF NOT EXISTS arg_external_resources (
     id BIGSERIAL PRIMARY KEY,
     code VARCHAR(50) UNIQUE NOT NULL,
@@ -279,6 +290,33 @@ export async function argIdentityForUser(userId) {
     LIMIT 1
   `, [userId]);
   return rows[0] || null;
+}
+
+export function normalizeTeamEvidenceInput(note) {
+  if (typeof note !== 'string') return null;
+  const clean = value => String(value || '').replace(/[\u0000-\u001f\u007f]/g, ' ').replace(/\s+/g, ' ').trim();
+  const normalizedNote = clean(note);
+  if (normalizedNote.length < 3 || normalizedNote.length > 360) return null;
+  return { note: normalizedNote };
+}
+
+export async function listTeamEvidence(groupId, isTest) {
+  return sql().query(`SELECT e.id::text AS id,
+      e.note, e.created_at,
+      CASE WHEN e.is_test THEN 'CONTA DE TESTE' ELSE COALESCE(i.alias, 'integrante') END AS author
+    FROM arg_team_evidence e
+    LEFT JOIN arg_identities i ON i.user_id=e.user_id
+    WHERE e.group_id=$1 AND e.is_test=$2
+    ORDER BY e.created_at DESC, e.id DESC
+    LIMIT 30`, [Number(groupId), Boolean(isTest)]);
+}
+
+export async function addTeamEvidence({ groupId, isTest, userId, note }) {
+  const rows = await sql().query(`INSERT INTO arg_team_evidence(group_id, is_test, user_id, note)
+    VALUES($1,$2,$3,$4)
+    RETURNING id::text AS id, note, created_at`,
+  [Number(groupId), Boolean(isTest), Number(userId), note]);
+  return rows[0];
 }
 
 export async function assessmentSummary(userId) {

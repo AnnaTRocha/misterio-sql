@@ -2,7 +2,7 @@ import crypto from 'node:crypto';
 import { ensureProgress, ensureSchema, sql } from '../server/db.js';
 import { requireUser } from '../server/auth.js';
 import { action, body, fail, method } from '../server/http.js';
-import { argIdentityForUser, assessmentIdForPhase, assessmentSummary, ensureArgFoundation, unlockFinalProtocol } from '../server/arg.js';
+import { addTeamEvidence, argIdentityForUser, assessmentIdForPhase, assessmentSummary, ensureArgFoundation, listTeamEvidence, normalizeTeamEvidenceInput, unlockFinalProtocol } from '../server/arg.js';
 import { allowedStatement, evaluateChallenge, executeArchiveQuery, inspectArchiveSchema, LESSONS, previewInitialQuery } from '../server/challenges.js';
 import { consumeRateLimit } from '../server/rate-limit.js';
 import { CONCEPTS, publicConcept } from '../server/concepts.js';
@@ -52,10 +52,24 @@ export default async function handler(req, res) {
       return res.status(200).json(validationGuideForPhase(phaseId, phase[0]?.reward));
     }
 
+    if (op === 'team-board' && req.method === 'GET') {
+      const phaseId = Number(req.query?.phase_id);
+      if (phaseId !== 9 || !(await availablePhase(9, user))) return fail(res, 403, 'Quadro de equipe indisponível.');
+      const identity = await argIdentityForUser(user.id);
+      const groupId = user.is_test ? 1 : Number(identity?.group_id || 0);
+      if (![1, 2].includes(groupId)) return fail(res, 403, 'Sua equipe ainda não foi definida.');
+      const entries = await listTeamEvidence(groupId, user.is_test);
+      return res.status(200).json({
+        ok: true,
+        group_name: user.is_test ? 'Equipe de teste' : identity?.group_name || `Equipe ${groupId}`,
+        entries
+      });
+    }
+
     if (!method(req, res, ['POST'])) return;
     const data = body(req);
 
-    const limits = { query: 12, schema: 24, complete: 8, 'concept-answer': 8, 'nosql-answer': 8, 'unlock-final': 5, 'retake-activity': 2 };
+    const limits = { query: 12, schema: 24, complete: 8, 'concept-answer': 8, 'nosql-answer': 8, 'unlock-final': 5, 'retake-activity': 2, 'team-board': 10 };
     if (limits[op] && !(await consumeRateLimit(user.id, op, limits[op]))) {
       res.setHeader('Retry-After', '60');
       return fail(res, 429, 'Muitas tentativas em pouco tempo. Aguarde um minuto.');
@@ -65,6 +79,21 @@ export default async function handler(req, res) {
       const unlocked = await unlockFinalProtocol(user.id, data.protocol);
       if (!unlocked) return fail(res, 422, 'Protocolo inválido ou pontuação insuficiente.');
       return res.status(200).json({ ok: true });
+    }
+
+    if (op === 'team-board') {
+      const phaseId = Number(data.phase_id);
+      if (phaseId !== 9 || !(await availablePhase(9, user))) return fail(res, 403, 'Quadro de equipe indisponível.');
+      const evidence = normalizeTeamEvidenceInput(data.note);
+      if (!evidence) return fail(res, 422, 'A observação precisa ter entre 3 e 360 caracteres.');
+      const identity = await argIdentityForUser(user.id);
+      const groupId = user.is_test ? 1 : Number(identity?.group_id || 0);
+      if (![1, 2].includes(groupId)) return fail(res, 403, 'Sua equipe ainda não foi definida.');
+      const entry = await addTeamEvidence({ groupId, isTest: user.is_test, userId: user.id, ...evidence });
+      return res.status(201).json({
+        ok: true,
+        entry: { ...entry, author: user.is_test ? 'CONTA DE TESTE' : identity?.alias || 'integrante' }
+      });
     }
 
     if (op === 'schema') {
@@ -185,7 +214,7 @@ export default async function handler(req, res) {
       if (!(await availablePhase(phaseId, user))) return fail(res, 403, 'Fase indisponível.');
       if (!queryText || queryText.length > 5000) return fail(res, 422, 'Consulta inválida.');
       if (/^PRAGMA\b/i.test(cleanQuery(queryText))) {
-        return fail(res, 422, 'PRAGMA é específico do SQLite e não faz parte do PostgreSQL. Use o botão estrutura para ver as colunas.');
+        return fail(res, 422, 'Comando não disponível neste terminal. Use “estrutura” para consultar as colunas.');
       }
       const retakeActive = await isStudentRetakeActive(user.id, phaseId);
 
