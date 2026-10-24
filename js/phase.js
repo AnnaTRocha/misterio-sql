@@ -6,6 +6,7 @@ import { renderQueryResultCell } from './query-result-cell.js';
 import { bindSqlHighlight } from './sql-highlight.js';
 import { renderSchema } from './schema-view.js';
 import { renderHint } from './hint-renderer.js';
+import { createHintNote } from './hint-note.js';
 import { createEvidenceNotebook } from './evidence-notebook.js';
 import { rememberUnlockedPhase } from './unlock-animation.js';
 
@@ -87,6 +88,12 @@ const resultArea = document.getElementById('resultArea');
 const feedback = document.getElementById('queryFeedback');
 const history = document.getElementById('queryHistory');
 const monitor = document.querySelector('.crt-monitor');
+const hintNote = createHintNote({
+  dialog: document.getElementById('hintNoteDialog'),
+  label: document.getElementById('hintNoteLabel'),
+  text: document.getElementById('hintNoteText'),
+  close: document.getElementById('hintNoteClose')
+});
 
 async function init() {
   const user = await requireSession('student');
@@ -169,13 +176,10 @@ function renderHints() {
 function revealHint() {
   const phase = PHASES[phaseId];
   if (hintIndex >= phase.hints.length) return;
-  const hintText = document.getElementById('hintText');
-  hintText.classList.remove('hint-reveal');
-  void hintText.offsetWidth;
-  hintText.classList.add('hint-reveal');
-  hintText.innerHTML = renderHint(phase.hints[hintIndex]);
+  const currentHint = hintIndex;
   hintIndex += 1;
   renderHints();
+  hintNote.reveal(renderHint(phase.hints[currentHint]), currentHint + 1);
 }
 
 function renderObjectives(newlyCompleted = new Set()) {

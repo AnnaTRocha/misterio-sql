@@ -103,4 +103,14 @@ html[data-color-theme="light"] .crt-page :is(.glitch, .cursor-blink) { animation
     animation: none !important;
   }
 }
+@media (prefers-reduced-motion: reduce) {
+  .hint-note,
+  .hint-note-text.is-typing::after,
+  .boot-console,
+  .phase-screen .crt-nav,
+  .phase-screen > .crt-shell {
+    animation: none !important;
+  }
+  .boot-progress i { transition: none !important; }
+}
 @media (max-width: 500px) { .accessibility-controls { right: 8px; bottom: 8px; } }

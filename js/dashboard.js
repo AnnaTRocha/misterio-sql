@@ -15,6 +15,67 @@ const PHASE_META = {
 
 const formatScore = value => new Intl.NumberFormat('pt-BR', { maximumFractionDigits: 1 }).format(Number(value || 0));
 
+async function startBootSequence() {
+  const dialog = document.getElementById('bootSequence');
+  let shouldRun = false;
+  try {
+    shouldRun = sessionStorage.getItem('misterio-sql:boot-sequence') === '1';
+    sessionStorage.removeItem('misterio-sql:boot-sequence');
+  } catch {
+    return;
+  }
+  if (!shouldRun || !dialog?.showModal) return;
+
+  const output = document.getElementById('bootOutput');
+  const status = document.getElementById('bootStatus');
+  const progress = document.getElementById('bootProgressBar');
+  const skip = document.getElementById('bootSkip');
+  const lines = [
+    'BOOT ROM // ARQUIVO 3301',
+    'verificando sessão ........ OK',
+    'indexando arquivos ........ 09',
+    'terminal de investigação . ONLINE'
+  ];
+  let active = true;
+  const pause = milliseconds => new Promise(resolve => window.setTimeout(resolve, milliseconds));
+  const close = () => {
+    active = false;
+    if (dialog.open) dialog.close();
+  };
+  skip.addEventListener('click', close, { once: true });
+  dialog.addEventListener('cancel', () => { active = false; }, { once: true });
+  dialog.addEventListener('close', () => { active = false; }, { once: true });
+  dialog.showModal();
+  skip.focus();
+
+  const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  if (reducedMotion) {
+    output.textContent = lines.join('\n');
+    progress.style.width = '100%';
+    await pause(180);
+  } else {
+    for (const [lineIndex, line] of lines.entries()) {
+      if (!active) break;
+      const row = document.createElement('span');
+      output.append(row);
+      for (const character of line) {
+        if (!active) break;
+        row.textContent += character;
+        await pause(13);
+      }
+      if (lineIndex < lines.length - 1) output.append(document.createTextNode('\n'));
+      progress.style.width = `${Math.round(((lineIndex + 1) / lines.length) * 100)}%`;
+      await pause(90);
+    }
+  }
+
+  if (active) {
+    status.textContent = 'Terminal pronto.';
+    await pause(100);
+    close();
+  }
+}
+
 async function load() {
   try {
     const user = await requireSession('student');
@@ -101,4 +162,5 @@ document.getElementById('logout').addEventListener('click', event => {
   logout();
 });
 
+startBootSequence();
 load();

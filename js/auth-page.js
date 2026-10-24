@@ -31,7 +31,14 @@ function validateRegistration(form) {
   return true;
 }
 
-function redirect(user) {
+function redirect(user, afterLogin = false) {
+  if (afterLogin && user.role === 'student') {
+    try {
+      sessionStorage.setItem('misterio-sql:boot-sequence', '1');
+    } catch {
+      // Continue to the dashboard if browser storage is unavailable.
+    }
+  }
   if (user.must_change_password) return location.replace('/change-password.html');
   location.replace(user.role === 'teacher' ? '/teacher.html' : '/dashboard.html');
 }
@@ -58,7 +65,7 @@ async function submit(form, action) {
   try {
     const data = Object.fromEntries(new FormData(form));
     const result = await api(`/api/auth?action=${action}`, { method: 'POST', body: data });
-    if (result.user) redirect(result.user);
+    if (result.user) redirect(result.user, action === 'login');
     else show(result.message || 'Solicitação enviada.', 'success', target);
   } catch (error) {
     show(error.message, 'error', target);

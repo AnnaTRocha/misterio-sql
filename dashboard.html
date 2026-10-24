@@ -15,6 +15,16 @@
 <body class="crt-page dashboard-screen">
   <div class="noise" aria-hidden="true"></div>
 
+  <dialog id="bootSequence" class="boot-sequence" aria-labelledby="bootTitle" aria-describedby="bootStatus">
+    <section class="boot-console">
+      <div class="boot-console-heading"><span id="bootTitle">ARQUIVO 3301</span><span>INICIALIZAÇÃO</span></div>
+      <pre id="bootOutput" aria-hidden="true"></pre>
+      <p id="bootStatus" class="boot-status" role="status" aria-live="polite">Inicializando o terminal.</p>
+      <div class="boot-progress" aria-hidden="true"><i id="bootProgressBar"></i></div>
+      <button id="bootSkip" type="button" autofocus>Pular inicialização</button>
+    </section>
+  </dialog>
+
   <header class="crt-nav">
     <a class="brand" href="dashboard.html">
       <span class="brand-mark">SQL</span>

@@ -443,3 +443,26 @@
 
   .crt-page .auth-shell {
     padding: 24px 0;
+  }
+}
+
+@keyframes hint-note-enter {
+  0% { opacity: 0; transform: translateY(18px) rotate(-4deg) scale(.96); filter: blur(5px); }
+  68% { opacity: 1; transform: translateY(-2px) rotate(.7deg) scale(1.01); filter: blur(0); }
+  100% { opacity: 1; transform: rotate(-.5deg) scale(1); filter: none; }
+}
+
+@keyframes boot-window-in {
+  from { opacity: 0; transform: scale(.94); filter: blur(8px); }
+  to { opacity: 1; transform: scale(1); filter: blur(0); }
+}
+
+@keyframes phase-environment-in {
+  0% { opacity: 0; transform: translateY(9px) scale(.975); filter: blur(7px) brightness(1.25); }
+  72% { opacity: 1; transform: translateY(0) scale(1.008); filter: blur(0) brightness(1.04); }
+  100% { opacity: 1; transform: none; filter: none; }
+}
+
+@keyframes note-cursor {
+  50% { opacity: 0; }
+}

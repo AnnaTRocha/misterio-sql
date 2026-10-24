@@ -80,7 +80,6 @@
             <span>Pistas</span>
             <span id="hintCounter">0/0</span>
           </div>
-          <div class="hint-text" id="hintText">Nenhuma pista solicitada.</div>
           <button id="hintBtn" class="hint-btn" type="button">Solicitar pista</button>
         </div>
       </aside>
@@ -135,6 +134,13 @@
         <button class="confirmation-accept" id="confirmationAccept" type="submit" value="confirm">Refazer atividade</button>
       </div>
     </form>
+  </dialog>
+  <dialog id="hintNoteDialog" class="hint-note-dialog" aria-labelledby="hintNoteLabel" aria-describedby="hintNoteText">
+    <article class="hint-note">
+      <h2 class="hint-note-label" id="hintNoteLabel">PISTA</h2>
+      <div class="hint-note-text" id="hintNoteText"></div>
+      <button id="hintNoteClose" class="hint-note-close" type="button">Fechar pista</button>
+    </article>
   </dialog>
 </body>
 </html>

@@ -6,6 +6,7 @@ import { renderQueryResultCell } from './query-result-cell.js';
 import { bindSqlHighlight } from './sql-highlight.js';
 import { renderSchema } from './schema-view.js';
 import { renderHint } from './hint-renderer.js';
+import { createHintNote } from './hint-note.js';
 import { createEvidenceNotebook } from './evidence-notebook.js';
 import { initTeamBoard } from './team-board.js';
 import { rememberUnlockedPhase } from './unlock-animation.js';
@@ -24,6 +25,12 @@ let alreadyCompleted = false;
 let retakeActive = false;
 let isTestUser = false;
 let evidenceNotebook;
+const hintNote = createHintNote({
+  dialog: $('hintNoteDialog'),
+  label: $('hintNoteLabel'),
+  text: $('hintNoteText'),
+  close: $('hintNoteClose')
+});
 
 function renderTableButtons(tables) {
   $('tableButtons').innerHTML = tables.map(name => `<button class="db-button" data-table="${escapeHtml(name)}" type="button">${escapeHtml(name)}</button>`).join('');
@@ -300,13 +307,10 @@ async function complete(event) {
 $('hintBtn').addEventListener('click', () => {
   if (!lesson) return;
   if (hintIndex >= lesson.hints.length) return;
-  const hintText = $('hintText');
-  hintText.classList.remove('hint-reveal');
-  void hintText.offsetWidth;
-  hintText.classList.add('hint-reveal');
-  hintText.innerHTML = renderHint(lesson.hints[hintIndex]);
+  const currentHint = hintIndex;
   hintIndex += 1;
   render();
+  hintNote.reveal(renderHint(lesson.hints[currentHint]), currentHint + 1);
 });
 $('schemaBtn').addEventListener('click', async () => {
   const editorText = $('sqlEditor').value;
