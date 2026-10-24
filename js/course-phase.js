@@ -8,10 +8,12 @@ import { renderSchema } from './schema-view.js';
 import { renderHint } from './hint-renderer.js';
 import { createEvidenceNotebook } from './evidence-notebook.js';
 import { initTeamBoard } from './team-board.js';
+import { rememberUnlockedPhase } from './unlock-animation.js';
 
 const phaseId = Number(new URLSearchParams(location.search).get('id'));
 const $ = id => document.getElementById(id);
 const refreshSqlHighlight = bindSqlHighlight($('sqlEditor'), $('sqlHighlight'));
+const monitor = document.querySelector('.crt-monitor');
 let ready = false;
 let lesson;
 let milestones = new Set();
@@ -40,6 +42,14 @@ function renderObjectiveRequirements(requirements) {
   const rows = requirements.rows.map(row => `<tr>${row.map(value => `<td>${escapeHtml(value)}</td>`).join('')}</tr>`).join('');
   const headers = (requirements.headers || ['Parte', 'Critério']).map(value => `<th>${escapeHtml(value)}</th>`).join('');
   return `<details class="objective-spec"><summary>${escapeHtml(requirements.title)}</summary><p>${escapeHtml(requirements.intro)}</p><div class="objective-spec-scroll"><table class="result-table objective-spec-table"><thead><tr>${headers}</tr></thead><tbody>${rows}</tbody></table></div><p class="objective-spec-expected">${escapeHtml(requirements.expected)}</p></details>`;
+}
+
+function animateProgress() {
+  const meter = document.querySelector('.signal-meter');
+  if (!meter) return;
+  meter.classList.remove('progress-scan');
+  void meter.offsetWidth;
+  meter.classList.add('progress-scan');
 }
 
 async function init() {
@@ -140,6 +150,7 @@ function render(newlyCompleted = new Set()) {
   const pct = Math.round(done / lesson.objectives.length * 100);
   $('progressText').textContent = `${pct}%`;
   $('progressBar').style.width = `${pct}%`;
+  if (newlyCompleted.size) animateProgress();
   $('hintCounter').textContent = `${hintIndex}/${lesson.hints.length}`;
   $('hintBtn').disabled = hintIndex >= lesson.hints.length;
   $('finishArea').innerHTML = `
@@ -207,7 +218,7 @@ function readOnlyPreview(result, query = '') {
     const emptyMessage = !hasRows
       ? 'A consulta foi executada, mas não encontrou linhas. Confira o nome da tabela e os filtros aplicados.'
       : '';
-    return `${emptyMessage ? `<div class="empty-result"><span>!</span><p>${emptyMessage}</p></div>` : ''}<div class="query-meta">${set.values.length} linha(s) retornada(s)</div><table class="result-table"><thead><tr>${set.columns.map(value => `<th>${escapeHtml(value)}</th>`).join('')}</tr></thead><tbody>${set.values.slice(0, 100).map(row => `<tr>${row.map(value => `<td>${renderQueryResultCell(value, { linkExternal: true })}</td>`).join('')}</tr>`).join('')}</tbody></table>`;
+    return `${emptyMessage ? `<div class="empty-result"><span>!</span><p>${emptyMessage}</p></div>` : ''}<div class="query-meta">${set.values.length} linha(s) retornada(s)</div><table class="result-table"><thead><tr>${set.columns.map(value => `<th>${escapeHtml(value)}</th>`).join('')}</tr></thead><tbody>${set.values.slice(0, 100).map((row, index) => `<tr class="result-row-reveal${/\bJOIN\b/i.test(query) ? ' join-result-row' : ''}" style="--row-delay:${Math.min(index, 10) * 24}ms">${row.map(value => `<td>${renderQueryResultCell(value, { linkExternal: true })}</td>`).join('')}</tr>`).join('')}</tbody></table>`;
   }).join('');
 }
 
@@ -231,6 +242,7 @@ async function executeSql() {
   const query = sqlToExecute($('sqlEditor'));
   if (!query) return;
   $('runBtn').disabled = true;
+  monitor?.classList.add('is-executing');
   try {
     const response = await api('/api/game?action=query', { method: 'POST', body: { phase_id: phaseId, query } });
     const previousMilestones = milestones;
@@ -251,6 +263,7 @@ async function executeSql() {
     $('queryFeedback').className = 'query-feedback error';
   } finally {
     $('runBtn').disabled = false;
+    monitor?.classList.remove('is-executing');
   }
 }
 
@@ -269,10 +282,12 @@ async function answerConcept(event) {
 async function complete(event) {
   event.preventDefault();
   const answer = $('accessCodeInput').value;
+  const wasAlreadyCompleted = alreadyCompleted;
   try {
     const result = await api('/api/game?action=complete', { method: 'POST', body: { phase_id: phaseId, answer } });
     alreadyCompleted = true;
     retakeActive = false;
+    if (!wasAlreadyCompleted) rememberUnlockedPhase($('username').textContent.trim(), phaseId);
     render();
     $('verdict').textContent = `Atividade concluída. Código ${result.reward}.`;
     $('verdict').className = 'verdict success';

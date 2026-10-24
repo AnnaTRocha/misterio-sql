@@ -88,4 +88,19 @@ html[data-color-theme="light"] .crt-page :is(.glitch, .cursor-blink) { animation
 @media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
 
 @media (prefers-reduced-motion: reduce) { .crt-page::after, .glitch, .cursor-blink { animation: none !important; } }
+@media (prefers-reduced-motion: reduce) {
+  .crt-page .hint-text.hint-reveal,
+  .crt-page .result-area.result-arrive,
+  .crt-page .objective-item.just-completed,
+  .crt-page .objective-item.just-completed .check,
+  .crt-page .signal-meter.progress-scan::after,
+  .crt-page .crt-monitor.is-executing .monitor-lights i:last-child,
+  .crt-page .crt-monitor.is-executing .result-area::before,
+  .crt-page .result-table tbody tr.result-row-reveal,
+  .crt-page .result-table tbody tr.join-result-row td,
+  .crt-page .verdict.success,
+  .crt-page .case-file.just-unlocked {
+    animation: none !important;
+  }
+}
 @media (max-width: 500px) { .accessibility-controls { right: 8px; bottom: 8px; } }

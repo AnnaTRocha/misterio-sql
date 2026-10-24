@@ -207,6 +207,7 @@ body.crt-page {
 }
 
 .signal-meter {
+  position: relative;
   height: 5px;
   margin-top: 10px;
   background: #111b14;
@@ -220,6 +221,15 @@ body.crt-page {
   background: var(--crt-green);
   box-shadow: 0 0 10px var(--crt-green);
   transition: width .45s ease;
+}
+
+.signal-meter.progress-scan::after {
+  content: "";
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 26%;
+  background: linear-gradient(90deg, transparent, rgba(224,255,231,.9), transparent);
+  animation: progress-scan .62s ease-out both;
 }
 
 .terminal-layout {
@@ -353,6 +363,7 @@ body.crt-page {
 }
 
 .objective-item.just-completed .check { animation: objective-confirm .55s ease-out; }
+.objective-item.just-completed { animation: objective-row-confirm .62s ease-out; }
 
 .db-index {
   border-top: 1px solid var(--crt-line);
@@ -469,6 +480,9 @@ body.crt-page {
   overflow: hidden;
   position: relative;
 }
+
+.crt-monitor.is-executing { border-color: rgba(141,255,173,.42); }
+.crt-monitor.is-executing .monitor-lights i:last-child { animation: pulse-dot .42s steps(2, end) infinite; }
 
 .crt-monitor::after {
   content: "";
@@ -669,6 +683,28 @@ body.crt-page {
   z-index: 2;
 }
 .crt-page .result-area.result-arrive { animation: result-arrive .24s ease-out; }
+.crt-monitor.is-executing .result-area::before {
+  content: "";
+  position: absolute;
+  z-index: 3;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 2px;
+  pointer-events: none;
+  background: var(--crt-green-strong);
+  box-shadow: 0 0 10px rgba(141,255,173,.55);
+  animation: query-scan .82s ease-in-out infinite;
+}
+
+.crt-page .result-table tbody tr.result-row-reveal {
+  animation: result-row-arrive .32s ease-out both;
+  animation-delay: var(--row-delay, 0ms);
+}
+.crt-page .result-table tbody tr.join-result-row td {
+  animation: join-row-link .62s ease-out both;
+  animation-delay: var(--row-delay, 0ms);
+}
 
 .crt-page .empty-result {
   color: #41634a;
@@ -966,7 +1002,7 @@ body.crt-page {
   cursor: not-allowed;
 }
 
-.crt-page .verdict.success { color: var(--crt-green); }
+.crt-page .verdict.success { color: var(--crt-green); animation: completion-confirm .52s ease-out; }
 .crt-page .verdict.failure { color: var(--crt-red); }
 
 /* Dashboard */
@@ -990,6 +1026,8 @@ body.crt-page {
     linear-gradient(180deg, rgba(61, 112, 188, .08), transparent 34%),
     rgba(5, 9, 18, .94);
 }
+
+.case-file.just-unlocked { animation: phase-unlock .88s cubic-bezier(.2,.8,.2,1) both; }
 
 .case-file.theme-interception {
   border-color: rgba(92, 222, 209, .18);

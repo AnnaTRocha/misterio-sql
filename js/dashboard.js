@@ -1,4 +1,5 @@
 import { api, escapeHtml, logout, requireSession } from './api-client.js';
+import { animateRecentUnlock } from './unlock-animation.js';
 
 const PHASE_META = {
   1: { theme: 'archive' },
@@ -72,6 +73,7 @@ async function load() {
         <div class="case-state">${action}</div>
       </article>`;
     }).join('');
+    animateRecentUnlock(user.username);
 
     document.querySelectorAll('[data-final-protocol]').forEach(form => {
       form.addEventListener('submit', async event => {

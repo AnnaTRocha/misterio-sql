@@ -7,6 +7,7 @@ import { bindSqlHighlight } from './sql-highlight.js';
 import { renderSchema } from './schema-view.js';
 import { renderHint } from './hint-renderer.js';
 import { createEvidenceNotebook } from './evidence-notebook.js';
+import { rememberUnlockedPhase } from './unlock-animation.js';
 
 const phaseId = Number(new URLSearchParams(location.search).get('id'));
 const PHASE_TABLES = {
@@ -85,6 +86,7 @@ const runBtn = document.getElementById('runBtn');
 const resultArea = document.getElementById('resultArea');
 const feedback = document.getElementById('queryFeedback');
 const history = document.getElementById('queryHistory');
+const monitor = document.querySelector('.crt-monitor');
 
 async function init() {
   const user = await requireSession('student');
@@ -194,7 +196,16 @@ function renderObjectives(newlyCompleted = new Set()) {
   const percent = Math.round((done / phase.objectives.length) * 100);
   document.getElementById('progressText').textContent = `${percent}%`;
   document.getElementById('progressBar').style.width = `${percent}%`;
+  if (newlyCompleted.size) animateProgress();
   updateCompletion();
+}
+
+function animateProgress() {
+  const meter = document.querySelector('.signal-meter');
+  if (!meter) return;
+  meter.classList.remove('progress-scan');
+  void meter.offsetWidth;
+  meter.classList.add('progress-scan');
 }
 
 function renderFinish() {
@@ -314,6 +325,7 @@ async function executeSql() {
   }
 
   runBtn.disabled = true;
+  monitor?.classList.add('is-executing');
   feedback.className = 'query-feedback';
   feedback.textContent = 'Executando consulta…';
 
@@ -339,6 +351,7 @@ async function executeSql() {
     feedback.textContent = 'Comando rejeitado.';
   } finally {
     runBtn.disabled = !ready;
+    monitor?.classList.remove('is-executing');
   }
 }
 
@@ -353,8 +366,8 @@ function renderResults(resultSets, query) {
     <div class="query-meta">${set.values.length} linha(s)</div>
     <table class="result-table">
       <thead><tr>${set.columns.map(column => `<th>${escapeHtml(column)}</th>`).join('')}</tr></thead>
-      <tbody>${set.values.slice(0, 200).map(row =>
-        `<tr>${row.map(value => `<td>${renderQueryResultCell(value, { linkExternal: true })}</td>`).join('')}</tr>`
+      <tbody>${set.values.slice(0, 200).map((row, index) =>
+        `<tr class="result-row-reveal${/\bJOIN\b/i.test(query) ? ' join-result-row' : ''}" style="--row-delay:${Math.min(index, 10) * 24}ms">${row.map(value => `<td>${renderQueryResultCell(value, { linkExternal: true })}</td>`).join('')}</tr>`
       ).join('')}</tbody>
     </table>`).join('');
   evidenceNotebook?.attachSaveButton(resultArea, query, resultSets);
@@ -389,6 +402,7 @@ async function complete(event) {
 
   try {
     button.disabled = true;
+    const wasAlreadyCompleted = alreadyCompleted;
     const data = await api('/api/game?action=complete', {
       method: 'POST',
       body: {
@@ -399,6 +413,9 @@ async function complete(event) {
 
     alreadyCompleted = true;
     retakeActive = false;
+    if (!wasAlreadyCompleted) {
+      rememberUnlockedPhase(document.getElementById('username').textContent.trim(), phaseId);
+    }
     renderFinish();
     verdict = document.getElementById('verdict');
     verdict.className = 'verdict success';

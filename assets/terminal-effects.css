@@ -289,13 +289,53 @@
 }
 
 @keyframes hint-reveal {
-  from { opacity: .25; transform: translateY(5px); }
-  to { opacity: 1; transform: translateY(0); }
+  from { opacity: .35; transform: translateY(4px); clip-path: inset(0 92% 0 0); }
+  to { opacity: 1; transform: translateY(0); clip-path: inset(0); }
 }
 
 @keyframes result-arrive {
-  from { opacity: .65; }
-  to { opacity: 1; }
+  from { opacity: .62; transform: translateY(4px) scale(.998); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+@keyframes query-scan {
+  0% { top: 0; opacity: 0; }
+  12% { opacity: .75; }
+  88% { opacity: .5; }
+  100% { top: 100%; opacity: 0; }
+}
+
+@keyframes result-row-arrive {
+  from { opacity: 0; transform: translateX(-5px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+
+@keyframes join-row-link {
+  0% { background-color: rgba(141,255,173,.17); box-shadow: inset 2px 0 rgba(141,255,173,.7); }
+  100% { background-color: transparent; box-shadow: inset 0 0 transparent; }
+}
+
+@keyframes progress-scan {
+  from { transform: translateX(-120%); opacity: 0; }
+  24% { opacity: 1; }
+  to { transform: translateX(410%); opacity: 0; }
+}
+
+@keyframes objective-row-confirm {
+  0% { background: rgba(141,255,173,.15); transform: translateX(-3px); }
+  100% { background: transparent; transform: translateX(0); }
+}
+
+@keyframes completion-confirm {
+  0% { opacity: 0; transform: translateY(5px); text-shadow: 0 0 0 transparent; }
+  45% { opacity: 1; text-shadow: 0 0 16px rgba(141,255,173,.62); }
+  100% { opacity: 1; transform: translateY(0); text-shadow: 0 0 7px rgba(141,255,173,.25); }
+}
+
+@keyframes phase-unlock {
+  0% { opacity: .5; transform: translateY(10px) scale(.985); filter: brightness(.7); }
+  55% { opacity: 1; transform: translateY(-2px) scale(1.005); filter: brightness(1.3); box-shadow: 0 0 24px rgba(141,255,173,.28); }
+  100% { opacity: 1; transform: translateY(0) scale(1); filter: brightness(1); }
 }
 
 @keyframes objective-confirm {
@@ -316,6 +356,14 @@
   .hint-text.hint-reveal,
   .crt-page .result-area.result-arrive,
   .objective-item.just-completed .check,
+  .objective-item.just-completed,
+  .signal-meter.progress-scan::after,
+  .crt-monitor.is-executing .monitor-lights i:last-child,
+  .crt-monitor.is-executing .result-area::before,
+  .crt-page .result-table tbody tr.result-row-reveal,
+  .crt-page .result-table tbody tr.join-result-row td,
+  .crt-page .verdict.success,
+  .case-file.just-unlocked,
   .evidence-note {
     animation: none;
   }
