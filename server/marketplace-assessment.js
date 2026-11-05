@@ -7,7 +7,7 @@ const engine = initSqlJs();
 export const QUESTIONS = [
   ['Liste o nome e a cidade de todos os clientes.', 'SELECT nome, cidade FROM clientes'],
   ['Liste as categorias dos produtos sem repetir.', 'SELECT DISTINCT categoria FROM produtos'],
-  ['Liste o nome e o preço dos produtos da categoria Eletrônicos que custam de 80 a 150. Inclua os produtos que custam 80 ou 150.', "SELECT nome, preco FROM produtos WHERE categoria='Eletrônicos' AND preco BETWEEN 80 AND 150"],
+  ['Liste o nome e o preço dos produtos da categoria Eletrônicos que custam de 80 até 150.', "SELECT nome, preco FROM produtos WHERE categoria='Eletrônicos' AND preco BETWEEN 80 AND 150"],
   ['Liste o nome e a cidade dos clientes que têm nome iniciado com A.', "SELECT nome, cidade FROM clientes WHERE nome LIKE 'A%'"],
   ['Retorne nome e preço dos produtos, do maior para o menor preço.', 'SELECT nome, preco FROM produtos ORDER BY preco DESC', true],
   ['Quantos pedidos estão com status entregue? Retorne apenas a quantidade.', "SELECT COUNT(*) FROM pedidos WHERE status='entregue'"],
