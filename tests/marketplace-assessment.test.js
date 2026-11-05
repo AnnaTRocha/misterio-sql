@@ -24,3 +24,14 @@ test('respostas vazias, erradas, com ordem incorreta e comandos de escrita são 
   await assert.rejects(previewMarketplace('SELECT * FROM clientes; DELETE FROM clientes'));
   assert.equal((await previewMarketplace('SELECT * FROM clientes'))[0].values.length, 5);
 });
+
+test('o esquema anunciado corresponde às colunas reais e inclui atributos adicionais', async () => {
+  const { SCHEMA } = await import('../server/marketplace-assessment.js');
+  for (const definition of SCHEMA) {
+    const [, table, fields] = /^(\w+)\(([^)]+)\)$/.exec(definition);
+    const result = await previewMarketplace(`SELECT * FROM ${table}`);
+    assert.deepEqual(result[0].columns, fields.split(',').map(field => field.trim()));
+  }
+  assert.equal((await previewMarketplace('SELECT email, telefone, data_cadastro FROM clientes'))[0].values.length, 5);
+  assert.equal((await previewMarketplace('SELECT descricao, estoque, ativo FROM produtos'))[0].values.length, 6);
+});

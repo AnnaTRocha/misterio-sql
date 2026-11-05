@@ -57,3 +57,41 @@
 .assessment-page a:focus-visible,.assessment-page button:focus-visible,.assessment-nav a:focus-visible,.schema-scroll:focus-visible { outline:3px solid #237b64; outline-offset:3px; }
 @media(max-width:1100px) { .schema-scroll-hint { display:block; } }
 @media(max-width:700px) { .assessment-nav { min-height:64px; padding:0 16px; }.assessment-brand{font-size:12px}.assessment-back{font-size:12px}.assessment-page{padding:0 16px 60px}.assessment-heading{padding:45px 0 35px}.assessment-heading-mark{display:none}.assessment-intro{grid-template-columns:1fr;padding:24px;gap:20px}.assessment-facts{gap:20px}.assessment-rules{display:block}.assessment-rules li{margin-bottom:8px}.schema-section{padding:24px 18px}.assessment-section-heading{align-items:start;flex-direction:column}.schema-relations{display:block}.schema-relations ul{display:grid;margin-top:10px}.assessment-page fieldset.question-card{padding:20px 17px}.question-actions{align-items:flex-start;flex-direction:column;gap:8px}.assessment-submit{align-items:flex-start;flex-direction:column}.assessment-submit button{width:100%} }
+
+/* Paletas próprias para evitar que o tema global misture texto e fundos. */
+.assessment-body { --a-muted:#435a52; }
+.assessment-body .question-header span+span, .assessment-body .question-actions>span { color:#526a5e; }
+.assessment-body .query-editor-label { color:#466052; }
+.assessment-body .query-editor textarea::placeholder { color:#627c6d; opacity:1; }
+.assessment-body .schema-diagram { min-width:1270px; }
+.assessment-body .schema-entity { width:230px; flex-basis:230px; }
+.assessment-body .schema-entity code { white-space:normal; overflow-wrap:anywhere; }
+.assessment-body .assessment-facts { flex-wrap:wrap; }
+html[data-color-theme="dark"] body.assessment-body {
+  --a-ink:#eef5ef; --a-muted:#c4d4c9; --a-green:#9be0bd; --a-border:#526b5d; --a-surface:#202e27;
+  background:#121e18; color:var(--a-ink);
+}
+html[data-color-theme="dark"] body.assessment-body .assessment-nav { background:#17251e; }
+html[data-color-theme="dark"] body.assessment-body .assessment-brand span { background:#b1e2c1; color:#102d20; }
+html[data-color-theme="dark"] body.assessment-body .assessment-heading-mark { color:#506a59; }
+html[data-color-theme="dark"] body.assessment-body .assessment-rules { border-color:#526b5d; }
+html[data-color-theme="dark"] body.assessment-body .schema-scroll { background:#17241d; border-color:#526b5d; }
+html[data-color-theme="dark"] body.assessment-body .schema-entity { background:#24352b; border-color:#617c6a; box-shadow:none; }
+html[data-color-theme="dark"] body.assessment-body .schema-entity h4 { background:#344f3e; border-color:#617c6a; color:#e4f5e8; }
+html[data-color-theme="dark"] body.assessment-body .schema-entity li { color:#e0ece2; }
+html[data-color-theme="dark"] body.assessment-body .schema-key.pk { background:#255640; color:#e4ffed; }
+html[data-color-theme="dark"] body.assessment-body .schema-key.fk { background:#304f6e; color:#ebf5ff; }
+html[data-color-theme="dark"] body.assessment-body fieldset.question-card { background:var(--a-surface); }
+html[data-color-theme="dark"] body.assessment-body .question-header span+span,
+html[data-color-theme="dark"] body.assessment-body .question-actions>span { color:#c1d2c5; }
+html[data-color-theme="dark"] body.assessment-body .query-editor { background:#111c16; border-color:#617c6a; }
+html[data-color-theme="dark"] body.assessment-body .query-editor-label { background:#334a3b; color:#e5f2e7; }
+html[data-color-theme="dark"] body.assessment-body .query-editor textarea { background:#111c16; color:#eef5ef; }
+html[data-color-theme="dark"] body.assessment-body .query-editor textarea::placeholder { color:#b3c9b9; }
+html[data-color-theme="dark"] body.assessment-body button.run-query { background:#284c37; border-color:#87b49a; color:#effff3; }
+html[data-color-theme="dark"] body.assessment-body button.run-query:hover { background:#386249; }
+html[data-color-theme="dark"] body.assessment-body .query-result .table-wrap { background:#202e27; color:#eef5ef; }
+html[data-color-theme="dark"] body.assessment-body .result-table { color:#eef5ef; }
+html[data-color-theme="dark"] body.assessment-body .result-table th { background:#334a3b; color:#eef5ef; }
+html[data-color-theme="dark"] body.assessment-body .result-table :is(th,td) { border-color:#526b5d; }
+html[data-color-theme="dark"] body.assessment-body .assessment-submit { background:#304c3b; }

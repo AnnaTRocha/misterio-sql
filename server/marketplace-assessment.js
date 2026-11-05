@@ -19,10 +19,10 @@ export const QUESTIONS = [
   ['Retorne o nome do vendedor e a quantidade de produtos cadastrados por ele, apenas para vendedores com mais de um produto.', 'SELECT v.nome, COUNT(*) FROM vendedores v JOIN produtos p ON p.id_vendedor=v.id_vendedor GROUP BY v.id_vendedor, v.nome HAVING COUNT(*) > 1']
 ];
 export const SCHEMA = [
-  'clientes(id_cliente, nome, cidade)', 'vendedores(id_vendedor, nome)',
-  'produtos(id_produto, nome, categoria, preco, id_vendedor)',
-  'pedidos(id_pedido, id_cliente, data_pedido, status)',
-  'itens_pedido(id_item_pedido, id_pedido, id_produto, quantidade, preco_unitario)'
+  'clientes(id_cliente, nome, cidade, email, telefone, data_cadastro)', 'vendedores(id_vendedor, nome, email, cidade, data_cadastro)',
+  'produtos(id_produto, nome, categoria, preco, id_vendedor, descricao, estoque, ativo)',
+  'pedidos(id_pedido, id_cliente, data_pedido, status, forma_pagamento, valor_frete)',
+  'itens_pedido(id_item_pedido, id_pedido, id_produto, quantidade, preco_unitario, desconto)'
 ];
 function readQuery(query) {
   const cleaned = String(query || '').trim().replace(/;\s*$/, '');
