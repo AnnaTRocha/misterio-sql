@@ -54,9 +54,21 @@ export default async function handler(req, res) {
         student.current_phase = student.current_phase ? Number(student.current_phase) : null;
       }
 
-      const scores = await sql().query('SELECT user_id, score FROM marketplace_submissions');
-      const scoreByUser = new Map(scores.map(row => [Number(row.user_id), Number(row.score)]));
-      for (const student of students) student.score = scoreByUser.has(Number(student.id)) ? scoreByUser.get(Number(student.id)) : null;
+      const scores = await sql().query(`SELECT u.id AS user_id, s.score AS current_score,
+        h.score AS previous_score, (r.user_id IS NOT NULL) AS retake_pending
+        FROM users u
+        LEFT JOIN marketplace_submissions s ON s.user_id=u.id
+        LEFT JOIN marketplace_retakes r ON r.user_id=u.id
+        LEFT JOIN LATERAL (SELECT score FROM marketplace_submission_history
+          WHERE user_id=u.id ORDER BY id DESC LIMIT 1) h ON TRUE
+        WHERE u.role='student'`);
+      const scoreByUser = new Map(scores.map(row => [Number(row.user_id), row]));
+      for (const student of students) {
+        const result = scoreByUser.get(Number(student.id));
+        student.score = result?.current_score == null ? null : Number(result.current_score);
+        student.previous_score = result?.previous_score == null ? null : Number(result.previous_score);
+        student.retake_pending = result?.retake_pending === true;
+      }
       const settings = await sql().query("SELECT value FROM app_meta WHERE key='marketplace_released'");
       const marketplaceReleased = settings[0]?.value === 'true';
 
@@ -73,6 +85,24 @@ export default async function handler(req, res) {
 
     if (!method(req, res, ['POST'])) return;
     const data = body(req);
+
+    if (op === 'marketplace-retake') {
+      const userId = Number(data.user_id);
+      if (!Number.isSafeInteger(userId) || userId <= 0) return fail(res, 422, 'Aluno inválido.');
+      const rows = await sql().query(`WITH previous AS (
+        DELETE FROM marketplace_submissions s USING users u
+        WHERE s.user_id=$1 AND u.id=s.user_id AND u.role='student'
+        RETURNING s.user_id,s.answers,s.correct,s.score,s.submitted_at
+      ), archived AS (
+        INSERT INTO marketplace_submission_history(user_id,answers,correct,score,submitted_at,released_by)
+        SELECT user_id,answers,correct,score,submitted_at,$2 FROM previous RETURNING user_id
+      ), released AS (
+        INSERT INTO marketplace_retakes(user_id) SELECT user_id FROM archived
+        ON CONFLICT (user_id) DO UPDATE SET released_at=NOW() RETURNING user_id
+      ) SELECT user_id FROM released`, [userId, user.id]);
+      if (!rows[0]) return fail(res, 409, 'Não há envio disponível para liberar uma nova tentativa.');
+      return res.status(200).json({ ok: true });
+    }
 
     if (op === 'marketplace-release') {
       if (typeof data.released !== 'boolean') return fail(res, 422, 'Informe a situação da avaliação.');

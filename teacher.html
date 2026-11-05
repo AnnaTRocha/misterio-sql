@@ -65,5 +65,15 @@
       </div>
     </section>
   </main>
+  <dialog id="confirmationDialog" class="teacher-dialog" aria-labelledby="confirmationTitle" aria-describedby="confirmationMessage">
+    <form method="dialog">
+      <h2 id="confirmationTitle">Liberar nova tentativa?</h2>
+      <p id="confirmationMessage"></p>
+      <div class="teacher-dialog-actions">
+        <button type="submit" value="cancel" autofocus>Cancelar</button>
+        <button type="submit" value="confirm" id="confirmationAccept">Liberar tentativa</button>
+      </div>
+    </form>
+  </dialog>
 </body>
 </html>

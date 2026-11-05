@@ -42,11 +42,12 @@ export default async function handler(req, res) {
 
     if (op === 'marketplace' && req.method === 'GET') {
       const settings = await sql().query("SELECT value FROM app_meta WHERE key='marketplace_released'");
-      const released = settings[0]?.value === 'true' || user.is_test;
+      const retake = await sql().query('SELECT released_at FROM marketplace_retakes WHERE user_id=$1', [user.id]);
+      const released = settings[0]?.value === 'true' || user.is_test || Boolean(retake[0]);
       const rows = await sql().query(`SELECT score, submitted_at,
         (SELECT COUNT(*)::int FROM jsonb_array_elements(correct) AS item(value) WHERE value = 'true'::jsonb) AS correct_count
         FROM marketplace_submissions WHERE user_id=$1`, [user.id]);
-      return res.status(200).json({ released, submission: rows[0] ? { ...rows[0], total_questions: QUESTIONS.length } : null, ...(released ? { questions: QUESTIONS.map(([prompt]) => prompt), schema: SCHEMA } : {}) });
+      return res.status(200).json({ released, retake_started_at: retake[0]?.released_at || null, submission: rows[0] ? { ...rows[0], total_questions: QUESTIONS.length } : null, ...(released ? { questions: QUESTIONS.map(([prompt]) => prompt), schema: SCHEMA } : {}) });
     }
 
     if (op === 'test-tools' && req.method === 'GET') {
@@ -84,7 +85,8 @@ export default async function handler(req, res) {
 
     if (op === 'marketplace-query') {
       const settings = await sql().query("SELECT value FROM app_meta WHERE key='marketplace_released'");
-      if (settings[0]?.value !== 'true' && !user.is_test) return fail(res, 403, 'Avaliação não liberada.');
+      const retake = await sql().query('SELECT 1 FROM marketplace_retakes WHERE user_id=$1', [user.id]);
+      if (settings[0]?.value !== 'true' && !user.is_test && !retake[0]) return fail(res, 403, 'Avaliação não liberada.');
       if (!(await consumeRateLimit(user.id, op, 12))) return fail(res, 429, 'Muitas consultas. Aguarde um minuto.');
       try { return res.status(200).json({ result: await previewMarketplace(data.query) }); }
       catch (error) { return fail(res, 422, `Consulta inválida: ${error.message}`); }
@@ -92,11 +94,16 @@ export default async function handler(req, res) {
 
     if (op === 'marketplace-submit') {
       const settings = await sql().query("SELECT value FROM app_meta WHERE key='marketplace_released'");
-      if (settings[0]?.value !== 'true' && !user.is_test) return fail(res, 403, 'Avaliação não liberada.');
+      const retake = await sql().query('SELECT 1 FROM marketplace_retakes WHERE user_id=$1', [user.id]);
+      if (settings[0]?.value !== 'true' && !user.is_test && !retake[0]) return fail(res, 403, 'Avaliação não liberada.');
       let result;
       try { result = await gradeAssessment(data.answers); } catch (error) { return fail(res, 422, error.message); }
-      const rows = await sql().query(`INSERT INTO marketplace_submissions(user_id,answers,correct,score)
-        VALUES($1,$2::jsonb,$3::jsonb,$4) ON CONFLICT (user_id) DO NOTHING RETURNING score,submitted_at`,
+      const rows = await sql().query(`WITH submitted AS (
+        INSERT INTO marketplace_submissions(user_id,answers,correct,score)
+        VALUES($1,$2::jsonb,$3::jsonb,$4) ON CONFLICT (user_id) DO NOTHING RETURNING user_id,score,submitted_at
+      ), consumed AS (
+        DELETE FROM marketplace_retakes WHERE user_id IN (SELECT user_id FROM submitted) RETURNING user_id
+      ) SELECT score,submitted_at FROM submitted`,
         [user.id, JSON.stringify(data.answers), JSON.stringify(result.correct), result.score]);
       if (!rows[0]) return fail(res, 409, 'Avaliação já enviada.');
       return res.status(200).json({ submission: { ...rows[0], correct_count: result.correct.filter(Boolean).length, total_questions: QUESTIONS.length } });

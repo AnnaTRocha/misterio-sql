@@ -1,4 +1,5 @@
 import { api, escapeHtml, logout, requireSession } from './api-client.js';
+import { confirmInPage } from './confirm-dialog.js';
 
 let phaseCount = 0;
 const formatScore = value => new Intl.NumberFormat('pt-BR', { maximumFractionDigits: 1 }).format(Number(value || 0));
@@ -134,7 +135,7 @@ function renderStudents(students) {
       <td>${student.is_test ? '<span class="test-badge">SEM GRUPO</span>' : escapeHtml(student.group_code || 'Não informado')}</td>
       <td>${student.completed} / ${phaseCount}</td>
       <td>${student.current_phase ? `Fase ${String(student.current_phase).padStart(2, '0')}` : 'Curso concluído'}</td>
-      <td>${student.score == null ? 'Não enviada' : `${formatScore(student.score)}%`}</td>
+      <td class="assessment-student-cell">${student.score == null ? (student.retake_pending ? `Nova tentativa liberada${student.previous_score == null ? '' : `<br><span class="muted">Anterior: ${formatScore(student.previous_score)}%</span>`}` : 'Não enviada') : `${formatScore(student.score)}%<br><button type="button" class="retake-release" data-retake-user="${student.id}" data-retake-name="${escapeHtml(student.username)}">Liberar nova tentativa</button>`}</td>
       <td>${student.queries}</td>
       <td>${student.attempts}</td>
       <td>${student.last_login_at ? formatDate(student.last_login_at) : 'Sem acesso'}</td>
@@ -145,6 +146,20 @@ function renderStudents(students) {
         </label>
       </td>
     </tr>`).join('');
+
+  root.querySelectorAll('[data-retake-user]').forEach(button => button.addEventListener('click', async () => {
+    const confirmed = await confirmInPage({
+      title: 'Liberar nova tentativa?',
+      message: `A tentativa de ${button.dataset.retakeName} será guardada no histórico. O aluno poderá enviar uma nova avaliação.`,
+      confirmLabel: 'Liberar tentativa'
+    });
+    if (!confirmed) return;
+    button.disabled = true;
+    try {
+      await api('/api/teacher?action=marketplace-retake', { method: 'POST', body: { user_id: Number(button.dataset.retakeUser) } });
+      await load();
+    } catch (error) { button.disabled = false; alert(error.message); }
+  }));
 
   root.querySelectorAll('[data-test-user]').forEach(input => input.addEventListener('change', async () => {
     input.disabled = true;

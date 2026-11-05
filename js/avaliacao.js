@@ -29,8 +29,8 @@ async function load() {
   try {
     const user = await requireSession('student');
     if (!user) return;
-    const draftKey = `marketplace-draft:${user.id || user.username}`;
     const data = await api('/api/game?action=marketplace');
+    const draftKey = `marketplace-draft:${user.id || user.username}${data.retake_started_at ? `:${data.retake_started_at}` : ''}`;
     if (data.submission) {
       try { localStorage.removeItem(draftKey); } catch { /* armazenamento indisponível */ }
       root.innerHTML = `<section class="assessment-notice assessment-result"><span class="assessment-eyebrow">AVALIAÇÃO ENVIADA</span><h2>Seu resultado</h2><strong>${escapeHtml(data.submission.score)}%</strong><p>${escapeHtml(data.submission.correct_count)} de ${escapeHtml(data.submission.total_questions)} questões corretas.</p></section>`;
@@ -47,12 +47,6 @@ async function load() {
       <div class="assessment-section-heading"><div><span class="assessment-section-number">02 / BANCO DE DADOS</span><h2 id="schema-title">Estrutura do marketplace</h2></div><span class="schema-legend"><span><b class="schema-key pk">PK</b> chave primária</span><span><b class="schema-key fk">FK</b> chave estrangeira</span></span></div>
       <p class="schema-scroll-hint">Deslize para ver todas as tabelas →</p>
       <div class="schema-scroll" tabindex="0" role="region" aria-label="Diagrama das tabelas, role horizontalmente para ver todas"><div class="schema-diagram">${renderSchema(data.schema)}</div></div>
-      <div class="schema-relations"><strong>Relacionamentos</strong><ul>
-        <li><code>pedidos.id_cliente</code> → <code>clientes.id_cliente</code></li>
-        <li><code>itens_pedido.id_pedido</code> → <code>pedidos.id_pedido</code></li>
-        <li><code>itens_pedido.id_produto</code> → <code>produtos.id_produto</code></li>
-        <li><code>produtos.id_vendedor</code> → <code>vendedores.id_vendedor</code></li>
-      </ul></div>
     </section>
     <section class="assessment-questions" aria-labelledby="questions-title"><div class="assessment-section-heading"><div><span class="assessment-section-number">03 / QUESTÕES</span><h2 id="questions-title">Suas consultas</h2></div><span class="question-count">${data.questions.length} QUESTÕES</span></div>
       <form id="assessmentForm">${data.questions.map((question, i) => `<fieldset class="question-card"><legend class="sr-only">Questão ${i + 1}</legend><div class="question-header"><span>QUESTÃO ${String(i + 1).padStart(2, '0')}</span></div><label for="q${i}">${escapeHtml(question)}</label><div class="query-editor"><div class="query-editor-label"><span>CONSULTA SQL</span></div><textarea id="q${i}" name="q${i}" maxlength="5000" spellcheck="false" placeholder="Escreva sua consulta aqui..."></textarea></div><div class="question-actions"><button type="button" class="run-query" data-preview="${i}"><span aria-hidden="true">▶</span> Executar consulta</button></div><div class="query-result" id="result${i}" aria-live="polite"></div></fieldset>`).join('')}

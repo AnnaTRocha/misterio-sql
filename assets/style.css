@@ -850,3 +850,16 @@ footer span {
 .assessment-page textarea { display: block; width: 100%; min-height: 6rem; margin-top: .6rem; padding: .7rem; font: 1rem monospace; }
 .assessment-page code { overflow-wrap: anywhere; }
 .assessment-page button { padding: .7rem 1rem; cursor: pointer; }
+.assessment-student-cell { min-width:160px; }
+.retake-release { margin-top:7px; padding:6px 9px; border:1px solid #77877a; border-radius:3px; background:#f7faf7; color:#234b35; font-size:11px; font-weight:700; cursor:pointer; }
+.retake-release:disabled { opacity:.6; cursor:wait; }
+.teacher-dialog { width:min(480px,calc(100% - 32px)); padding:26px; border:1px solid #77877a; border-radius:5px; background:#fff; color:#182d20; box-shadow:0 12px 40px #0005; }
+.teacher-dialog::backdrop { background:#000a; }
+.teacher-dialog h2 { margin:0 0 12px; font:700 26px Georgia,serif; }
+.teacher-dialog p { line-height:1.5; }
+.teacher-dialog-actions { display:flex; flex-wrap:wrap; justify-content:flex-end; gap:10px; margin-top:24px; }
+.teacher-dialog-actions button { padding:10px 14px; border:1px solid #77877a; border-radius:3px; background:#fff; color:#182d20; font-weight:700; cursor:pointer; }
+.teacher-dialog-actions #confirmationAccept { background:#245c3e; color:#fff; }
+html[data-color-theme="dark"] body:not(.crt-page) .retake-release { background:#284432; color:#ecfff2; border-color:#9ab5a0; }
+html[data-color-theme="dark"] body:not(.crt-page) .teacher-dialog { background:#252d27; color:#f0f2ec; }
+html[data-color-theme="dark"] body:not(.crt-page) .teacher-dialog-actions button { background:#38493c; color:#fff; }
