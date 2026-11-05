@@ -1,0 +1,11 @@
+PRAGMA foreign_keys=ON;
+CREATE TABLE clientes (id_cliente INTEGER CONSTRAINT pk_clientes PRIMARY KEY, nome TEXT NOT NULL, cidade TEXT NOT NULL);
+CREATE TABLE vendedores (id_vendedor INTEGER CONSTRAINT pk_vendedores PRIMARY KEY, nome TEXT NOT NULL);
+CREATE TABLE produtos (id_produto INTEGER CONSTRAINT pk_produtos PRIMARY KEY, nome TEXT NOT NULL, categoria TEXT NOT NULL, preco REAL NOT NULL, id_vendedor INTEGER NOT NULL CONSTRAINT fk_produtos_id_vendedor REFERENCES vendedores(id_vendedor));
+CREATE TABLE pedidos (id_pedido INTEGER CONSTRAINT pk_pedidos PRIMARY KEY, id_cliente INTEGER NOT NULL CONSTRAINT fk_pedidos_id_cliente REFERENCES clientes(id_cliente), data_pedido TEXT NOT NULL, status TEXT NOT NULL);
+CREATE TABLE itens_pedido (id_item_pedido INTEGER CONSTRAINT pk_itens_pedido PRIMARY KEY, id_pedido INTEGER NOT NULL CONSTRAINT fk_itens_pedido_id_pedido REFERENCES pedidos(id_pedido), id_produto INTEGER NOT NULL CONSTRAINT fk_itens_pedido_id_produto REFERENCES produtos(id_produto), quantidade INTEGER NOT NULL, preco_unitario REAL NOT NULL);
+INSERT INTO clientes VALUES (1,'Ana','Orleans'),(2,'Bruno','Tubarão'),(3,'Carla','Orleans'),(4,'Daniel','Criciúma'),(5,'Eva','Tubarão');
+INSERT INTO vendedores VALUES (1,'Loja Norte'),(2,'Casa Digital'),(3,'Papelaria Sul');
+INSERT INTO produtos VALUES (1,'Mouse','Eletrônicos',80,2),(2,'Teclado','Eletrônicos',150,2),(3,'Caderno','Papelaria',25,3),(4,'Caneta','Papelaria',5,3),(5,'Mochila','Acessórios',120,1),(6,'Fone','Eletrônicos',200,1);
+INSERT INTO pedidos VALUES (1,1,'2025-03-01','entregue'),(2,2,'2025-03-02','entregue'),(3,1,'2025-03-05','cancelado'),(4,3,'2025-03-10','entregue'),(5,4,'2025-04-01','pendente'),(6,2,'2025-04-02','entregue');
+INSERT INTO itens_pedido VALUES (1,1,1,2,80),(2,1,3,1,25),(3,2,2,1,150),(4,3,5,1,120),(5,4,4,4,5),(6,4,3,2,25),(7,5,6,1,200),(8,6,1,1,80),(9,6,5,1,120);

@@ -72,7 +72,7 @@ TEACHER_INITIAL_PASSWORD=uma-senha-aleatoria-com-12-ou-mais-caracteres
 
 ## Exercícios alinhados aos slides
 
-As Aulas 01 e 02 mantêm a investigação original e as respostas **1987** e **ORION**. Cada aula possui uma checagem conceitual curta, ligada aos slides, além da evidência SQL e do código. As alternativas aparecem como cartões acessíveis. A resposta correta é validada apenas no servidor. Atividades já concluídas permanecem concluídas. O aluno também pode escolher refazer uma fase concluída; isso limpa as consultas e respostas de prática da fase, mantendo a conclusão, a nota e as liberações.
+As Aulas 01 e 02 mantêm a investigação original e as respostas **1987** e **ORION**. Cada aula possui uma checagem conceitual curta, ligada aos slides, além da evidência SQL e do código. As alternativas aparecem como cartões acessíveis. A resposta correta é validada apenas no servidor. Atividades já concluídas permanecem concluídas. O aluno também pode escolher refazer uma fase concluída; isso limpa as consultas e respostas de prática da fase, mantendo a conclusão e as liberações.
 
 | Aula | Conteúdo dos slides | Investigação |
 | --- | --- | --- |
@@ -95,7 +95,7 @@ Na Vercel, `npm run build` publica somente HTML, CSS e JavaScript minificado em 
 
 ## Plano da turma conforme as nove aulas do Canva
 
-A turma está avançando para a Fase 04. O [plano de atividades](plano-aulas-04-a-09.html) relaciona as fases aos conteúdos das nove apresentações do Canva. O painel do professor controla separadamente a publicação desse plano e a liberação das fases. Na área dos estudantes, cada cartão identifica apenas o arquivo e a fase; os agrupamentos de avaliação ficam no painel do professor. As Fases 07 e 08 podem ser feitas em outro momento, depois do conteúdo correspondente; a plataforma exige completar 05 e 06 antes. O progresso não deve ser reiniciado. A organização de atividades posteriores à Aula 09 permanece para definição.
+A turma está avançando para a Fase 04. O [plano de atividades](plano-aulas-04-a-09.html) relaciona as fases aos conteúdos das nove apresentações do Canva. O painel do professor controla separadamente a publicação desse plano e a liberação das fases. Na área dos estudantes, cada cartão identifica apenas o arquivo e a fase; a avaliação separada fica disponível após liberação pelo professor. As Fases 07 e 08 podem ser feitas em outro momento, depois do conteúdo correspondente; a plataforma exige completar 05 e 06 antes. O progresso não deve ser reiniciado. A avaliação de marketplace é independente das fases.
 
 ## Arquitetura narrativa do curso
 
@@ -110,19 +110,9 @@ As Fases 1 e 2 preservam as respostas já utilizadas pelos estudantes. A Fase 3 
 
 As fases 04 a 09 começam bloqueadas para liberação pelo professor. A Fase 03 preserva o estado de liberação já definido pelo professor.
 
-### Avaliações
+### Avaliação de marketplace
 
-As nove fases formam cinco exercícios avaliativos:
-
-| Avaliação | Fases | Peso |
-| --- | --- | ---: |
-| Exercício 01 | 1–2 | 15% |
-| Exercício 02 | 3–4 | 15% |
-| Exercício 03 | 5–6 | 15% |
-| Exercício 04 | 7–8 | 15% |
-| Exercício 05 | 9 | 40% |
-
-Cada fase concluída nos quatro primeiros exercícios vale 7,5 pontos; a Fase 09 vale 40 pontos quando concluída. A API e os painéis usam os mesmos agrupamentos. Para acessar a Fase 09, o aluno precisa completar as Fases 01–08, atingir 60 pontos e validar o protocolo final **3301**.
+As fases 1 a 9 são atividades de aprendizagem e não geram nota. A seção Avaliação oferece 12 questões individuais de consultas SQL sobre clientes, vendedores, produtos, pedidos e itens. O professor controla sua liberação no painel. O estudante pode executar consultas no banco de exemplo e enviar uma única vez; cada questão tem o mesmo peso e a nota é a proporção de resultados corretos. A correção compara as colunas na ordem solicitada e ignora a ordem das linhas, exceto quando o enunciado pede ordenação. Consultas inválidas ou em branco contam como incorretas. A nota e as respostas enviadas são armazenadas separadamente do progresso das fases. A fase 9 continua sujeita à liberação e à conclusão da fase anterior, sem exigência de pontuação ou protocolo de acesso.
 
 ### Identidades do ARG
 

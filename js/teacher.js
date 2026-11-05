@@ -3,14 +3,6 @@ import { api, escapeHtml, logout, requireSession } from './api-client.js';
 let phaseCount = 0;
 const formatScore = value => new Intl.NumberFormat('pt-BR', { maximumFractionDigits: 1 }).format(Number(value || 0));
 
-const ASSESSMENTS = [
-  { title: 'Exercício 01', start: 1, end: 2, weight: 15 },
-  { title: 'Exercício 02', start: 3, end: 4, weight: 15 },
-  { title: 'Exercício 03', start: 5, end: 6, weight: 15 },
-  { title: 'Exercício 04', start: 7, end: 8, weight: 15 },
-  { title: 'Exercício 05', start: 9, end: 9, weight: 40 }
-];
-
 async function load() {
   try {
     const user = await requireSession('teacher');
@@ -19,7 +11,7 @@ async function load() {
     const data = await api('/api/teacher?action=overview');
     phaseCount = data.phases.length;
     renderPhases(data.phases);
-    renderAssessments();
+    renderAssessments(data.marketplace_released);
     renderActivityPlanVisibility(data.activity_plan_public);
     renderResets(data.resets);
     renderStudents(data.students);
@@ -52,25 +44,16 @@ function renderPhases(phases) {
   }));
 }
 
-function renderAssessments() {
+function renderAssessments(released) {
   const root = document.getElementById('assessmentAdmin');
-  root.innerHTML = ASSESSMENTS.map(assessment => {
-    const firstPhase = String(assessment.start).padStart(2, '0');
-    const lastPhase = String(assessment.end).padStart(2, '0');
-    const phaseLabel = assessment.start === assessment.end
-      ? `Fase ${firstPhase}`
-      : `Fases ${firstPhase} e ${lastPhase}`;
-    const scoreLabel = assessment.start === assessment.end
-      ? `${assessment.weight} pontos ao concluir a fase`
-      : `${formatScore(assessment.weight / 2)} pontos por fase concluída`;
-
-    return `
-      <article class="admin-card">
-        <strong>${escapeHtml(assessment.title)} · ${assessment.weight} pontos</strong>
-        <span>Avalia ${phaseLabel}</span>
-        <span>${scoreLabel}</span>
-      </article>`;
-  }).join('');
+  root.innerHTML = `<article class="admin-card"><strong>Consultas SQL · Marketplace</strong><span>12 questões · envio único · resultado de 0 a 100%</span><label class="switch-row"><input type="checkbox" id="marketplaceRelease" ${released ? 'checked' : ''}> Avaliação liberada</label></article>`;
+  const input = root.querySelector('#marketplaceRelease');
+  input.addEventListener('change', async () => {
+    input.disabled = true;
+    try { await api('/api/teacher?action=marketplace-release', { method: 'POST', body: { released: input.checked } }); }
+    catch (error) { input.checked = !input.checked; alert(error.message); }
+    finally { input.disabled = false; }
+  });
 }
 
 function renderActivityPlanVisibility(isPublic) {
@@ -151,7 +134,7 @@ function renderStudents(students) {
       <td>${student.is_test ? '<span class="test-badge">SEM GRUPO</span>' : escapeHtml(student.group_code || 'Não informado')}</td>
       <td>${student.completed} / ${phaseCount}</td>
       <td>${student.current_phase ? `Fase ${String(student.current_phase).padStart(2, '0')}` : 'Curso concluído'}</td>
-      <td>${formatScore(student.score)}%</td>
+      <td>${student.score == null ? 'Não enviada' : `${formatScore(student.score)}%`}</td>
       <td>${student.queries}</td>
       <td>${student.attempts}</td>
       <td>${student.last_login_at ? formatDate(student.last_login_at) : 'Sem acesso'}</td>

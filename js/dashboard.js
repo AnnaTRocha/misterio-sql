@@ -13,7 +13,6 @@ const PHASE_META = {
   9: { theme: 'nosql' }
 };
 
-const formatScore = value => new Intl.NumberFormat('pt-BR', { maximumFractionDigits: 1 }).format(Number(value || 0));
 
 async function startBootSequence() {
   const dialog = document.getElementById('bootSequence');
@@ -82,7 +81,7 @@ async function load() {
     if (!user) return;
 
     document.getElementById('username').textContent = user.username;
-    const { phases, progress, identity, assessment } = await api('/api/game?action=dashboard');
+    const { phases, progress, identity } = await api('/api/game?action=dashboard');
     const progressByPhase = Object.fromEntries(progress.map(item => [Number(item.phase_id), item]));
 
     const completed = new Set(progress.filter(item => item.status === 'completed').map(item => Number(item.phase_id))).size;
@@ -91,11 +90,11 @@ async function load() {
     const identityText = identity
       ? `${escapeHtml(identity.alias)} · ${escapeHtml(user.is_test ? 'USUÁRIO TESTE' : (identity.group_code || 'SEM GRUPO'))}`
       : 'IDENTIDADE PENDENTE';
-    const score = Number(assessment?.score || 0);
+
     document.getElementById('summary').innerHTML = `
       <strong>${String(completed).padStart(2, '0')} / ${String(phases.length).padStart(2, '0')}</strong>
       <span>fases concluídas</span>
-      <span class="arg-identity">${identityText} · pontuação ${formatScore(score)}%</span>
+      <span class="arg-identity">${identityText}</span>
       <div><i style="width:${percent}%"></i></div>`;
 
     document.getElementById('phases').innerHTML = phases.map(phase => {
@@ -103,23 +102,14 @@ async function load() {
       const item = progressByPhase[Number(phase.id)];
       const done = item?.status === 'completed';
       const started = item?.status === 'in_progress';
-      const finalGate = !user.is_test && Number(phase.id) === 9 && !assessment?.final_eligible;
-      const protocolGate = !user.is_test && Number(phase.id) === 9 && assessment?.final_eligible && !assessment?.final_protocol_unlocked;
       const previousGate = !user.is_test && Number(phase.id) >= 3 && progressByPhase[Number(phase.id) - 1]?.status !== 'completed';
-      const locked = !phase.developed || (!user.is_test && !phase.released) || finalGate || protocolGate || previousGate;
+      const locked = !phase.developed || (!user.is_test && !phase.released) || previousGate;
 
       let action = '';
       if (!phase.developed) {
         action = '<span class="phase-state">[ arquivo ainda não recuperado ]</span>';
-      } else if (finalGate) {
-        action = '<span class="phase-state">[ exige 60% acumulados ]</span>';
       } else if (previousGate) {
         action = '<span class="phase-state">[ conclua o arquivo anterior ]</span>';
-      } else if (protocolGate) {
-        action = `<form class="final-protocol" data-final-protocol>
-          <input name="protocol" inputmode="numeric" maxlength="4" placeholder="PROTOCOLO" required>
-          <button type="submit">VALIDAR</button>
-        </form>`;
       } else if (!user.is_test && !phase.released) {
         action = '<span class="phase-state">[ bloqueado pelo professor ]</span>';
       } else {
@@ -136,21 +126,6 @@ async function load() {
     }).join('');
     animateRecentUnlock(user.username);
 
-    document.querySelectorAll('[data-final-protocol]').forEach(form => {
-      form.addEventListener('submit', async event => {
-        event.preventDefault();
-        const protocol = new FormData(form).get('protocol');
-        try {
-          await api('/api/game?action=unlock-final', {
-            method: 'POST',
-            body: { protocol }
-          });
-          await load();
-        } catch (error) {
-          alert(error.message);
-        }
-      });
-    });
   } catch (error) {
     document.getElementById('phases').innerHTML =
       `<div class="form-message error">Falha ao carregar os arquivos: ${escapeHtml(error.message)}</div>`;

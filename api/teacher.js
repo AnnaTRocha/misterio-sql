@@ -4,7 +4,6 @@ import { requireUser } from '../server/auth.js';
 import { action, body, fail, method } from '../server/http.js';
 import { getActivityPlanVisibility, setActivityPlanVisibility } from '../server/activity-plan.js';
 import {
-  assessmentScores,
   ensureArgFoundation,
   reorganizeGroups,
   setStudentTestStatus
@@ -55,10 +54,11 @@ export default async function handler(req, res) {
         student.current_phase = student.current_phase ? Number(student.current_phase) : null;
       }
 
-      const scores = await assessmentScores(students.map(student => Number(student.id)));
-      for (const student of students) {
-        student.score = scores.get(Number(student.id)) || 0;
-      }
+      const scores = await sql().query('SELECT user_id, score FROM marketplace_submissions');
+      const scoreByUser = new Map(scores.map(row => [Number(row.user_id), Number(row.score)]));
+      for (const student of students) student.score = scoreByUser.has(Number(student.id)) ? scoreByUser.get(Number(student.id)) : null;
+      const settings = await sql().query("SELECT value FROM app_meta WHERE key='marketplace_released'");
+      const marketplaceReleased = settings[0]?.value === 'true';
 
       const resets = await sql().query(`
         SELECT r.id,r.user_id,r.requested_at,u.username
@@ -68,11 +68,17 @@ export default async function handler(req, res) {
         ORDER BY r.requested_at
       `);
       const activityPlanPublic = await getActivityPlanVisibility();
-      return res.status(200).json({ phases, students, resets, activity_plan_public: activityPlanPublic });
+      return res.status(200).json({ phases, students, resets, activity_plan_public: activityPlanPublic, marketplace_released: marketplaceReleased });
     }
 
     if (!method(req, res, ['POST'])) return;
     const data = body(req);
+
+    if (op === 'marketplace-release') {
+      if (typeof data.released !== 'boolean') return fail(res, 422, 'Informe a situação da avaliação.');
+      await sql().query("INSERT INTO app_meta(key,value) VALUES('marketplace_released',$1) ON CONFLICT (key) DO UPDATE SET value=EXCLUDED.value", [String(data.released)]);
+      return res.status(200).json({ ok: true });
+    }
 
     if (op === 'activity-plan-visibility') {
       if (typeof data.is_public !== 'boolean') {

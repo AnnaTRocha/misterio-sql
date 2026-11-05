@@ -843,3 +843,10 @@ footer span {
 .teacher-guidance li{margin-bottom:9px;line-height:1.55}
 .recovery-footer{margin-top:26px}
 @media(max-width:650px){.assessment-list{grid-template-columns:1fr}.recovery-table{min-width:650px}}
+
+.assessment-page { max-width: 920px; margin: 2rem auto; padding: 0 1.25rem 4rem; }
+.assessment-page fieldset { margin: 1.25rem 0; padding: 1rem; border: 1px solid #667; }
+.assessment-page legend { font-weight: bold; padding: 0 .4rem; }
+.assessment-page textarea { display: block; width: 100%; min-height: 6rem; margin-top: .6rem; padding: .7rem; font: 1rem monospace; }
+.assessment-page code { overflow-wrap: anywhere; }
+.assessment-page button { padding: .7rem 1rem; cursor: pointer; }

@@ -105,6 +105,12 @@ export async function ensureSchema() {
       value TEXT NOT NULL
     )`);
 
+    await db.query(`CREATE TABLE IF NOT EXISTS marketplace_submissions (
+      user_id BIGINT PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
+      answers JSONB NOT NULL, correct JSONB NOT NULL, score NUMERIC(5,2) NOT NULL,
+      submitted_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    )`);
+
     const professor = await db.query(`SELECT id, password_hash FROM users WHERE LOWER(username)='professor' LIMIT 1`);
     if (!professor[0]) {
       const initialPassword = process.env.TEACHER_INITIAL_PASSWORD;

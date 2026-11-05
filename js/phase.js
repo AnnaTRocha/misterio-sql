@@ -257,16 +257,16 @@ function renderFinish() {
 function renderRetakeControl() {
   if (isTestUser || !alreadyCompleted) return '';
   if (retakeActive) {
-    return '<p class="concept-confirmed">Nova tentativa em andamento. Sua maior nota e as fases liberadas estão preservadas.</p>';
+    return '<p class="concept-confirmed">Nova tentativa em andamento. Sua conclusão e as fases liberadas estão preservadas.</p>';
   }
-  return '<div class="retake-option"><p>Você pode praticar novamente. A maior nota, a conclusão e as fases liberadas serão mantidas.</p><button id="retakeBtn" class="primary-btn" type="button">Refazer atividade</button><p id="retakeFeedback" class="retake-feedback" role="alert" aria-live="assertive"></p></div>';
+  return '<div class="retake-option"><p>Você pode praticar novamente. A conclusão e as fases liberadas serão mantidas.</p><button id="retakeBtn" class="primary-btn" type="button">Refazer atividade</button><p id="retakeFeedback" class="retake-feedback" role="alert" aria-live="assertive"></p></div>';
 }
 
 async function startRetake(event) {
   const button = event.currentTarget;
   if (!await confirmInPage({
     title: 'Refazer atividade',
-    message: 'As consultas e respostas de prática desta fase serão apagadas. A maior nota, a conclusão e as fases liberadas serão mantidas.',
+    message: 'As consultas e respostas de prática desta fase serão apagadas. A conclusão e as fases liberadas serão mantidas.',
     confirmLabel: 'Apagar e refazer'
   })) return;
   button.disabled = true;

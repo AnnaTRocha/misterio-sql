@@ -1,8 +1,9 @@
 import crypto from 'node:crypto';
+import { QUESTIONS, SCHEMA, gradeAssessment, previewMarketplace } from '../server/marketplace-assessment.js';
 import { ensureProgress, ensureSchema, sql } from '../server/db.js';
 import { requireUser } from '../server/auth.js';
 import { action, body, fail, method } from '../server/http.js';
-import { addTeamEvidence, argIdentityForUser, assessmentIdForPhase, assessmentSummary, ensureArgFoundation, listTeamEvidence, normalizeTeamEvidenceInput, unlockFinalProtocol } from '../server/arg.js';
+import { addTeamEvidence, argIdentityForUser, assessmentIdForPhase, ensureArgFoundation, listTeamEvidence, normalizeTeamEvidenceInput, unlockFinalProtocol } from '../server/arg.js';
 import { allowedStatement, evaluateChallenge, executeArchiveQuery, inspectArchiveSchema, LESSONS, previewInitialQuery } from '../server/challenges.js';
 import { consumeRateLimit } from '../server/rate-limit.js';
 import { CONCEPTS, publicConcept } from '../server/concepts.js';
@@ -35,11 +36,15 @@ export default async function handler(req, res) {
         'SELECT * FROM progress WHERE user_id=$1 ORDER BY phase_id',
         [user.id]
       );
-      const [identity, assessment] = await Promise.all([
-        argIdentityForUser(user.id),
-        assessmentSummary(user.id)
-      ]);
-      return res.status(200).json({ phases, progress, identity, assessment });
+      const identity = await argIdentityForUser(user.id);
+      return res.status(200).json({ phases, progress, identity });
+    }
+
+    if (op === 'marketplace' && req.method === 'GET') {
+      const settings = await sql().query("SELECT value FROM app_meta WHERE key='marketplace_released'");
+      const released = settings[0]?.value === 'true' || user.is_test;
+      const rows = await sql().query('SELECT answers, correct, score, submitted_at FROM marketplace_submissions WHERE user_id=$1', [user.id]);
+      return res.status(200).json({ released, submission: rows[0] || null, ...(released ? { questions: QUESTIONS.map(([prompt]) => prompt), schema: SCHEMA } : {}) });
     }
 
     if (op === 'test-tools' && req.method === 'GET') {
@@ -73,6 +78,26 @@ export default async function handler(req, res) {
     if (limits[op] && !(await consumeRateLimit(user.id, op, limits[op]))) {
       res.setHeader('Retry-After', '60');
       return fail(res, 429, 'Muitas tentativas em pouco tempo. Aguarde um minuto.');
+    }
+
+    if (op === 'marketplace-query') {
+      const settings = await sql().query("SELECT value FROM app_meta WHERE key='marketplace_released'");
+      if (settings[0]?.value !== 'true' && !user.is_test) return fail(res, 403, 'Avaliação não liberada.');
+      if (!(await consumeRateLimit(user.id, op, 12))) return fail(res, 429, 'Muitas consultas. Aguarde um minuto.');
+      try { return res.status(200).json({ result: await previewMarketplace(data.query) }); }
+      catch (error) { return fail(res, 422, `Consulta inválida: ${error.message}`); }
+    }
+
+    if (op === 'marketplace-submit') {
+      const settings = await sql().query("SELECT value FROM app_meta WHERE key='marketplace_released'");
+      if (settings[0]?.value !== 'true' && !user.is_test) return fail(res, 403, 'Avaliação não liberada.');
+      let result;
+      try { result = await gradeAssessment(data.answers); } catch (error) { return fail(res, 422, error.message); }
+      const rows = await sql().query(`INSERT INTO marketplace_submissions(user_id,answers,correct,score)
+        VALUES($1,$2::jsonb,$3::jsonb,$4) ON CONFLICT (user_id) DO NOTHING RETURNING score,correct,submitted_at`,
+        [user.id, JSON.stringify(data.answers), JSON.stringify(result.correct), result.score]);
+      if (!rows[0]) return fail(res, 409, 'Avaliação já enviada.');
+      return res.status(200).json({ submission: rows[0] });
     }
 
     if (op === 'unlock-final') {
@@ -374,10 +399,6 @@ async function challengeState(userId, phaseId) {
 
 async function availablePhase(phaseId, user) {
   if (!Number.isInteger(phaseId) || phaseId < 1 || phaseId > 9) return null;
-  if (!user.is_test && phaseId === 9) {
-    const assessment = await assessmentSummary(user.id);
-    if (!assessment.final_eligible || !assessment.final_protocol_unlocked) return null;
-  }
   if (!user.is_test && phaseId >= 3) {
     const previous = phaseId === 3
       ? await sql().query(`SELECT 1 FROM progress WHERE user_id=$1 AND phase_id=2 AND status='completed' LIMIT 1`, [user.id])
