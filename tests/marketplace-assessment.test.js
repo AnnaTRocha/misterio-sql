@@ -5,7 +5,7 @@ import { QUESTIONS, gradeAssessment, previewMarketplace } from '../server/market
 test('consultas de referência e variações corretas recebem nota integral', async () => {
   const answers = QUESTIONS.map(q => q[1]);
   answers[0] = 'SELECT nome AS cliente, cidade AS localidade FROM clientes ORDER BY nome DESC';
-  answers[8] = 'SELECT nome FROM clientes WHERE id_cliente NOT IN (SELECT id_cliente FROM pedidos)';
+  answers[8] = 'SELECT nome FROM clientes WHERE id_cliente NOT IN (SELECT cliente_id FROM pedidos)';
   const result = await gradeAssessment(answers);
   assert.equal(result.score, 100);
   assert.ok(result.correct.every(Boolean));
@@ -34,4 +34,24 @@ test('o esquema anunciado corresponde às colunas reais e inclui atributos adici
   }
   assert.equal((await previewMarketplace('SELECT email, telefone, data_cadastro FROM clientes'))[0].values.length, 5);
   assert.equal((await previewMarketplace('SELECT descricao, estoque, ativo FROM produtos'))[0].values.length, 6);
+});
+
+test('as chaves estrangeiras seguem o padrão e apontam para as chaves primárias', async () => {
+  const { readFile } = await import('node:fs/promises');
+  const { default: initSqlJs } = await import('sql.js/dist/sql-asm.js');
+  const SQL = await initSqlJs();
+  const db = new SQL.Database();
+  try {
+    db.run(await readFile(new URL('../server/marketplace.sql', import.meta.url), 'utf8'));
+    for (const [table, column, target, targetColumn] of [
+      ['pedidos', 'cliente_id', 'clientes', 'id_cliente'],
+      ['produtos', 'vendedor_id', 'vendedores', 'id_vendedor'],
+      ['itens_pedido', 'pedido_id', 'pedidos', 'id_pedido'],
+      ['itens_pedido', 'produto_id', 'produtos', 'id_produto']
+    ]) {
+      const relations = db.exec(`PRAGMA foreign_key_list(${table})`)[0].values;
+      assert.ok(relations.some(row => row[2] === target && row[3] === column && row[4] === targetColumn));
+    }
+    assert.deepEqual(db.exec('PRAGMA foreign_key_check'), []);
+  } finally { db.close(); }
 });

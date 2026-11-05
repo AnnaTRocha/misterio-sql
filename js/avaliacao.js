@@ -5,7 +5,7 @@ const root = document.getElementById('assessmentContent');
 // As colunas vêm da API; esta ordem coloca as tabelas relacionadas lado a lado.
 const diagramOrder = ['clientes', 'pedidos', 'itens_pedido', 'produtos', 'vendedores'];
 const foreignKeys = {
-  pedidos: ['id_cliente'], itens_pedido: ['id_pedido', 'id_produto'], produtos: ['id_vendedor']
+  pedidos: ['cliente_id'], itens_pedido: ['pedido_id', 'produto_id'], produtos: ['vendedor_id']
 };
 const primaryKeys = {
   clientes: 'id_cliente', pedidos: 'id_pedido', itens_pedido: 'id_item_pedido',

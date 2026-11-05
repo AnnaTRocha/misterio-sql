@@ -12,17 +12,17 @@ export const QUESTIONS = [
   ['Retorne nome e preço dos produtos, do maior para o menor preço.', 'SELECT nome, preco FROM produtos ORDER BY preco DESC', true],
   ['Quantos pedidos estão com status entregue? Retorne apenas a quantidade.', "SELECT COUNT(*) FROM pedidos WHERE status='entregue'"],
   ['Retorne a cidade e a quantidade de clientes de cada cidade.', 'SELECT cidade, COUNT(*) FROM clientes GROUP BY cidade'],
-  ['Retorne o número do pedido e o nome do cliente para todos os pedidos.', 'SELECT p.id_pedido, c.nome FROM pedidos p JOIN clientes c ON c.id_cliente=p.id_cliente'],
-  ['Liste o nome dos clientes que não fizeram pedidos.', 'SELECT c.nome FROM clientes c LEFT JOIN pedidos p ON p.id_cliente=c.id_cliente WHERE p.id_pedido IS NULL'],
-  ['Para cada pedido entregue, mostre o número e o valor total dos itens. Calcule o total multiplicando a quantidade pelo preço unitário de cada item.', "SELECT p.id_pedido, SUM(i.quantidade*i.preco_unitario) FROM pedidos p JOIN itens_pedido i ON i.id_pedido=p.id_pedido WHERE p.status='entregue' GROUP BY p.id_pedido"],
+  ['Retorne o número do pedido e o nome do cliente para todos os pedidos.', 'SELECT p.id_pedido, c.nome FROM pedidos p JOIN clientes c ON c.id_cliente=p.cliente_id'],
+  ['Liste o nome dos clientes que não fizeram pedidos.', 'SELECT c.nome FROM clientes c LEFT JOIN pedidos p ON p.cliente_id=c.id_cliente WHERE p.id_pedido IS NULL'],
+  ['Para cada pedido entregue, mostre o número e o valor total dos itens. Calcule o total multiplicando a quantidade pelo preço unitário de cada item.', "SELECT p.id_pedido, SUM(i.quantidade*i.preco_unitario) FROM pedidos p JOIN itens_pedido i ON i.pedido_id=p.id_pedido WHERE p.status='entregue' GROUP BY p.id_pedido"],
   ['Retorne nome e preço dos produtos com preço acima da média de todos os produtos.', 'SELECT nome, preco FROM produtos WHERE preco > (SELECT AVG(preco) FROM produtos)'],
-  ['Mostre o nome de cada vendedor e a quantidade de produtos que ele cadastrou. Inclua apenas vendedores com mais de um produto.', 'SELECT v.nome, COUNT(*) FROM vendedores v JOIN produtos p ON p.id_vendedor=v.id_vendedor GROUP BY v.id_vendedor, v.nome HAVING COUNT(*) > 1']
+  ['Mostre o nome de cada vendedor e a quantidade de produtos que ele cadastrou. Inclua apenas vendedores com mais de um produto.', 'SELECT v.nome, COUNT(*) FROM vendedores v JOIN produtos p ON p.vendedor_id=v.id_vendedor GROUP BY v.id_vendedor, v.nome HAVING COUNT(*) > 1']
 ];
 export const SCHEMA = [
   'clientes(id_cliente, nome, cidade, email, telefone, data_cadastro)', 'vendedores(id_vendedor, nome, email, cidade, data_cadastro)',
-  'produtos(id_produto, nome, categoria, preco, id_vendedor, descricao, estoque, ativo)',
-  'pedidos(id_pedido, id_cliente, data_pedido, status, forma_pagamento, valor_frete)',
-  'itens_pedido(id_item_pedido, id_pedido, id_produto, quantidade, preco_unitario, desconto)'
+  'produtos(id_produto, nome, categoria, preco, vendedor_id, descricao, estoque, ativo)',
+  'pedidos(id_pedido, cliente_id, data_pedido, status, forma_pagamento, valor_frete)',
+  'itens_pedido(id_item_pedido, pedido_id, produto_id, quantidade, preco_unitario, desconto)'
 ];
 function readQuery(query) {
   const cleaned = String(query || '').trim().replace(/;\s*$/, '');
