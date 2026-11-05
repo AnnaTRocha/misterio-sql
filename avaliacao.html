@@ -1,16 +1,30 @@
 <!doctype html>
 <html lang="pt-BR">
 <head>
-  <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
   <title>Avaliação SQL | Marketplace</title>
-  <link rel="icon" href="assets/favicon.svg"><link rel="stylesheet" href="assets/style.css"><link rel="stylesheet" href="assets/accessibility.css">
+  <link rel="icon" href="assets/favicon.svg">
+  <link rel="stylesheet" href="assets/style.css">
+  <link rel="stylesheet" href="assets/avaliacao.css">
+  <link rel="stylesheet" href="assets/accessibility.css">
+  <script src="js/accessibility.js" defer></script>
   <script type="module" src="js/avaliacao.js"></script>
 </head>
-<body>
+<body class="assessment-body">
+  <header class="assessment-nav">
+    <a class="assessment-brand" href="dashboard.html"><span>SQL</span> Área de aprendizagem</a>
+    <a class="assessment-back" href="dashboard.html">← Voltar às atividades</a>
+  </header>
   <main class="assessment-page">
-    <p><a href="dashboard.html">← Voltar às atividades</a></p>
-    <h1>Avaliação de SQL: marketplace</h1>
-    <div id="assessmentContent" aria-live="polite">Carregando avaliação...</div>
+    <div class="assessment-heading">
+      <div><span class="assessment-eyebrow">AVALIAÇÃO INDIVIDUAL <span aria-hidden="true"> / </span> SQL</span>
+        <h1>Consultas em um <em>marketplace.</em></h1>
+        <p>Use os dados de um marketplace para responder às questões com consultas SQL.</p>
+      </div>
+      <span class="assessment-heading-mark" aria-hidden="true">01 <small>/ SQL</small></span>
+    </div>
+    <div id="assessmentContent" aria-live="polite"><div class="assessment-notice">Carregando avaliação...</div></div>
   </main>
 </body>
 </html>
