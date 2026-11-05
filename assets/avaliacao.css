@@ -95,3 +95,12 @@ html[data-color-theme="dark"] body.assessment-body .result-table { color:#eef5ef
 html[data-color-theme="dark"] body.assessment-body .result-table th { background:#334a3b; color:#eef5ef; }
 html[data-color-theme="dark"] body.assessment-body .result-table :is(th,td) { border-color:#526b5d; }
 html[data-color-theme="dark"] body.assessment-body .assessment-submit { background:#304c3b; }
+.assessment-dialog { width:min(480px,calc(100% - 32px)); max-width:none; padding:0; border:1px solid var(--a-border); border-radius:6px; background:var(--a-surface); color:var(--a-ink); box-shadow:0 20px 70px #0006; }
+.assessment-dialog::backdrop { background:rgba(8,23,16,.72); }
+.assessment-dialog form { padding:30px; }
+.assessment-dialog h2 { margin:12px 0; color:var(--a-ink); font:700 28px/1.2 Georgia,serif; }
+.assessment-dialog p { color:var(--a-muted); line-height:1.6; }
+.assessment-dialog-actions { display:flex; justify-content:flex-end; flex-wrap:wrap; gap:10px; margin-top:24px; }
+.assessment-dialog-actions button { min-height:44px; padding:10px 15px; border:1px solid var(--a-border); border-radius:3px; background:var(--a-surface); color:var(--a-ink); font-weight:700; cursor:pointer; }
+.assessment-dialog-actions #confirmationAccept { border-color:#126254; background:#126254; color:#fff; }
+.assessment-dialog-actions button:focus-visible { outline:3px solid #d56223; outline-offset:3px; }

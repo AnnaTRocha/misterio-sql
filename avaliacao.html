@@ -20,11 +20,22 @@
     <div class="assessment-heading">
       <div><span class="assessment-eyebrow">AVALIAÇÃO INDIVIDUAL <span aria-hidden="true"> / </span> SQL</span>
         <h1>Consultas em um <em>marketplace.</em></h1>
-        <p>Use os dados de um marketplace para responder às questões com consultas SQL.</p>
+        <p>Resolva as questões usando o banco de dados apresentado.</p>
       </div>
       <span class="assessment-heading-mark" aria-hidden="true">01 <small>/ SQL</small></span>
     </div>
     <div id="assessmentContent" aria-live="polite"><div class="assessment-notice">Carregando avaliação...</div></div>
   </main>
+  <dialog id="confirmationDialog" class="assessment-dialog" aria-labelledby="confirmationTitle" aria-describedby="confirmationMessage">
+    <form method="dialog">
+      <span class="assessment-eyebrow">CONFIRMAÇÃO DE ENVIO</span>
+      <h2 id="confirmationTitle">Enviar avaliação?</h2>
+      <p id="confirmationMessage"></p>
+      <div class="assessment-dialog-actions">
+        <button type="submit" value="cancel" autofocus>Continuar revisando</button>
+        <button type="submit" value="confirm" id="confirmationAccept">Enviar avaliação</button>
+      </div>
+    </form>
+  </dialog>
 </body>
 </html>

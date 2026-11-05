@@ -43,8 +43,10 @@ export default async function handler(req, res) {
     if (op === 'marketplace' && req.method === 'GET') {
       const settings = await sql().query("SELECT value FROM app_meta WHERE key='marketplace_released'");
       const released = settings[0]?.value === 'true' || user.is_test;
-      const rows = await sql().query('SELECT answers, correct, score, submitted_at FROM marketplace_submissions WHERE user_id=$1', [user.id]);
-      return res.status(200).json({ released, submission: rows[0] || null, ...(released ? { questions: QUESTIONS.map(([prompt]) => prompt), schema: SCHEMA } : {}) });
+      const rows = await sql().query(`SELECT score, submitted_at,
+        (SELECT COUNT(*)::int FROM jsonb_array_elements(correct) AS item(value) WHERE value = 'true'::jsonb) AS correct_count
+        FROM marketplace_submissions WHERE user_id=$1`, [user.id]);
+      return res.status(200).json({ released, submission: rows[0] ? { ...rows[0], total_questions: QUESTIONS.length } : null, ...(released ? { questions: QUESTIONS.map(([prompt]) => prompt), schema: SCHEMA } : {}) });
     }
 
     if (op === 'test-tools' && req.method === 'GET') {
@@ -94,10 +96,10 @@ export default async function handler(req, res) {
       let result;
       try { result = await gradeAssessment(data.answers); } catch (error) { return fail(res, 422, error.message); }
       const rows = await sql().query(`INSERT INTO marketplace_submissions(user_id,answers,correct,score)
-        VALUES($1,$2::jsonb,$3::jsonb,$4) ON CONFLICT (user_id) DO NOTHING RETURNING score,correct,submitted_at`,
+        VALUES($1,$2::jsonb,$3::jsonb,$4) ON CONFLICT (user_id) DO NOTHING RETURNING score,submitted_at`,
         [user.id, JSON.stringify(data.answers), JSON.stringify(result.correct), result.score]);
       if (!rows[0]) return fail(res, 409, 'Avaliação já enviada.');
-      return res.status(200).json({ submission: rows[0] });
+      return res.status(200).json({ submission: { ...rows[0], correct_count: result.correct.filter(Boolean).length, total_questions: QUESTIONS.length } });
     }
 
     if (op === 'unlock-final') {
