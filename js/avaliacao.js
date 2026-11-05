@@ -41,7 +41,7 @@ async function load() {
       <div><span class="assessment-section-number">01 / ORIENTAÇÕES</span><h2 id="instructions-title">Antes de começar</h2>
         <p>Escreva uma consulta por questão e confira o resultado antes de enviar.</p></div>
       <div class="assessment-facts"><div><strong>${data.questions.length}</strong><span>questões de mesmo peso</span></div><div><strong>1</strong><span>envio definitivo</span></div><div><strong>SQL</strong><span>consultas relacionais</span></div></div>
-      <ul class="assessment-rules"><li>Consultas vazias ou inválidas contam como incorretas.</li><li>Retorne as colunas na ordem solicitada; ordene as linhas apenas quando solicitado.</li><li>O preço unitário é o preço registrado no pedido. O rascunho fica salvo neste navegador, quando disponível.</li></ul>
+      <ul class="assessment-rules"><li>Consultas vazias ou inválidas contam como incorretas.</li><li>Retorne as colunas na ordem pedida. Ordene as linhas apenas quando a questão solicitar.</li><li>O preço unitário é o preço registrado no pedido. O rascunho fica salvo neste navegador, quando disponível.</li></ul>
     </section>
     <section class="schema-section" aria-labelledby="schema-title">
       <div class="assessment-section-heading"><div><span class="assessment-section-number">02 / BANCO DE DADOS</span><h2 id="schema-title">Estrutura do marketplace</h2></div><span class="schema-legend"><span><b class="schema-key pk">PK</b> chave primária</span><span><b class="schema-key fk">FK</b> chave estrangeira</span></span></div>
